@@ -1218,12 +1218,12 @@ function AuthScreen({ onAuth }) {
   const [focused, setFocused] = useState("");
 
   async function handleEmail() {
-    if (!email || !password) { setError("Please fill in both fields."); return; }
+    if (!email || !password) { setError("Пожалуйста заполните оба поля."); return; }
     setLoading(true); setError(""); setMessage("");
     if (mode === "signup") {
       const { error: e } = await supabase.auth.signUp({ email, password });
       if (e) setError(e.message);
-      else setMessage("Check your email for a confirmation link.");
+      else setMessage("Проверьте почту - мы отправили вам ссылку");
     } else {
       const { error: e } = await supabase.auth.signInWithPassword({ email, password });
       if (e) setError(e.message);
@@ -1254,10 +1254,10 @@ function AuthScreen({ onAuth }) {
           <span style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800,color:C.text,letterSpacing:1}}>FORM16</span>
         </div>
         <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,color:C.text,marginBottom:8}}>
-          {mode==="login"?"Welcome back":"Create account"}
+          {mode==="login"?"С возвращением":"Создать аккуант"}
         </div>
         <div style={{fontSize:14,color:C.muted}}>
-          {mode==="login"?"Sign in to continue your journey":"Start your 16-week transformation"}
+          {mode==="login"?"Войдите, чтобы продолжить":"Начните 16-недельную трансформацию"}
         </div>
       </div>
 
@@ -1266,7 +1266,7 @@ function AuthScreen({ onAuth }) {
         onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
         onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}
       >
-        <span style={{fontSize:20}}>🔵</span> Continue with Google
+        <span style={{fontSize:20}}>🔵</span> Войти через Google
       </button>
 
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
@@ -1276,10 +1276,10 @@ function AuthScreen({ onAuth }) {
       </div>
 
       {/* Email + password */}
-      <input type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)}
+      <input type="email" placeholder="Электронная почта" value={email} onChange={e=>setEmail(e.target.value)}
         style={inputStyle("email")} onFocus={()=>setFocused("email")} onBlur={()=>setFocused("")}
       />
-      <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}
+      <input type="password" placeholder="Пароль" value={password} onChange={e=>setPassword(e.target.value)}
         style={inputStyle("password")} onFocus={()=>setFocused("password")} onBlur={()=>setFocused("")}
         onKeyDown={e=>e.key==="Enter"&&handleEmail()}
       />
@@ -1288,13 +1288,13 @@ function AuthScreen({ onAuth }) {
       {message && <div style={{fontSize:13,color:C.accent,marginBottom:12,background:C.accentDim,borderRadius:10,padding:"8px 12px"}}>{message}</div>}
 
       <button onClick={handleEmail} disabled={loading} style={{width:"100%",background:loading?C.dim:C.accent,color:loading?C.muted:C.bg,border:"none",borderRadius:16,padding:"16px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:loading?"default":"pointer",marginBottom:16}}>
-        {loading?"Loading…":mode==="login"?"Sign In":"Create Account"}
+        {loading?"Загрузка…":mode==="login"?"Войти":"Создать аккаунт"}
       </button>
 
       <div style={{textAlign:"center",fontSize:14,color:C.muted}}>
-        {mode==="login"?"Don't have an account? ":"Already have an account? "}
-        <span onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setMessage("");}} style={{color:C.accent,cursor:"pointer",fontWeight:700}}>
-          {mode==="login"?"Sign up":"Sign in"}
+        {mode==="login"?"Нет аккаунта? ":"Уже есть аккаунт? "}
+        <span onClick={()=>{setMode(mode==="login"?"Зарегистрироваться":"login");setError("");setMessage("");}} style={{color:C.accent,cursor:"pointer",fontWeight:700}}>
+          {mode==="login"?"Зарегистрироваться":"Войти"}
         </span>
       </div>
     </div>
