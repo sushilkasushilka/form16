@@ -1,6 +1,45 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "./supabase.js";
-import { useLang, LanguagePicker } from "./LangContext.jsx";
+import { createTranslator, LANGUAGES } from "./lang.js";
+
+// ─── INLINE LANGUAGE PICKER ───────────────────────────────────────────────────
+const CL = { bg:"#07090F",card:"#111520",border:"#1C2333",accent:"#C8F135",text:"#EEF2F7",muted:"#6B7A99" };
+
+function LanguagePicker({ onPick }) {
+  const [selected, setSelected] = useState("ru");
+  return (
+    <div style={{position:"fixed",inset:0,background:CL.bg,display:"flex",flexDirection:"column",justifyContent:"center",padding:"32px 28px",fontFamily:"'DM Sans',sans-serif",zIndex:9999}}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Syne:wght@700;800&display=swap');`}</style>
+      <div style={{textAlign:"center",marginBottom:48}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:10,background:CL.card,border:`1px solid ${CL.border}`,borderRadius:14,padding:"10px 18px",marginBottom:28}}>
+          <div style={{width:28,height:28,borderRadius:8,background:CL.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⚡</div>
+          <span style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:CL.text,letterSpacing:1}}>FORM16</span>
+        </div>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800,color:CL.text,marginBottom:10}}>
+          {selected==="ru"?"Выберите язык":"Choose your language"}
+        </div>
+        <div style={{fontSize:14,color:CL.muted}}>
+          {selected==="ru"?"Вы можете изменить это в профиле":"You can change this later in your profile"}
+        </div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:40}}>
+        {LANGUAGES.map(l=>(
+          <div key={l.code} onClick={()=>setSelected(l.code)} style={{background:selected===l.code?`${CL.accent}18`:CL.card,border:`2px solid ${selected===l.code?CL.accent:CL.border}`,borderRadius:20,padding:"20px 22px",cursor:"pointer",display:"flex",alignItems:"center",gap:18,transition:"all 0.18s"}}>
+            <span style={{fontSize:36}}>{l.flag}</span>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:700,fontSize:18,color:selected===l.code?CL.accent:CL.text}}>{l.label}</div>
+              <div style={{fontSize:13,color:CL.muted,marginTop:3}}>{l.code==="en"?"English":"Русский язык"}</div>
+            </div>
+            {selected===l.code&&<div style={{width:28,height:28,borderRadius:"50%",background:CL.accent,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:14,color:CL.bg,fontWeight:800}}>✓</span></div>}
+          </div>
+        ))}
+      </div>
+      <button onClick={()=>onPick(selected)} style={{width:"100%",background:CL.accent,color:CL.bg,border:"none",borderRadius:18,padding:"17px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>
+        {selected==="ru"?"Продолжить":"Continue"}
+      </button>
+    </div>
+  );
+}
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
@@ -1264,7 +1303,10 @@ function AuthScreen({ onAuth }) {
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App(){
-  const { lang, t, setLang, chosen } = useLang();
+  const [lang, setLangState] = useState(() => localStorage.getItem("form16_lang") || null);
+  const chosen = !!lang;
+  const t = createTranslator(lang || "ru");
+  function setLang(code) { localStorage.setItem("form16_lang", code); setLangState(code); }
   const [screen, setScreen]   = useState("loading");
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
