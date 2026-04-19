@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "./supabase.js";
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
@@ -672,7 +673,7 @@ function LogModal({profile,onSave,onClose}){
 // ═════════════════════════════════════════════════════════════════════════════
 // ─── MEMBER DASHBOARD ─────────────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
-function MemberDashboard({profile,setProfile,onBack}){
+function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
   const [tab,setTab]=useState("today");
   const [showLog,setShowLog]=useState(false);
   const [selectedWeek,setSelectedWeek]=useState(null);
@@ -689,7 +690,10 @@ function MemberDashboard({profile,setProfile,onBack}){
   const fsSyncData=profile.fsSyncData;
   const nutritionSource=fsSyncData&&profile.fsSyncedAt&&new Date(profile.fsSyncedAt).toISOString().split("T")[0]===todayStr()?fsSyncData:todayLog;
 
-  function saveLog(log){setProfile(p=>({...p,logs:[...p.logs.filter(l=>l.date!==log.date),log],streak:p.streak+1,totalXP:p.totalXP+(todayDayData?.xp||20)}));}
+  function handleSaveLog(log){
+    if(saveLog) saveLog(log);
+    else setProfile(p=>({...p,logs:[...(p.logs||[]).filter(l=>l.date!==log.date),log],streak:p.streak+1,totalXP:p.totalXP+20}));
+  }
 
   const TABS=[{id:"today",icon:"📊",label:"Today"},{id:"program",icon:"🗓",label:"Program"},{id:"progress",icon:"📈",label:"Progress"},{id:"profile",icon:"👤",label:"Profile"}];
 
@@ -703,9 +707,10 @@ function MemberDashboard({profile,setProfile,onBack}){
           {onBack&&<button onClick={onBack} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20,padding:0,marginRight:2}}>←</button>}
           <div style={{width:44,height:44,borderRadius:14,background:C.accentDim,border:`1.5px solid ${C.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{profile.avatar}</div>
           <div style={{flex:1}}><div style={{fontSize:12,color:C.muted}}>Welcome back</div><div style={{fontWeight:700,fontSize:16}}>{profile.name}</div></div>
-          <div style={{display:"flex",gap:12}}>
+          <div style={{display:"flex",gap:12,alignItems:"center"}}>
             <div style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.orange}}>🔥{profile.streak}</div><div style={{fontSize:10,color:C.muted}}>streak</div></div>
             <div style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.accent}}>⚡{profile.totalXP}</div><div style={{fontSize:10,color:C.muted}}>XP</div></div>
+            {onSignOut&&<button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:10,padding:"5px 10px",color:C.muted,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>Sign out</button>}
           </div>
         </div>
         <div style={{marginTop:14,display:"flex",alignItems:"center",gap:10}}>
@@ -940,7 +945,7 @@ function MemberDashboard({profile,setProfile,onBack}){
         {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.accent:C.dim,fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:0.3,padding:"5px 0",transition:"color 0.18s"}}><span style={{fontSize:20}}>{t.icon}</span>{t.label}</button>)}
       </div>
 
-      {showLog&&<LogModal profile={profile} onSave={log=>{saveLog(log);setShowLog(false);}} onClose={()=>setShowLog(false)}/>}
+      {showLog&&<LogModal profile={profile} onSave={log=>{handleSaveLog(log);setShowLog(false);}} onClose={()=>setShowLog(false)}/>}
       {selectedWeek&&<WeekDetailModal weekData={selectedWeek} profile={profile} onClose={()=>setSelectedWeek(null)}/>}
     </div>
   );
@@ -1159,11 +1164,256 @@ function Splash({onStart,onCoach}){
   );
 }
 
+// ─── AUTH SCREENS ─────────────────────────────────────────────────────────────
+
+function AuthScreen({ onAuth }) {
+  const [mode, setMode] = useState("login"); // login | signup
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [focused, setFocused] = useState("");
+
+  async function handleEmail() {
+    if (!email || !password) { setError("Please fill in both fields."); return; }
+    setLoading(true); setError(""); setMessage("");
+    if (mode === "signup") {
+      const { error: e } = await supabase.auth.signUp({ email, password });
+      if (e) setError(e.message);
+      else setMessage("Check your email for a confirmation link.");
+    } else {
+      const { error: e } = await supabase.auth.signInWithPassword({ email, password });
+      if (e) setError(e.message);
+    }
+    setLoading(false);
+  }
+
+  async function handleGoogle() {
+    setLoading(true); setError("");
+    const { error: e } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (e) { setError(e.message); setLoading(false); }
+  }
+
+  const inputStyle = (name) => ({
+    width:"100%", background:C.card, border:`1.5px solid ${focused===name?C.accent:C.border}`,
+    borderRadius:14, padding:"14px 16px", color:C.text, fontSize:15,
+    fontFamily:"'DM Sans',sans-serif", outline:"none", marginBottom:12,
+  });
+
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",justifyContent:"center",padding:"32px 28px"}}>
+      <div style={{textAlign:"center",marginBottom:36}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:10,background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"8px 16px",marginBottom:24}}>
+          <div style={{width:26,height:26,borderRadius:7,background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
+          <span style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800,color:C.text,letterSpacing:1}}>FORM16</span>
+        </div>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,color:C.text,marginBottom:8}}>
+          {mode==="login"?"Welcome back":"Create account"}
+        </div>
+        <div style={{fontSize:14,color:C.muted}}>
+          {mode==="login"?"Sign in to continue your journey":"Start your 16-week transformation"}
+        </div>
+      </div>
+
+      {/* Google button */}
+      <button onClick={handleGoogle} disabled={loading} style={{width:"100%",background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,padding:"14px",fontSize:15,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",color:C.text,display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16,transition:"border-color 0.2s"}}
+        onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
+        onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}
+      >
+        <span style={{fontSize:20}}>🔵</span> Continue with Google
+      </button>
+
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+        <div style={{flex:1,height:1,background:C.border}}/>
+        <span style={{fontSize:12,color:C.muted}}>or</span>
+        <div style={{flex:1,height:1,background:C.border}}/>
+      </div>
+
+      {/* Email + password */}
+      <input type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)}
+        style={inputStyle("email")} onFocus={()=>setFocused("email")} onBlur={()=>setFocused("")}
+      />
+      <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}
+        style={inputStyle("password")} onFocus={()=>setFocused("password")} onBlur={()=>setFocused("")}
+        onKeyDown={e=>e.key==="Enter"&&handleEmail()}
+      />
+
+      {error && <div style={{fontSize:13,color:C.red,marginBottom:12,background:C.redDim,borderRadius:10,padding:"8px 12px"}}>{error}</div>}
+      {message && <div style={{fontSize:13,color:C.accent,marginBottom:12,background:C.accentDim,borderRadius:10,padding:"8px 12px"}}>{message}</div>}
+
+      <button onClick={handleEmail} disabled={loading} style={{width:"100%",background:loading?C.dim:C.accent,color:loading?C.muted:C.bg,border:"none",borderRadius:16,padding:"16px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:loading?"default":"pointer",marginBottom:16}}>
+        {loading?"Loading…":mode==="login"?"Sign In":"Create Account"}
+      </button>
+
+      <div style={{textAlign:"center",fontSize:14,color:C.muted}}>
+        {mode==="login"?"Don't have an account? ":"Already have an account? "}
+        <span onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setMessage("");}} style={{color:C.accent,cursor:"pointer",fontWeight:700}}>
+          {mode==="login"?"Sign up":"Sign in"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App(){
-  const [screen,setScreen]=useState("splash");
-  const [profile,setProfile]=useState(null);
-  const [athletes,setAthletes]=useState(MOCK_ATHLETES);
+  const [screen, setScreen]   = useState("loading"); // loading | auth | onboarding | member | coach
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [athletes, setAthletes] = useState(MOCK_ATHLETES);
+
+  // ── Listen to auth state ──────────────────────────────────────────────────
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) loadProfile(session.user.id);
+      else setScreen("auth");
+    });
+
+    // Listen for changes (login, logout, OAuth redirect)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) loadProfile(session.user.id);
+      else { setScreen("auth"); setProfile(null); }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── Load profile from Supabase ────────────────────────────────────────────
+  async function loadProfile(userId) {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (error || !data) {
+      // No profile yet — send to onboarding
+      setScreen("onboarding");
+      return;
+    }
+
+    // Load daily logs
+    const { data: logs } = await supabase
+      .from("daily_logs")
+      .select("*")
+      .eq("user_id", userId)
+      .order("date", { ascending: true });
+
+    const fullProfile = {
+      ...data,
+      logs: (logs || []).map(l => ({
+        date: l.date,
+        weight: l.weight,
+        calories: l.calories,
+        protein: l.protein,
+        steps: l.steps,
+        fromFatSecret: l.from_fatsecret,
+      })),
+      dailyTargets: {
+        calories: data.daily_calories || 2000,
+        protein: data.daily_protein || 150,
+        steps: data.daily_steps || 10000,
+      },
+      foodLog: [],
+    };
+
+    setProfile(fullProfile);
+    setScreen("member");
+  }
+
+  // ── Save profile to Supabase (called after onboarding) ───────────────────
+  async function saveProfile(p) {
+    const userId = session.user.id;
+    const { error } = await supabase.from("profiles").upsert({
+      id: userId,
+      name: p.name,
+      avatar: p.avatar,
+      gender: p.gender,
+      age: p.age,
+      height: p.height,
+      weight: p.weight,
+      waist: p.waist,
+      neck: p.neck,
+      thigh: p.thigh,
+      goal: p.goal,
+      activity: p.activity,
+      stress: p.stress,
+      sleep: p.sleep,
+      diet_quality: p.dietQuality,
+      training: p.training,
+      training_exp: p.trainingExp,
+      bmi: p.bmi,
+      bfp: p.bfp,
+      tdee: p.tdee,
+      current_week: p.currentWeek || 1,
+      streak: p.streak || 0,
+      total_xp: p.totalXP || 0,
+      fatsecret_connected: p.fatsecretConnected || false,
+      joined_at: p.joinedAt || todayStr(),
+      daily_calories: p.dailyTargets?.calories,
+      daily_protein: p.dailyTargets?.protein,
+      daily_steps: p.dailyTargets?.steps,
+    });
+
+    if (!error) {
+      setProfile({ ...p, id: userId, logs: [], foodLog: [] });
+      setScreen("member");
+    }
+  }
+
+  // ── Update profile in Supabase ────────────────────────────────────────────
+  async function updateProfile(p) {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    setProfile(p);
+    await supabase.from("profiles").update({
+      current_week: p.currentWeek,
+      streak: p.streak,
+      total_xp: p.totalXP,
+      fatsecret_connected: p.fatsecretConnected,
+      daily_calories: p.dailyTargets?.calories,
+      daily_protein: p.dailyTargets?.protein,
+      daily_steps: p.dailyTargets?.steps,
+    }).eq("id", userId);
+  }
+
+  // ── Save daily log to Supabase ────────────────────────────────────────────
+  async function saveLog(log) {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    // Upsert — replaces existing log for same date
+    await supabase.from("daily_logs").upsert({
+      user_id: userId,
+      date: log.date,
+      weight: log.weight,
+      calories: log.calories,
+      protein: log.protein,
+      steps: log.steps,
+      from_fatsecret: log.fromFatSecret || false,
+    }, { onConflict: "user_id,date" });
+
+    // Update local state
+    setProfile(p => ({
+      ...p,
+      logs: [...(p.logs||[]).filter(l=>l.date!==log.date), log],
+      streak: p.streak + (p.logs?.at(-1)?.date !== todayStr() ? 1 : 0),
+      totalXP: p.totalXP + 20,
+    }));
+  }
+
+  // ── Sign out ──────────────────────────────────────────────────────────────
+  async function signOut() {
+    await supabase.auth.signOut();
+  }
+
   return (
     <>
       <style>{`
@@ -1181,12 +1431,45 @@ export default function App(){
         @keyframes pop{0%{transform:scale(0.6);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
       `}</style>
       <div style={{maxWidth:430,margin:"0 auto",color:C.text,minHeight:"100vh",background:C.bg}}>
-        {screen==="splash"&&<Splash onStart={()=>setScreen("signup")} onCoach={()=>setScreen("coach")}/>}
-        {screen==="signup"&&<SignUp onComplete={p=>{setProfile(p);setScreen("member");}} onBack={()=>setScreen("splash")}/>}
-        {screen==="member"&&profile&&<MemberDashboard profile={profile} setProfile={setProfile}/>}
-        {screen==="coach"&&<CoachDashboard athletes={athletes} setAthletes={setAthletes} onBack={()=>setScreen("splash")}/>}
+
+        {/* Loading */}
+        {screen==="loading" && (
+          <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
+            <div style={{width:26,height:26,borderRadius:7,background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
+            <div style={{fontSize:14,color:C.muted}}>Loading…</div>
+          </div>
+        )}
+
+        {/* Auth */}
+        {screen==="auth" && <AuthScreen onAuth={()=>{}} />}
+
+        {/* Onboarding — sign up flow */}
+        {screen==="onboarding" && (
+          <SignUp
+            onComplete={saveProfile}
+            onBack={async()=>{ await supabase.auth.signOut(); setScreen("auth"); }}
+          />
+        )}
+
+        {/* Main dashboard */}
+        {screen==="member" && profile && (
+          <MemberDashboard
+            profile={profile}
+            setProfile={updateProfile}
+            saveLog={saveLog}
+            onSignOut={signOut}
+          />
+        )}
+
+        {/* Coach dashboard */}
+        {screen==="coach" && (
+          <CoachDashboard
+            athletes={athletes}
+            setAthletes={setAthletes}
+            onBack={()=>setScreen("auth")}
+          />
+        )}
       </div>
     </>
   );
 }
-
