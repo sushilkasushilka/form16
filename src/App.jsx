@@ -1293,7 +1293,7 @@ function AuthScreen({ onAuth }) {
 
       <div style={{textAlign:"center",fontSize:14,color:C.muted}}>
         {mode==="login"?"Нет аккаунта? ":"Уже есть аккаунт? "}
-        <span onClick={()=>{setMode(mode==="login"?"Зарегистрироваться":"login");setError("");setMessage("");}} style={{color:C.accent,cursor:"pointer",fontWeight:700}}>
+        <span onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setMessage("");}} style={{color:C.accent,cursor:"pointer",fontWeight:700}}>
           {mode==="login"?"Зарегистрироваться":"Войти"}
         </span>
       </div>
