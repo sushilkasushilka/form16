@@ -12,7 +12,7 @@ export function useLang() { return useContext(LangContext); }
 // ── Language Provider — wrap your entire App in this ─────────────────────────
 export function LangProvider({ children }) {
   const [lang, setLangState] = useState(() => {
-    return localStorage.getItem("form16_lang") || null; // null = not chosen yet
+    return localStorage.getItem("form16_lang") || "ru"; // null = not chosen yet
   });
 
   function setLang(code) {
