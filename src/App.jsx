@@ -2,6 +2,11 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase.js";
 import { createTranslator, LANGUAGES } from "./lang.js";
 
+// ─── GLOBAL LANG HELPER ───────────────────────────────────────────────────────
+// Any component can call t(key) without prop drilling
+function getLang() { return localStorage.getItem("form16_lang") || "ru"; }
+function t(key, vars = {}) { return createTranslator(getLang())(key, vars); }
+
 // ─── INLINE LANGUAGE PICKER ───────────────────────────────────────────────────
 const CL = { bg:"#07090F",card:"#111520",border:"#1C2333",accent:"#C8F135",text:"#EEF2F7",muted:"#6B7A99" };
 
@@ -557,7 +562,7 @@ function WeekDetailModal({ weekData, profile, onClose }) {
           </div>
           {/* Section tabs */}
           <div style={{display:"flex",gap:8,marginBottom:2,overflowX:"auto",paddingBottom:4}}>
-            {[{id:"days",label:"📅 Days"},{id:"training",label:"🏋️ Training"},{id:"nutrition",label:"🥗 Nutrition"},{id:"mindset",label:"🧠 Mindset"}].map(s=>(
+            {[{id:"days",label:t("week.detail.days")},{id:"training",label:t("week.detail.training")},{id:"nutrition",label:t("week.detail.nutrition")},{id:"mindset",label:t("week.detail.mindset")}].map(s=>(
               <button key={s.id} onClick={()=>setActiveSection(s.id)} style={{flexShrink:0,background:activeSection===s.id?C.accent:C.card,border:`1px solid ${activeSection===s.id?C.accent:C.border}`,borderRadius:20,padding:"7px 14px",cursor:"pointer",color:activeSection===s.id?C.bg:C.muted,fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{s.label}</button>
             ))}
           </div>
@@ -628,15 +633,15 @@ function WeekDetailModal({ weekData, profile, onClose }) {
           {activeSection==="nutrition" && (
             <div>
               <div style={{background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:20,padding:"18px 18px",marginBottom:14}}>
-                <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Weekly Focus</div>
+                <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{t("week.focus")}</div>
                 <div style={{fontWeight:700,fontSize:17,marginBottom:10}}>{weekData.nutrition.title}</div>
                 <div style={{fontSize:14,color:C.muted,lineHeight:1.7}}>{weekData.nutrition.tip}</div>
                 <div style={{marginTop:12,display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:12,color:C.purple,background:C.purpleDim,padding:"4px 12px",borderRadius:20,fontWeight:700}}>🥩 {weekData.nutrition.proteinPerKg}g protein/kg</span>
+                  <span style={{fontSize:12,color:C.purple,background:C.purpleDim,padding:"4px 12px",borderRadius:20,fontWeight:700}}>🥩 {weekData.nutrition.proteinPerKg}{t("protein.per.kg")}</span>
                 </div>
               </div>
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px 18px"}}>
-                <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>Meal Idea</div>
+                <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>{t("week.meal")}</div>
                 <div style={{fontWeight:700,fontSize:15,marginBottom:6}}>{weekData.nutrition.meal.name}</div>
                 <div style={{fontSize:13,color:C.muted,lineHeight:1.65,marginBottom:12}}>{weekData.nutrition.meal.desc}</div>
                 <div style={{fontSize:12,color:C.accent,background:C.accentDim,borderRadius:12,padding:"8px 12px",fontWeight:600}}>{weekData.nutrition.meal.macros}</div>
@@ -648,12 +653,12 @@ function WeekDetailModal({ weekData, profile, onClose }) {
           {activeSection==="mindset" && (
             <div>
               <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:20,padding:"20px 20px",marginBottom:14}}>
-                <div style={{fontSize:11,color:C.purple,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>This Week's Theme</div>
+                <div style={{fontSize:11,color:C.purple,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>{t("week.theme")}</div>
                 <div style={{fontWeight:700,fontSize:18,marginBottom:16,color:C.text}}>{weekData.mindset.title}</div>
                 <div style={{fontSize:15,color:C.muted,lineHeight:1.8,fontStyle:"italic",marginBottom:16,borderLeft:`3px solid ${C.purple}`,paddingLeft:14}}>"{weekData.mindset.quote}"</div>
               </div>
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px 18px"}}>
-                <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>🧘 Daily Practice</div>
+                <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>{t("week.practice")}</div>
                 <div style={{fontSize:14,color:C.muted,lineHeight:1.75}}>{weekData.mindset.practice}</div>
               </div>
             </div>
@@ -687,16 +692,16 @@ function LogModal({profile,onSave,onClose}){
     onSave({date:todayStr(),fromFatSecret:fsSynced,weight:parseFloat(vals.weight)||profile.weight,calories:parseInt(vals.calories)||0,protein:parseInt(vals.protein)||0,steps:parseInt(vals.steps)||0});
     onClose();
   }
-  const fields=[{key:"weight",label:"Weight",unit:"kg",icon:"⚖️",ph:"e.g. 83.8",color:C.blue},{key:"calories",label:"Calories",unit:"kcal",icon:"🔥",ph:"e.g. 2050",color:C.orange},{key:"protein",label:"Protein",unit:"g",icon:"🥩",ph:"e.g. 155",color:C.purple},{key:"steps",label:"Steps",unit:"steps",icon:"👟",ph:"e.g. 9400",color:C.accent}];
+  const fields=[{key:"weight",label:t("log.weight"),unit:t("unit.kg"),icon:"⚖️",ph:t("log.weight.ph"),color:C.blue},{key:"calories",label:t("log.calories"),unit:t("unit.kcal"),icon:"🔥",ph:t("log.calories.ph"),color:C.orange},{key:"protein",label:t("log.protein"),unit:t("unit.g"),icon:"🥩",ph:t("log.protein.ph"),color:C.purple},{key:"steps",label:t("log.steps"),unit:t("unit.steps"),icon:"👟",ph:t("log.steps.ph"),color:C.accent}];
   return (
     <div style={{position:"fixed",inset:0,background:"#000000CC",zIndex:500,display:"flex",alignItems:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{width:"100%",background:C.surface,borderRadius:"26px 26px 0 0",padding:"22px 22px 48px",maxHeight:"90vh",overflowY:"auto",animation:"slideUp 0.35s cubic-bezier(.16,1,.3,1) both"}}>
         <div style={{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800}}>Log Today</div>
-          {profile.fatsecretConnected&&<button onClick={syncFS} disabled={fsSyncing} style={{background:fsSynced?C.accentDim:C.accent,color:fsSynced?C.accent:C.bg,border:fsSynced?`1px solid ${C.accent}44`:"none",borderRadius:20,padding:"8px 16px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>{fsSyncing?"Syncing…":fsSynced?"✓ Synced":"⚡ Sync FatSecret"}</button>}
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800}}>{t("log.title")}</div>
+          {profile.fatsecretConnected&&<button onClick={syncFS} disabled={fsSyncing} style={{background:fsSynced?C.accentDim:C.accent,color:fsSynced?C.accent:C.bg,border:fsSynced?`1px solid ${C.accent}44`:"none",borderRadius:20,padding:"8px 16px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>{fsSyncing?t("log.syncing"):fsSynced?t("log.synced"):t("log.sync")}</button>}
         </div>
-        {fsSynced&&<div style={{background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:12,padding:"9px 14px",marginBottom:16,fontSize:12,color:C.accent}}>✓ Calories and protein filled from your FatSecret diary</div>}
+        {fsSynced&&<div style={{background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:12,padding:"9px 14px",marginBottom:16,fontSize:12,color:C.accent}}>{t("log.synced.note")}</div>}
         {fields.map(field=>(
           <div key={field.key} style={{marginBottom:14}}>
             <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.9,marginBottom:7,display:"flex",gap:6,alignItems:"center"}}><span>{field.icon}</span>{field.label}</div>
@@ -706,7 +711,7 @@ function LogModal({profile,onSave,onClose}){
             </div>
           </div>
         ))}
-        <button onClick={handleSave} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:15,padding:"15px",fontSize:15,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",marginTop:10}}>Save Today's Log ✓</button>
+        <button onClick={handleSave} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:15,padding:"15px",fontSize:15,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",marginTop:10}}>{t("log.save")}</button>
       </div>
     </div>
   );
@@ -737,7 +742,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
     else setProfile(p=>({...p,logs:[...(p.logs||[]).filter(l=>l.date!==log.date),log],streak:p.streak+1,totalXP:p.totalXP+20}));
   }
 
-  const TABS=[{id:"today",icon:"📊",label:"Today"},{id:"program",icon:"🗓",label:"Program"},{id:"progress",icon:"📈",label:"Progress"},{id:"profile",icon:"👤",label:"Profile"}];
+  const TABS=[{id:"today",icon:"📊",label:t("tab.today")},{id:"program",icon:"🗓",label:t("tab.program")},{id:"progress",icon:"📈",label:t("tab.progress")},{id:"profile",icon:"👤",label:t("tab.profile")}];
 
   const taskTypeColor = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted}[todayDayData?.type]||C.orange;
 
@@ -748,11 +753,11 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           {onBack&&<button onClick={onBack} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20,padding:0,marginRight:2}}>←</button>}
           <div style={{width:44,height:44,borderRadius:14,background:C.accentDim,border:`1.5px solid ${C.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{profile.avatar}</div>
-          <div style={{flex:1}}><div style={{fontSize:12,color:C.muted}}>Welcome back</div><div style={{fontWeight:700,fontSize:16}}>{profile.name}</div></div>
+          <div style={{flex:1}}><div style={{fontSize:12,color:C.muted}}>{t("header.welcome")}</div><div style={{fontWeight:700,fontSize:16}}>{profile.name}</div></div>
           <div style={{display:"flex",gap:12,alignItems:"center"}}>
-            <div style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.orange}}>🔥{profile.streak}</div><div style={{fontSize:10,color:C.muted}}>streak</div></div>
+            <div style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.orange}}>🔥{profile.streak}</div><div style={{fontSize:10,color:C.muted}}>{t("header.streak")}</div></div>
             <div style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.accent}}>⚡{profile.totalXP}</div><div style={{fontSize:10,color:C.muted}}>XP</div></div>
-            {onSignOut&&<button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:10,padding:"5px 10px",color:C.muted,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>Sign out</button>}
+            {onSignOut&&<button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:10,padding:"5px 10px",color:C.muted,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{t("header.signout")}</button>}
           </div>
         </div>
         <div style={{marginTop:14,display:"flex",alignItems:"center",gap:10}}>
@@ -771,7 +776,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <div><div style={{fontFamily:"'Syne',sans-serif",fontSize:21,fontWeight:800}}>{new Date().toLocaleDateString("en-US",{weekday:"long"})}</div><div style={{fontSize:12,color:C.muted}}>{new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div></div>
-            <button onClick={()=>setShowLog(true)} style={{background:todayLog?C.accentDim:C.accent,color:todayLog?C.accent:C.bg,border:todayLog?`1.5px solid ${C.accent}55`:"none",borderRadius:22,padding:"9px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>{todayLog?"✓ Logged":"+ Log Day"}</button>
+            <button onClick={()=>setShowLog(true)} style={{background:todayLog?C.accentDim:C.accent,color:todayLog?C.accent:C.bg,border:todayLog?`1.5px solid ${C.accent}55`:"none",borderRadius:22,padding:"9px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>{todayLog?t("today.logged"):t("today.log")}</button>
           </div>
 
           {/* Today's Task — from program JSON */}
@@ -802,7 +807,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"14px 16px",marginBottom:14,display:"flex",gap:12,alignItems:"flex-start"}}>
               <span style={{fontSize:24}}>🥗</span>
               <div>
-                <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:4}}>This week's nutrition focus</div>
+                <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:4}}>{t("today.nutrition")}</div>
                 <div style={{fontWeight:700,fontSize:14,marginBottom:3}}>{currentWeekData.nutrition.title}</div>
                 <div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{currentWeekData.nutrition.tip.substring(0,120)}…</div>
               </div>
@@ -812,32 +817,32 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
           {/* Weight + BFP */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"16px 16px"}}>
-              <div style={{fontSize:11,color:C.muted,marginBottom:5}}>Weight</div>
+              <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.weight")}</div>
               <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,lineHeight:1}}>{currentWeight}</div>
               <div style={{fontSize:11,color:C.muted,marginTop:2}}>kg</div>
               <div style={{fontSize:12,marginTop:8,color:weightDiff<=0?C.accent:C.orange,fontWeight:600}}>{weightDiff>0?"+":""}{weightDiff} kg since start</div>
             </div>
             <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:20,padding:"16px 16px"}}>
-              <div style={{fontSize:11,color:C.muted,marginBottom:5}}>Body Fat</div>
+              <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.bodyfat")}</div>
               <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,lineHeight:1,color:C.purple}}>{currentBFP}</div>
               <div style={{fontSize:11,color:C.muted,marginTop:2}}>%</div>
-              <div style={{fontSize:11,color:C.muted,marginTop:8}}>US Navy estimate</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:8}}>{t("today.navy")}</div>
             </div>
           </div>
 
           {/* Weight trend */}
-          {profile.logs.length>1&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"14px 16px",marginBottom:14}}><div style={{fontSize:12,color:C.muted,marginBottom:10}}>Weight trend</div><WeightChart logs={profile.logs} compact/></div>}
+          {profile.logs.length>1&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"14px 16px",marginBottom:14}}><div style={{fontSize:12,color:C.muted,marginBottom:10}}>{t("today.trend")}</div><WeightChart logs={profile.logs} compact/></div>}
 
           {/* Metrics */}
           {(todayLog||nutritionSource)?(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:22,padding:"18px 20px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div style={{fontWeight:700}}>Today's Metrics</div>{nutritionSource?.fromFatSecret&&<span style={{fontSize:11,color:C.accent,background:C.accentDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ FatSecret</span>}</div>
-              <MetricBar label="Calories" value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="kcal" color={C.orange} icon="🔥"/>
-              <MetricBar label="Protein" value={nutritionSource?.protein||0} target={profile.dailyTargets?.protein||150} unit="g" color={C.purple} icon="🥩"/>
-              <MetricBar label="Steps" value={todayLog?.steps||0} target={profile.dailyTargets?.steps||10000} unit="steps" color={C.accent} icon="👟"/>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div style={{fontWeight:700}}>{t("today.metrics")}</div>{nutritionSource?.fromFatSecret&&<span style={{fontSize:11,color:C.accent,background:C.accentDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ FatSecret</span>}</div>
+              <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="kcal" color={C.orange} icon="🔥"/>
+              <MetricBar label={t("metric.protein")} value={nutritionSource?.protein||0} target={profile.dailyTargets?.protein||150} unit="g" color={C.purple} icon="🥩"/>
+              <MetricBar label={t("metric.steps")} value={todayLog?.steps||0} target={profile.dailyTargets?.steps||10000} unit={t("unit.steps")} color={C.accent} icon="👟"/>
             </div>
           ):(
-            <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:22,padding:"24px",textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>📋</div><div style={{color:C.muted,fontSize:14}}>Tap <b style={{color:C.text}}>+ Log Day</b> to record today's metrics</div></div>
+            <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:22,padding:"24px",textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>📋</div><div style={{color:C.muted,fontSize:14}}>{t("today.no_log")}</div></div>
           )}
         </div>
       )}
@@ -845,8 +850,8 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
       {/* ── PROGRAM (wired to program JSON, tappable week cards) ── */}
       {tab==="program"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:4}}>16-Week <span style={{color:C.accent}}>Journey</span></div>
-          <div style={{fontSize:13,color:C.muted,marginBottom:18}}>Tap any week to see training, nutrition & mindset details</div>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:4}}>{t("program.title")}</div>
+          <div style={{fontSize:13,color:C.muted,marginBottom:18}}>{t("program.tap")}</div>
           {PROGRAM.map(wk=>{
             const unlocked=wk.week<=profile.currentWeek;
             const active=wk.week===profile.currentWeek;
@@ -862,9 +867,9 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
                   </div>
                   <div style={{flex:1}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div style={{fontWeight:700,fontSize:14}}>Week {wk.week}: {wk.theme}</div>
+                      <div style={{fontWeight:700,fontSize:14}}>Week {wk.week}: {t(`week.${wk.week}.theme`)}</div>
                       <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:8}}>
-                        {active&&<span style={{fontSize:10,color:wk.color,background:`${wk.color}22`,padding:"2px 8px",borderRadius:20,fontWeight:700}}>ACTIVE</span>}
+                        {active&&<span style={{fontSize:10,color:wk.color,background:`${wk.color}22`,padding:"2px 8px",borderRadius:20,fontWeight:700}}>{t("program.active")}</span>}
                         {unlocked&&<span style={{fontSize:14,color:C.muted}}>›</span>}
                       </div>
                     </div>
@@ -881,9 +886,9 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
       {/* ── PROGRESS ── */}
       {tab==="progress"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:18}}>Progress <span style={{color:C.accent}}>Reports</span></div>
+          <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:18}}>{t("progress.title")}</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-            {[{label:"Start",val:`${profile.weight} kg`,color:C.muted,icon:"📍"},{label:"Current",val:`${currentWeight} kg`,color:C.blue,icon:"⚖️"},{label:weightDiff<=0?"Lost":"Gained",val:`${Math.abs(weightDiff)} kg`,color:weightDiff<=0?C.accent:C.orange,icon:weightDiff<=0?"📉":"📈"},{label:"Body Fat",val:`${currentBFP}%`,color:C.purple,icon:"📊"},{label:"BMI",val:String(profile.bmi||calcBMI(currentWeight,profile.height)),color:C.blue,icon:"🩺"}].map(s=>(
+            {[{label:t("progress.start"),val:`${profile.weight} kg`,color:C.muted,icon:"📍"},{label:t("progress.current"),val:`${currentWeight} kg`,color:C.blue,icon:"⚖️"},{label:weightDiff<=0?t("progress.lost"):t("progress.gained"),val:`${Math.abs(weightDiff)} kg`,color:weightDiff<=0?C.accent:C.orange,icon:weightDiff<=0?"📉":"📈"},{label:t("progress.bodyfat"),val:`${currentBFP}%`,color:C.purple,icon:"📊"},{label:t("progress.bmi"),val:String(profile.bmi||calcBMI(currentWeight,profile.height)),color:C.blue,icon:"🩺"}].map(s=>(
               <div key={s.label} style={{background:C.card,borderRadius:18,padding:"14px 16px",border:`1px solid ${C.border}`}}>
                 <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:5}}><span style={{fontSize:15}}>{s.icon}</span><span style={{fontSize:11,color:C.muted}}>{s.label}</span></div>
                 <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,color:s.color}}>{s.val}</div>
@@ -891,21 +896,21 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             ))}
           </div>
           <div style={{background:C.card,borderRadius:22,padding:"18px",marginBottom:14,border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:3}}>Weight Trend</div>
-            <div style={{fontSize:12,color:C.muted,marginBottom:14}}>{profile.logs.length} days tracked</div>
+            <div style={{fontWeight:700,marginBottom:3}}>{t("progress.trend")}</div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:14}}>{t("progress.tracked",{n:profile.logs.length})}</div>
             <WeightChart logs={profile.logs}/>
           </div>
           {weekLogs.length>0&&(
             <div style={{background:C.card,borderRadius:22,padding:"18px",marginBottom:14,border:`1px solid ${C.border}`}}>
-              <div style={{fontWeight:700,marginBottom:14}}>7-Day Averages</div>
-              <MetricBar label="Calories" value={Math.round(weekLogs.reduce((s,l)=>s+(l.calories||0),0)/weekLogs.length)} target={profile.dailyTargets?.calories||2000} unit="kcal" color={C.orange} icon="🔥"/>
-              <MetricBar label="Protein" value={Math.round(weekLogs.reduce((s,l)=>s+(l.protein||0),0)/weekLogs.length)} target={profile.dailyTargets?.protein||150} unit="g" color={C.purple} icon="🥩"/>
-              <MetricBar label="Steps" value={Math.round(weekLogs.reduce((s,l)=>s+(l.steps||0),0)/weekLogs.length)} target={profile.dailyTargets?.steps||10000} unit="steps" color={C.accent} icon="👟"/>
+              <div style={{fontWeight:700,marginBottom:14}}>{t("progress.averages")}</div>
+              <MetricBar label={t("metric.calories")} value={Math.round(weekLogs.reduce((s,l)=>s+(l.calories||0),0)/weekLogs.length)} target={profile.dailyTargets?.calories||2000} unit="kcal" color={C.orange} icon="🔥"/>
+              <MetricBar label={t("metric.protein")} value={Math.round(weekLogs.reduce((s,l)=>s+(l.protein||0),0)/weekLogs.length)} target={profile.dailyTargets?.protein||150} unit="g" color={C.purple} icon="🥩"/>
+              <MetricBar label={t("metric.steps")} value={Math.round(weekLogs.reduce((s,l)=>s+(l.steps||0),0)/weekLogs.length)} target={profile.dailyTargets?.steps||10000} unit={t("unit.steps")} color={C.accent} icon="👟"/>
             </div>
           )}
           {profile.logs.length>0&&(
             <div style={{background:C.card,borderRadius:22,padding:"18px",border:`1px solid ${C.border}`}}>
-              <div style={{fontWeight:700,marginBottom:14}}>Daily Log</div>
+              <div style={{fontWeight:700,marginBottom:14}}>{t("progress.log")}</div>
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
                   <thead><tr>{["Date","⚖️","🔥","🥩","👟"].map(h=><th key={h} style={{textAlign:"right",padding:"5px 7px",color:C.muted,fontWeight:600,fontSize:11}}>{h}</th>)}</tr></thead>
@@ -938,7 +943,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             </div>
           </div>
           <div style={{background:C.card,borderRadius:20,padding:"16px 18px",marginBottom:12,border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:12}}>Body Stats</div>
+            <div style={{fontWeight:700,marginBottom:12}}>{t("profile.body_stats")}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
               {[["Age",`${profile.age}y`],["Height",`${profile.height}cm`],["Weight",`${profile.weight}kg`],["BMI",profile.bmi||"—"],["Body Fat",profile.bfp?`${profile.bfp}%`:"—"]].map(([k,v])=>(
                 <div key={k} style={{background:C.surface,borderRadius:12,padding:"10px 9px",textAlign:"center"}}>
@@ -949,33 +954,33 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             </div>
           </div>
           <div style={{background:C.card,borderRadius:20,padding:"16px 18px",marginBottom:12,border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:12}}>Measurements</div>
+            <div style={{fontWeight:700,marginBottom:12}}>{t("profile.measurements")}</div>
             {[["Waist",profile.waist,"cm"],["Neck",profile.neck,"cm"],...(profile.gender==="female"&&profile.thigh?[["Thigh",profile.thigh,"cm"]]:[])].filter(([,v])=>v).map(([k,v,u])=>(
               <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{k}</span><span style={{fontWeight:700,fontSize:13}}>{v} {u}</span></div>
             ))}
           </div>
           <div style={{background:C.card,borderRadius:20,padding:"16px 18px",marginBottom:12,border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:12}}>Lifestyle</div>
+            <div style={{fontWeight:700,marginBottom:12}}>{t("profile.lifestyle")}</div>
             {[
-              ["Stress",["😌","🙂","😐","😤","😰"][(profile.stress||3)-1]+" "+["Very calm","Calm","Moderate","High","Very stressed"][(profile.stress||3)-1]],
-              ["Sleep",["😴","🛌","😑","😟","😵"][(profile.sleep||3)-1]+" "+["Excellent","Good","Average","Poor","Very poor"][(profile.sleep||3)-1]],
-              ["Diet",["🥗","🍱","🍜","🍔","🍕"][(profile.dietQuality||3)-1]+" "+["Very clean","Clean","Mixed","Poor","Very processed"][(profile.dietQuality||3)-1]],
-              ["Training",profile.training==="none"?"No / spontaneous":profile.training==="1_2x_week"?"1–2× per week":"3+× per week"],
-              ...(profile.trainingExp?[["Experience",profile.trainingExp]]:[]),
-              ["Activity",(profile.activity||"moderate")],
+              [t("profile.stress"),["😌","🙂","😐","😤","😰"][(profile.stress||3)-1]+" "+[t("stress.1"),t("stress.2"),t("stress.3"),t("stress.4"),t("stress.5")][(profile.stress||3)-1]],
+              [t("profile.sleep"),["😴","🛌","😑","😟","😵"][(profile.sleep||3)-1]+" "+[t("sleep.1"),t("sleep.2"),t("sleep.3"),t("sleep.4"),t("sleep.5")][(profile.sleep||3)-1]],
+              [t("profile.diet"),["🥗","🍱","🍜","🍔","🍕"][(profile.dietQuality||3)-1]+" "+[t("diet.1"),t("diet.2"),t("diet.3"),t("diet.4"),t("diet.5")][(profile.dietQuality||3)-1]],
+              [t("profile.training"),profile.training==="none"?t("training.display.none"):profile.training==="1_2x_week"?t("training.display.1_2x"):t("training.display.3plus")],
+              ...(profile.trainingExp?[[t("profile.experience"),profile.trainingExp]]:[]),
+              [t("profile.activity"),(profile.activity||"moderate")],
             ].map(([k,v])=>(
               <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{k}</span><span style={{fontWeight:600,fontSize:13,textTransform:"capitalize"}}>{v}</span></div>
             ))}
           </div>
           {/* Current week mindset */}
           <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:20,padding:"16px 18px",marginBottom:12}}>
-            <div style={{fontWeight:700,marginBottom:8}}>🧠 Week {profile.currentWeek} Mindset</div>
+            <div style={{fontWeight:700,marginBottom:8}}>🧠 {t("profile.mindset",{w:profile.currentWeek})}</div>
             <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:6}}>{currentWeekData.mindset.title}</div>
             <div style={{fontSize:12,color:C.muted,lineHeight:1.7,fontStyle:"italic",borderLeft:`3px solid ${C.purple}`,paddingLeft:12}}>"{currentWeekData.mindset.quote}"</div>
           </div>
           <div style={{background:C.card,borderRadius:20,padding:"16px 18px",border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:12}}>Daily Targets</div>
-            {[{l:"Calories",v:`${profile.dailyTargets?.calories||2000} kcal`,c:C.orange},{l:"Protein",v:`${profile.dailyTargets?.protein||150} g`,c:C.purple},{l:"Steps",v:(profile.dailyTargets?.steps||10000).toLocaleString(),c:C.accent}].map(tgt=>(
+            <div style={{fontWeight:700,marginBottom:12}}>{t("profile.targets")}</div>
+            {[{l:t("profile.calories"),v:`${profile.dailyTargets?.calories||2000} kcal`,c:C.orange},{l:t("profile.protein"),v:`${profile.dailyTargets?.protein||150} g`,c:C.purple},{l:t("profile.steps"),v:(profile.dailyTargets?.steps||10000).toLocaleString(),c:C.accent}].map(tgt=>(
               <div key={tgt.l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{tgt.l}</span><span style={{fontWeight:700,color:tgt.c,fontSize:13}}>{tgt.v}</span></div>
             ))}
           </div>
@@ -996,7 +1001,14 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
 // ═════════════════════════════════════════════════════════════════════════════
 // ─── SIGN UP (6 steps, same as v7) ───────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
-const STEP_META=[{title:"Create your account",sub:"Step 1 of 6"},{title:"Your body stats",sub:"Step 2 of 6"},{title:"Body measurements",sub:"Step 3 of 6"},{title:"Your goal",sub:"Step 4 of 6"},{title:"Your lifestyle",sub:"Step 5 of 6"},{title:"Activity level",sub:"Step 6 of 6"}];
+const STEP_META=[
+  {title:()=>t("step.1.title"),sub:()=>t("step.1.sub")},
+  {title:()=>t("step.2.title"),sub:()=>t("step.2.sub")},
+  {title:()=>t("step.3.title"),sub:()=>t("step.3.sub")},
+  {title:()=>t("step.4.title"),sub:()=>t("step.4.sub")},
+  {title:()=>t("step.5.title"),sub:()=>t("step.5.sub")},
+  {title:()=>t("step.6.title"),sub:()=>t("step.6.sub")},
+];
 const AVATARS=["💪","🧑‍💻","👩‍🎨","🧔","👩‍🔬","🏃‍♂️","🏋️","🧘‍♀️"];
 
 function SignUp({onComplete,onBack}){
@@ -1021,52 +1033,52 @@ function SignUp({onComplete,onBack}){
         <div style={{flex:1}}><ProgressDots total={6} current={step}/></div>
       </div>
       <div style={{padding:"0 22px 6px"}}>
-        <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,marginBottom:5}}>{STEP_META[step].sub}</div>
-        <div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800,color:C.text,lineHeight:1.2}}>{STEP_META[step].title}</div>
+        <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,marginBottom:5}}>{STEP_META[step].sub()}</div>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800,color:C.text,lineHeight:1.2}}>{STEP_META[step].title()}</div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"18px 22px 0"}}>
         {step===0&&<div style={{animation:"slideUp 0.3s both"}}>
           <div style={{display:"flex",gap:9,flexWrap:"wrap",marginBottom:22}}>{AVATARS.map(a=><div key={a} onClick={()=>set("avatar",a)} style={{width:50,height:50,borderRadius:15,fontSize:25,display:"flex",alignItems:"center",justifyContent:"center",background:f.avatar===a?C.accentDim:C.card,border:`2px solid ${f.avatar===a?C.accent:C.border}`,cursor:"pointer",transition:"all 0.15s"}}>{a}</div>)}</div>
-          <TextInput label="Full Name" value={f.name} onChange={v=>set("name",v)} placeholder="e.g. Alex Johnson"/>
-          <TextInput label="Email" value={f.email} onChange={v=>set("email",v)} type="email" placeholder="you@example.com"/>
-          <TextInput label="Password" value={f.password} onChange={v=>set("password",v)} type="password" placeholder="At least 6 characters"/>
+          <TextInput label={t("field.name")} value={f.name} onChange={v=>set("name",v)} placeholder={t("field.name.ph")}/>
+          <TextInput label={t("field.email")} value={f.email} onChange={v=>set("email",v)} type="email" placeholder={t("field.email.ph")}/>
+          <TextInput label={t("field.password")} value={f.password} onChange={v=>set("password",v)} type="password" placeholder={t("field.password.ph")}/>
         </div>}
         {step===1&&<div style={{animation:"slideUp 0.3s both"}}>
-          <PillSelect label="Gender" value={f.gender} onChange={v=>set("gender",v)} options={[{value:"male",label:"Male"},{value:"female",label:"Female"}]}/>
-          <NumberInput label="Age" value={f.age} onChange={v=>set("age",v)} unit="years" placeholder="e.g. 28" step="1"/>
-          <NumberInput label="Height" value={f.height} onChange={v=>set("height",v)} unit="cm" placeholder="e.g. 178" step="1"/>
-          <NumberInput label="Current Weight" value={f.weight} onChange={v=>set("weight",v)} unit="kg" placeholder="e.g. 84.5"/>
-          {bmi&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"16px 20px",display:"flex",gap:28}}><div><div style={{fontSize:11,color:C.muted,marginBottom:4}}>BMI</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:24,fontWeight:800,color:C.accent}}>{bmi}</div><div style={{fontSize:11,color:C.muted}}>{+bmi<18.5?"Underweight":+bmi<25?"Normal":+bmi<30?"Overweight":"Obese"}</div></div>{tdee>0&&<div><div style={{fontSize:11,color:C.muted,marginBottom:4}}>TDEE</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:24,fontWeight:800,color:C.blue}}>{tdee}</div><div style={{fontSize:11,color:C.muted}}>kcal / day</div></div>}</div>}
+          <PillSelect label={t("field.gender")} value={f.gender} onChange={v=>set("gender",v)} options={[{value:"male",label:t("field.gender.male")},{value:"female",label:t("field.gender.female")}]}/>
+          <NumberInput label={t("field.age")} value={f.age} onChange={v=>set("age",v)} unit={t("field.age.unit")} placeholder={t("field.age.ph")} step="1"/>
+          <NumberInput label={t("field.height")} value={f.height} onChange={v=>set("height",v)} unit="cm" placeholder={t("field.height.ph")} step="1"/>
+          <NumberInput label={t("field.weight")} value={f.weight} onChange={v=>set("weight",v)} unit="kg" placeholder={t("field.weight.ph")}/>
+          {bmi&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"16px 20px",display:"flex",gap:28}}><div><div style={{fontSize:11,color:C.muted,marginBottom:4}}>BMI</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:24,fontWeight:800,color:C.accent}}>{bmi}</div><div style={{fontSize:11,color:C.muted}}>{+bmi<18.5?t("bmi.underweight"):+bmi<25?t("bmi.normal"):+bmi<30?t("bmi.overweight"):t("bmi.obese")}</div></div>{tdee>0&&<div><div style={{fontSize:11,color:C.muted,marginBottom:4}}>TDEE</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:24,fontWeight:800,color:C.blue}}>{tdee}</div><div style={{fontSize:11,color:C.muted}}>{t("stats.tdee")}</div></div>}</div>}
         </div>}
         {step===2&&<div style={{animation:"slideUp 0.3s both"}}>
-          <div style={{background:C.accentDim,border:`1px solid ${C.accent}2A`,borderRadius:14,padding:"12px 15px",marginBottom:22}}><div style={{fontSize:13,color:C.muted,lineHeight:1.65}}>📏 <b style={{color:C.text}}>How to measure correctly:</b><br/>Stand relaxed. Measure at the end of a normal exhale. Don't suck in.</div></div>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px",marginBottom:14}}><div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:14}}><div style={{width:44,height:44,borderRadius:13,background:`${C.orange}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🎯</div><div><div style={{fontWeight:700,fontSize:15,marginBottom:3}}>Waist</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>Measure around your navel. Snug but not compressing skin.</div></div></div><NumberInput value={f.waist} onChange={v=>set("waist",v)} unit="cm" placeholder="e.g. 88" step="0.5"/></div>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px",marginBottom:14}}><div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:14}}><div style={{width:44,height:44,borderRadius:13,background:`${C.blue}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📐</div><div><div style={{fontWeight:700,fontSize:15,marginBottom:3}}>Neck</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>Just below the larynx, sloping slightly downward toward the front.</div></div></div><NumberInput value={f.neck} onChange={v=>set("neck",v)} unit="cm" placeholder="e.g. 38" step="0.5"/></div>
-          {f.gender==="female"&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px",marginBottom:14}}><div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:14}}><div style={{width:44,height:44,borderRadius:13,background:`${C.purple}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📏</div><div><div style={{fontWeight:700,fontSize:15,marginBottom:3}}>Thigh</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>Upper thigh at widest point, weight evenly distributed.</div></div></div><NumberInput value={f.thigh} onChange={v=>set("thigh",v)} unit="cm" placeholder="e.g. 56" step="0.5"/></div>}
-          {bfp!=="—"&&<div style={{background:`${C.purple}18`,border:`1px solid ${C.purple}33`,borderRadius:18,padding:"16px 20px"}}><div style={{fontSize:12,color:C.muted,marginBottom:4}}>Estimated Body Fat % (US Navy)</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:30,fontWeight:800,color:C.purple}}>{bfp}%</div></div>}
+          <div style={{background:C.accentDim,border:`1px solid ${C.accent}2A`,borderRadius:14,padding:"12px 15px",marginBottom:22}}><div style={{fontSize:13,color:C.muted,lineHeight:1.65}}>📏 <b style={{color:C.text}}>{t("measure.howto")}</b><br/>{t("measure.intro")}</div></div>
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px",marginBottom:14}}><div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:14}}><div style={{width:44,height:44,borderRadius:13,background:`${C.orange}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🎯</div><div><div style={{fontWeight:700,fontSize:15,marginBottom:3}}>{t("measure.waist")}</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{t("measure.waist.desc")}</div></div></div><NumberInput value={f.waist} onChange={v=>set("waist",v)} unit="cm" placeholder={t("measure.waist.ph")} step="0.5"/></div>
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px",marginBottom:14}}><div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:14}}><div style={{width:44,height:44,borderRadius:13,background:`${C.blue}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📐</div><div><div style={{fontWeight:700,fontSize:15,marginBottom:3}}>{t("measure.neck")}</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{t("measure.neck.desc")}</div></div></div><NumberInput value={f.neck} onChange={v=>set("neck",v)} unit="cm" placeholder={t("measure.neck.ph")} step="0.5"/></div>
+          {f.gender==="female"&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px",marginBottom:14}}><div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:14}}><div style={{width:44,height:44,borderRadius:13,background:`${C.purple}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📏</div><div><div style={{fontWeight:700,fontSize:15,marginBottom:3}}>{t("measure.thigh")}</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{t("measure.thigh.desc")}</div></div></div><NumberInput value={f.thigh} onChange={v=>set("thigh",v)} unit="cm" placeholder={t("measure.thigh.ph")} step="0.5"/></div>}
+          {bfp!=="—"&&<div style={{background:`${C.purple}18`,border:`1px solid ${C.purple}33`,borderRadius:18,padding:"16px 20px"}}><div style={{fontSize:12,color:C.muted,marginBottom:4}}>{t("measure.bfp")}</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:30,fontWeight:800,color:C.purple}}>{bfp}%</div></div>}
         </div>}
         {step===3&&<div style={{animation:"slideUp 0.3s both"}}>
-          <CardSelect label="Primary Goal" value={f.goal} onChange={v=>set("goal",v)} options={[{value:"fat_loss",icon:"🔥",label:"Fat Loss",desc:"Lose body fat while preserving muscle. Calorie deficit with high protein."},{value:"recomp",icon:"⚖️",label:"Body Recomposition",desc:"Lose fat and gain muscle simultaneously. Slower but sustainable."},{value:"health",icon:"💚",label:"General Health",desc:"Build consistent habits around movement, sleep, nutrition, and stress."}]}/>
+          <CardSelect label={t("goal.label")} value={f.goal} onChange={v=>set("goal",v)} options={[{value:"fat_loss",icon:"🔥",label:t("goal.fat_loss"),desc:t("goal.fat_loss.desc")},{value:"recomp",icon:"⚖️",label:t("goal.recomp"),desc:t("goal.recomp.desc")},{value:"health",icon:"💚",label:t("goal.health"),desc:t("goal.health.desc")}]}/>
         </div>}
         {step===4&&<div style={{animation:"slideUp 0.3s both"}}>
-          <ScaleSelect label="Stress level in daily life" value={f.stress} onChange={v=>set("stress",v)} icons={["😌","🙂","😐","😤","😰"]} low="Very calm" high="Very stressed"/>
-          <ScaleSelect label="Sleep quality" value={f.sleep} onChange={v=>set("sleep",v)} icons={["😴","🛌","😑","😟","😵"]} low="Deep & restful" high="Broken / poor"/>
-          <ScaleSelect label="Current diet quality" value={f.dietQuality} onChange={v=>set("dietQuality",v)} icons={["🥗","🍱","🍜","🍔","🍕"]} low="Very clean" high="Very processed"/>
-          <CardSelect label="How often do you train?" value={f.training} onChange={v=>{set("training",v);set("trainingExp","");}} options={[{value:"none",icon:"🛋️",label:"No training / spontaneous",desc:"No structured workouts. Maybe occasional walks, nothing planned."},{value:"1_2x_week",icon:"🏃",label:"1–2 times per week",desc:"Occasional training. A session here and there, not yet a fixed routine."},{value:"3plus_week",icon:"💪",label:"3 or more times per week",desc:"Regular training with a clear structure and consistent schedule."}]}/>
-          {needsExp&&<div style={{animation:"slideUp 0.25s both"}}><CardSelect label="Training experience" value={f.trainingExp} onChange={v=>set("trainingExp",v)} options={[{value:"beginner",icon:"🌱",label:"Beginner",desc:"Just starting out — up to 6 months of consistent training."},{value:"intermediate",icon:"📈",label:"Intermediate",desc:"6–12 months. You know the basics and follow a programme."},{value:"advanced",icon:"⚡",label:"Advanced",desc:"More than 1 year. Strong technique, progressive overload, clear goals."}]}/></div>}
+          <ScaleSelect label={t("lifestyle.stress")} value={f.stress} onChange={v=>set("stress",v)} icons={["😌","🙂","😐","😤","😰"]} low={t("lifestyle.stress.low")} high={t("lifestyle.stress.high")}/>
+          <ScaleSelect label={t("lifestyle.sleep")} value={f.sleep} onChange={v=>set("sleep",v)} icons={["😴","🛌","😑","😟","😵"]} low={t("lifestyle.sleep.low")} high={t("lifestyle.sleep.high")}/>
+          <ScaleSelect label={t("lifestyle.diet")} value={f.dietQuality} onChange={v=>set("dietQuality",v)} icons={["🥗","🍱","🍜","🍔","🍕"]} low={t("lifestyle.diet.low")} high={t("lifestyle.diet.high")}/>
+          <CardSelect label={t("lifestyle.training")} value={f.training} onChange={v=>{set("training",v);set("trainingExp","");}} options={[{value:"none",icon:"🛋️",label:t("training.none"),desc:t("training.none.desc")},{value:"1_2x_week",icon:"🏃",label:t("training.1_2x"),desc:t("training.1_2x.desc")},{value:"3plus_week",icon:"💪",label:t("training.3plus"),desc:t("training.3plus.desc")}]}/>
+          {needsExp&&<div style={{animation:"slideUp 0.25s both"}}><CardSelect label={t("experience.label")} value={f.trainingExp} onChange={v=>set("trainingExp",v)} options={[{value:"beginner",icon:"🌱",label:t("experience.beginner"),desc:t("experience.beginner.desc")},{value:"intermediate",icon:"📈",label:t("experience.intermediate"),desc:t("experience.intermediate.desc")},{value:"advanced",icon:"⚡",label:t("experience.advanced"),desc:t("experience.advanced.desc")}]}/></div>}
         </div>}
         {step===5&&<div style={{animation:"slideUp 0.3s both"}}>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"12px 16px",marginBottom:22,fontSize:13,color:C.muted,lineHeight:1.65}}>ℹ️ <b style={{color:C.text}}>Daily life activity</b> — not counting your workouts. How much do you move outside the gym?</div>
-          <CardSelect value={f.activity} onChange={v=>set("activity",v)} options={[{value:"sedentary",icon:"🛋️",label:"Sedentary",desc:"Desk job, little walking. Mostly sitting. Under 4,000 steps typically."},{value:"light",icon:"🚶",label:"Lightly Active",desc:"Some walking or light movement. Office worker who walks at lunch."},{value:"moderate",icon:"🚴",label:"Moderately Active",desc:"On your feet a good portion of the day. ~7,000–10,000 steps."},{value:"active",icon:"⚡",label:"Active",desc:"Physical job. Construction, nursing, lots of walking and manual tasks."},{value:"veryActive",icon:"🏔️",label:"Very Active",desc:"Extremely physical lifestyle. Manual labour all day long."}]}/>
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"12px 16px",marginBottom:22,fontSize:13,color:C.muted,lineHeight:1.65}}>ℹ️ {t("activity.note")}</div>
+          <CardSelect value={f.activity} onChange={v=>set("activity",v)} options={[{value:"sedentary",icon:"🛋️",label:t("activity.sedentary"),desc:t("activity.sedentary.desc")},{value:"light",icon:"🚶",label:t("activity.light"),desc:t("activity.light.desc")},{value:"moderate",icon:"🚴",label:t("activity.moderate"),desc:t("activity.moderate.desc")},{value:"active",icon:"⚡",label:t("activity.active"),desc:t("activity.active.desc")},{value:"veryActive",icon:"🏔️",label:t("activity.veryActive"),desc:t("activity.veryActive.desc")}]}/>
           {f.name&&<div style={{background:C.accentDim,border:`1px solid ${C.accent}2A`,borderRadius:18,padding:"18px 20px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:C.accent,marginBottom:12,textTransform:"uppercase",letterSpacing:0.8}}>Profile Summary</div>
+            <div style={{fontSize:11,fontWeight:700,color:C.accent,marginBottom:12,textTransform:"uppercase",letterSpacing:0.8}}>{t("summary.title")}</div>
             {[["Name",f.name],["Goal",(f.goal||"").replace("_"," ")],["Weight",`${f.weight} kg`],bmi?["BMI",bmi]:null,bfp!=="—"?["Body Fat",`${bfp}%`]:null,["Trains",(f.training||"").replace("_"," ")],f.trainingExp?["Experience",f.trainingExp]:null].filter(Boolean).map(([k,v])=>(
               <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.accent}18`}}><span style={{fontSize:13,color:C.muted}}>{k}</span><span style={{fontSize:13,fontWeight:600,textTransform:"capitalize"}}>{v}</span></div>
             ))}
           </div>}
         </div>}
       </div>
-      <div style={{padding:"18px 22px 48px"}}><Btn onClick={next} disabled={!canNext}>{step===5?"Start my 16-week journey 🚀":"Continue →"}</Btn></div>
+      <div style={{padding:"18px 22px 48px"}}><Btn onClick={next} disabled={!canNext}>{step===5?t("onboarding.finish"):t("onboarding.continue")}</Btn></div>
     </div>
   );
 }
@@ -1087,11 +1099,11 @@ function CoachDashboard({athletes,setAthletes,onBack}){
     <div style={{minHeight:"100vh",background:C.bg,paddingBottom:20}}>
       <div style={{background:`linear-gradient(135deg,${C.surface},#0A0F1A)`,borderBottom:`1px solid ${C.border}`,padding:"52px 20px 20px"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
-          <div><div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>Coach Portal</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800}}>Team <span style={{color:C.accent}}>Overview</span></div></div>
-          <button onClick={onBack} style={{background:C.card,border:`1px solid ${C.border}`,color:C.muted,borderRadius:12,padding:"8px 14px",cursor:"pointer",fontSize:13,fontFamily:"'DM Sans',sans-serif"}}>← Exit</button>
+          <div><div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,marginBottom:4}}>{t("coach.portal")}</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800}}>Team <span style={{color:C.accent}}>{t("coach.title")}</span></div></div>
+          <button onClick={onBack} style={{background:C.card,border:`1px solid ${C.border}`,color:C.muted,borderRadius:12,padding:"8px 14px",cursor:"pointer",fontSize:13,fontFamily:"'DM Sans',sans-serif"}}>{t("coach.exit")}</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
-          {[{label:"Athletes",val:athletes.length,color:C.accent,icon:"👥"},{label:"Active today",val:activeToday,color:C.green,icon:"✅"},{label:"Avg streak",val:`${avgStreak}d`,color:C.orange,icon:"🔥"},{label:"On track",val:athletes.filter(a=>pct(a.logs.at(-1)?.calories||0,a.dailyTargets?.calories||2000)>=70).length,color:C.blue,icon:"🎯"}].map(k=>(
+          {[{label:t("coach.athletes"),val:athletes.length,color:C.accent,icon:"👥"},{label:t("coach.active"),val:activeToday,color:C.green,icon:"✅"},{label:t("coach.avg_streak"),val:`${avgStreak}d`,color:C.orange,icon:"🔥"},{label:t("coach.on_track"),val:athletes.filter(a=>pct(a.logs.at(-1)?.calories||0,a.dailyTargets?.calories||2000)>=70).length,color:C.blue,icon:"🎯"}].map(k=>(
             <div key={k.label} style={{background:C.card,borderRadius:16,padding:"12px 10px",textAlign:"center",border:`1px solid ${C.border}`}}>
               <div style={{fontSize:18,marginBottom:4}}>{k.icon}</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,color:k.color}}>{k.val}</div><div style={{fontSize:10,color:C.muted,marginTop:2}}>{k.label}</div>
             </div>
@@ -1099,7 +1111,7 @@ function CoachDashboard({athletes,setAthletes,onBack}){
         </div>
       </div>
       <div style={{display:"flex",background:C.surface,borderBottom:`1px solid ${C.border}`}}>
-        {[{id:"athletes",label:"Athletes"},{id:"insights",label:"Insights"},{id:"notes",label:"Notes"}].map(tab=>(
+        {[{id:"athletes",label:t("coach.tab.athletes")},{id:"insights",label:t("coach.tab.insights")},{id:"notes",label:t("coach.tab.notes")}].map(tab=>(
           <button key={tab.id} onClick={()=>setCoachTab(tab.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"13px 4px 11px",color:coachTab===tab.id?C.accent:C.muted,borderBottom:`2px solid ${coachTab===tab.id?C.accent:"transparent"}`,fontSize:13,fontFamily:"'DM Sans',sans-serif",fontWeight:700,transition:"color 0.18s"}}>{tab.label}</button>
         ))}
       </div>
@@ -1218,12 +1230,12 @@ function AuthScreen({ onAuth }) {
   const [focused, setFocused] = useState("");
 
   async function handleEmail() {
-    if (!email || !password) { setError("Пожалуйста заполните оба поля."); return; }
+    if (!email || !password) { setError("Please fill in both fields."); return; }
     setLoading(true); setError(""); setMessage("");
     if (mode === "signup") {
       const { error: e } = await supabase.auth.signUp({ email, password });
       if (e) setError(e.message);
-      else setMessage("Проверьте почту - мы отправили вам ссылку");
+      else setMessage("Check your email for a confirmation link.");
     } else {
       const { error: e } = await supabase.auth.signInWithPassword({ email, password });
       if (e) setError(e.message);
@@ -1254,10 +1266,10 @@ function AuthScreen({ onAuth }) {
           <span style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800,color:C.text,letterSpacing:1}}>FORM16</span>
         </div>
         <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,color:C.text,marginBottom:8}}>
-          {mode==="login"?"С возвращением":"Создать аккуант"}
+          {mode==="login"?"Welcome back":"Create account"}
         </div>
         <div style={{fontSize:14,color:C.muted}}>
-          {mode==="login"?"Войдите, чтобы продолжить":"Начните 16-недельную трансформацию"}
+          {mode==="login"?"Sign in to continue your journey":"Start your 16-week transformation"}
         </div>
       </div>
 
@@ -1266,7 +1278,7 @@ function AuthScreen({ onAuth }) {
         onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
         onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}
       >
-        <span style={{fontSize:20}}>🔵</span> Войти через Google
+        <span style={{fontSize:20}}>🔵</span> Continue with Google
       </button>
 
       <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
@@ -1276,10 +1288,10 @@ function AuthScreen({ onAuth }) {
       </div>
 
       {/* Email + password */}
-      <input type="email" placeholder="Электронная почта" value={email} onChange={e=>setEmail(e.target.value)}
+      <input type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)}
         style={inputStyle("email")} onFocus={()=>setFocused("email")} onBlur={()=>setFocused("")}
       />
-      <input type="password" placeholder="Пароль" value={password} onChange={e=>setPassword(e.target.value)}
+      <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}
         style={inputStyle("password")} onFocus={()=>setFocused("password")} onBlur={()=>setFocused("")}
         onKeyDown={e=>e.key==="Enter"&&handleEmail()}
       />
@@ -1288,13 +1300,13 @@ function AuthScreen({ onAuth }) {
       {message && <div style={{fontSize:13,color:C.accent,marginBottom:12,background:C.accentDim,borderRadius:10,padding:"8px 12px"}}>{message}</div>}
 
       <button onClick={handleEmail} disabled={loading} style={{width:"100%",background:loading?C.dim:C.accent,color:loading?C.muted:C.bg,border:"none",borderRadius:16,padding:"16px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:loading?"default":"pointer",marginBottom:16}}>
-        {loading?"Загрузка…":mode==="login"?"Войти":"Создать аккаунт"}
+        {loading?"Loading…":mode==="login"?"Sign In":"Create Account"}
       </button>
 
       <div style={{textAlign:"center",fontSize:14,color:C.muted}}>
-        {mode==="login"?"Нет аккаунта? ":"Уже есть аккаунт? "}
+        {mode==="login"?"Don't have an account? ":"Already have an account? "}
         <span onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setMessage("");}} style={{color:C.accent,cursor:"pointer",fontWeight:700}}>
-          {mode==="login"?"Зарегистрироваться":"Войти"}
+          {mode==="login"?"Sign up":"Sign in"}
         </span>
       </div>
     </div>
