@@ -1,3 +1,4 @@
+import { useLang, LanguagePicker } from "./LangContext.jsx";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
 
@@ -1265,7 +1266,8 @@ export default function App(){
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [athletes, setAthletes] = useState(MOCK_ATHLETES);
-
+  const { lang, t, setLang, chosen } = useLang();
+  if (!chosen) return <LanguagePicker onPick={setLang} />;
   // ── Listen to auth state ──────────────────────────────────────────────────
   useEffect(() => {
     // Get initial session
