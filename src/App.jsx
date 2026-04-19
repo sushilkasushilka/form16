@@ -1270,9 +1270,6 @@ export default function App(){
   const [profile, setProfile] = useState(null);
   const [athletes, setAthletes] = useState(MOCK_ATHLETES);
 
-  // Show language picker on first launch
-  if (!chosen) return <LanguagePicker onPick={setLang} />;
-
   // ── Listen to auth state ──────────────────────────────────────────────────
   useEffect(() => {
     let initialDone = false;
@@ -1461,31 +1458,47 @@ export default function App(){
         @keyframes slideUp{from{transform:translateY(26px);opacity:0}to{transform:translateY(0);opacity:1}}
         @keyframes fadeIn{from{opacity:0}to{opacity:1}}
         @keyframes spin{to{transform:rotate(360deg)}}
+      `}</style>
+      <div style={{maxWidth:430,margin:"0 auto",color:C.text,minHeight:"100vh",background:C.bg}}>
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{background:${C.bg};}
+        ::-webkit-scrollbar{width:0;}
+        input,button,textarea,select{font-family:'DM Sans',sans-serif;}
+        input::placeholder,textarea::placeholder{color:${C.muted};opacity:1;}
+        input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+        input[type=number]{-moz-appearance:textfield;}
+        @keyframes slideUp{from{transform:translateY(26px);opacity:0}to{transform:translateY(0);opacity:1}}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes pop{0%{transform:scale(0.6);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
       `}</style>
       <div style={{maxWidth:430,margin:"0 auto",color:C.text,minHeight:"100vh",background:C.bg}}>
 
-        {/* Loading */}
-        {screen==="loading" && (
+        {/* Language picker — shown on first launch before everything else */}
+        {!chosen && <LanguagePicker onPick={setLang} />}
+
+        {/* All other screens — only shown after language is chosen */}
+        {chosen && screen==="loading" && (
           <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
             <div style={{width:26,height:26,borderRadius:7,background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
             <div style={{fontSize:14,color:C.muted}}>Loading…</div>
           </div>
         )}
 
-        {/* Auth */}
-        {screen==="auth" && <AuthScreen onAuth={()=>{}} />}
+        {chosen && screen==="auth" && <AuthScreen onAuth={()=>{}} />}
 
-        {/* Onboarding — sign up flow */}
-        {screen==="onboarding" && (
+        {chosen && screen==="onboarding" && (
           <SignUp
             onComplete={saveProfile}
             onBack={async()=>{ await supabase.auth.signOut(); setScreen("auth"); }}
           />
         )}
 
-        {/* Main dashboard */}
-        {screen==="member" && profile && (
+        {chosen && screen==="member" && profile && (
           <MemberDashboard
             profile={profile}
             setProfile={updateProfile}
@@ -1494,8 +1507,7 @@ export default function App(){
           />
         )}
 
-        {/* Coach dashboard */}
-        {screen==="coach" && (
+        {chosen && screen==="coach" && (
           <CoachDashboard
             athletes={athletes}
             setAthletes={setAthletes}
