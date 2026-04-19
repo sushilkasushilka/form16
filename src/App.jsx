@@ -404,16 +404,18 @@ const PROGRAM = [
 ];
 
 // ─── PROGRAM HELPERS ─────────────────────────────────────────────────────────
-// Get week data (1-indexed)
-function getWeek(weekNum) { return PROGRAM[Math.max(0,Math.min(15,weekNum-1))]; }
+// Get week data (1-indexed) — defensive
+function getWeek(weekNum) {
+  const idx = Math.max(0, Math.min(15, (parseInt(weekNum) || 1) - 1));
+  return PROGRAM[idx] || PROGRAM[0];
+}
 
 // Get today's day data based on profile's current week
-// We use day-of-week (Mon=1…Sun=7) to pick the daily task
 function getTodayData(profile) {
-  const week = getWeek(profile.currentWeek);
-  // Use the actual day of week (1=Mon … 7=Sun)
+  const week = getWeek(profile?.currentWeek || 1);
+  if (!week || !week.days) return { week: PROGRAM[0], day: PROGRAM[0].days[0] };
   const dow = new Date().getDay(); // 0=Sun
-  const dayIdx = dow === 0 ? 6 : dow - 1; // 0=Mon … 6=Sun
+  const dayIdx = dow === 0 ? 6 : dow - 1;
   const day = week.days[dayIdx] || week.days[0];
   return { week, day };
 }
@@ -686,7 +688,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
   const currentBFP=profile.bfp||"—";
 
   // ── WIRED: get today's task & tip from the program JSON ──
-  const { week: currentWeekData, day: todayDayData } = getTodayData(profile);
+  const { week: currentWeekData, day: todayDayData } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0] };
   const fsSyncData=profile.fsSyncData;
   const nutritionSource=fsSyncData&&profile.fsSyncedAt&&new Date(profile.fsSyncedAt).toISOString().split("T")[0]===todayStr()?fsSyncData:todayLog;
 
@@ -1327,6 +1329,13 @@ export default function App(){
 
     const fullProfile = {
       ...data,
+      currentWeek: data.current_week || 1,
+      streak: data.streak || 0,
+      totalXP: data.total_xp || 0,
+      fatsecretConnected: data.fatsecret_connected || false,
+      dietQuality: data.diet_quality || 3,
+      trainingExp: data.training_exp || "",
+      joinedAt: data.joined_at || todayStr(),
       logs: (logs || []).map(l => ({
         date: l.date,
         weight: l.weight,
