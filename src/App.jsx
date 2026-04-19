@@ -1,4 +1,3 @@
-import { useLang, LanguagePicker } from "./LangContext.jsx";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
 
@@ -722,7 +721,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
 
       {/* Tabs */}
       <div style={{display:"flex",background:C.surface,borderBottom:`1px solid ${C.border}`}}>
-        {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"12px 4px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.accent:C.muted,borderBottom:`2px solid ${tab===t.id?C.accent:"transparent"}`,fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:0.4,transition:"color 0.18s"}}><span style={{fontSize:18}}>{t.icon}</span>{t.label}</button>)}
+        {TABS.map(tb=><button key={tb.id} onClick={()=>setTab(tb.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"12px 4px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===tb.id?C.accent:C.muted,borderBottom:`2px solid ${tab===tb.id?C.accent:"transparent"}`,fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:0.4,transition:"color 0.18s"}}><span style={{fontSize:18}}>{tb.icon}</span>{tb.label}</button>)}
       </div>
 
       {/* ── TODAY (wired to program JSON) ── */}
@@ -934,8 +933,8 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
           </div>
           <div style={{background:C.card,borderRadius:20,padding:"16px 18px",border:`1px solid ${C.border}`}}>
             <div style={{fontWeight:700,marginBottom:12}}>Daily Targets</div>
-            {[{l:"Calories",v:`${profile.dailyTargets?.calories||2000} kcal`,c:C.orange},{l:"Protein",v:`${profile.dailyTargets?.protein||150} g`,c:C.purple},{l:"Steps",v:(profile.dailyTargets?.steps||10000).toLocaleString(),c:C.accent}].map(t=>(
-              <div key={t.l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{t.l}</span><span style={{fontWeight:700,color:t.c,fontSize:13}}>{t.v}</span></div>
+            {[{l:"Calories",v:`${profile.dailyTargets?.calories||2000} kcal`,c:C.orange},{l:"Protein",v:`${profile.dailyTargets?.protein||150} g`,c:C.purple},{l:"Steps",v:(profile.dailyTargets?.steps||10000).toLocaleString(),c:C.accent}].map(tgt=>(
+              <div key={tgt.l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{tgt.l}</span><span style={{fontWeight:700,color:tgt.c,fontSize:13}}>{tgt.v}</span></div>
             ))}
           </div>
         </div>
@@ -943,7 +942,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
 
       {/* Tab bar */}
       <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",padding:"10px 16px 22px"}}>
-        {TABS.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===t.id?C.accent:C.dim,fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:0.3,padding:"5px 0",transition:"color 0.18s"}}><span style={{fontSize:20}}>{t.icon}</span>{t.label}</button>)}
+        {TABS.map(tb=><button key={tb.id} onClick={()=>setTab(tb.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===tb.id?C.accent:C.dim,fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:0.3,padding:"5px 0",transition:"color 0.18s"}}><span style={{fontSize:20}}>{tb.icon}</span>{tb.label}</button>)}
       </div>
 
       {showLog&&<LogModal profile={profile} onSave={log=>{handleSaveLog(log);setShowLog(false);}} onClose={()=>setShowLog(false)}/>}
@@ -1058,8 +1057,8 @@ function CoachDashboard({athletes,setAthletes,onBack}){
         </div>
       </div>
       <div style={{display:"flex",background:C.surface,borderBottom:`1px solid ${C.border}`}}>
-        {[{id:"athletes",label:"Athletes"},{id:"insights",label:"Insights"},{id:"notes",label:"Notes"}].map(t=>(
-          <button key={t.id} onClick={()=>setCoachTab(t.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"13px 4px 11px",color:coachTab===t.id?C.accent:C.muted,borderBottom:`2px solid ${coachTab===t.id?C.accent:"transparent"}`,fontSize:13,fontFamily:"'DM Sans',sans-serif",fontWeight:700,transition:"color 0.18s"}}>{t.label}</button>
+        {[{id:"athletes",label:"Athletes"},{id:"insights",label:"Insights"},{id:"notes",label:"Notes"}].map(tab=>(
+          <button key={tab.id} onClick={()=>setCoachTab(tab.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"13px 4px 11px",color:coachTab===tab.id?C.accent:C.muted,borderBottom:`2px solid ${coachTab===tab.id?C.accent:"transparent"}`,fontSize:13,fontFamily:"'DM Sans',sans-serif",fontWeight:700,transition:"color 0.18s"}}>{tab.label}</button>
         ))}
       </div>
       <div style={{padding:"18px"}}>
@@ -1266,25 +1265,43 @@ export default function App(){
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [athletes, setAthletes] = useState(MOCK_ATHLETES);
-  const { lang, t, setLang, chosen } = useLang();
-  if (!chosen) return <LanguagePicker onPick={setLang} />;
+
   // ── Listen to auth state ──────────────────────────────────────────────────
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) loadProfile(session.user.id);
-      else setScreen("auth");
-    });
+    let initialDone = false;
 
-    // Listen for changes (login, logout, OAuth redirect)
+    // onAuthStateChange fires on initial load AND on login/logout/refresh
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) loadProfile(session.user.id);
-      else { setScreen("auth"); setProfile(null); }
+
+      if (session) {
+        if (!initialDone) {
+          // First fire — restore session on reload
+          initialDone = true;
+          loadProfile(session.user.id);
+        } else if (_event === "SIGNED_IN") {
+          // User just logged in fresh
+          loadProfile(session.user.id);
+        }
+      } else {
+        initialDone = true;
+        setScreen("auth");
+        setProfile(null);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    // Safety fallback: if nothing fires in 4s, show auth screen
+    const timeout = setTimeout(() => {
+      if (!initialDone) {
+        initialDone = true;
+        setScreen("auth");
+      }
+    }, 4000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // ── Load profile from Supabase ────────────────────────────────────────────
