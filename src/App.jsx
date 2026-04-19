@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "./supabase.js";
+import { useLang, LanguagePicker } from "./LangContext.jsx";
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
@@ -1263,10 +1264,14 @@ function AuthScreen({ onAuth }) {
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App(){
-  const [screen, setScreen]   = useState("loading"); // loading | auth | onboarding | member | coach
+  const { lang, t, setLang, chosen } = useLang();
+  const [screen, setScreen]   = useState("loading");
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [athletes, setAthletes] = useState(MOCK_ATHLETES);
+
+  // Show language picker on first launch
+  if (!chosen) return <LanguagePicker onPick={setLang} />;
 
   // ── Listen to auth state ──────────────────────────────────────────────────
   useEffect(() => {
