@@ -1,9 +1,107 @@
-// ─── PASTE THIS BLOCK AT THE TOP OF App.jsx, right after the imports ──────────
-// This sets up the language system used throughout the app.
-// The `useLang` hook gives any component access to t() and lang.
-
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 import { createTranslator, LANGUAGES } from "./lang.js";
+
+// ── Language Context ──────────────────────────────────────────────────────────
+const LangContext = createContext({ lang: "ru", t: k => k, setLang: () => {}, chosen: false });
+export function useLang() { return useContext(LangContext); }
+
+// ── Language Provider ─────────────────────────────────────────────────────────
+export function LangProvider({ children }) {
+  const stored = localStorage.getItem("form16_lang");
+  const [lang, setLangState] = useState(stored || null);
+
+  function setLang(code) {
+    localStorage.setItem("form16_lang", code);
+    setLangState(code);
+  }
+
+  const chosen = !!lang;
+  const t = createTranslator(lang || "ru");
+
+  return (
+    <LangContext.Provider value={{ lang: lang || "ru", t, setLang, chosen }}>
+      {children}
+    </LangContext.Provider>
+  );
+}
+
+// ── Language Picker Screen ────────────────────────────────────────────────────
+const C = {
+  bg:"#07090F", card:"#111520", border:"#1C2333",
+  accent:"#C8F135", text:"#EEF2F7", muted:"#6B7A99",
+};
+
+export function LanguagePicker({ onPick }) {
+  const [selected, setSelected] = useState("ru");
+
+  return (
+    <div style={{
+      position:"fixed", inset:0, background:C.bg,
+      display:"flex", flexDirection:"column",
+      justifyContent:"center", padding:"32px 28px",
+      fontFamily:"'DM Sans', sans-serif",
+      zIndex: 9999,
+    }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Syne:wght@700;800&display=swap');`}</style>
+
+      <div style={{ textAlign:"center", marginBottom:48 }}>
+        <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:C.card, border:`1px solid ${C.border}`, borderRadius:14, padding:"10px 18px", marginBottom:28 }}>
+          <div style={{ width:28, height:28, borderRadius:8, background:C.accent, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>⚡</div>
+          <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:C.text, letterSpacing:1 }}>FORM16</span>
+        </div>
+        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:26, fontWeight:800, color:C.text, marginBottom:10 }}>
+          {selected === "ru" ? "Выберите язык" : "Choose your language"}
+        </div>
+        <div style={{ fontSize:14, color:C.muted }}>
+          {selected === "ru" ? "Вы можете изменить это в профиле" : "You can change this later in your profile"}
+        </div>
+      </div>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:14, marginBottom:40 }}>
+        {LANGUAGES.map(l => (
+          <div
+            key={l.code}
+            onClick={() => setSelected(l.code)}
+            style={{
+              background: selected === l.code ? `${C.accent}18` : C.card,
+              border: `2px solid ${selected === l.code ? C.accent : C.border}`,
+              borderRadius: 20, padding: "20px 22px", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 18,
+              transition: "all 0.18s",
+            }}
+          >
+            <span style={{ fontSize: 36 }}>{l.flag}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight:700, fontSize:18, color: selected === l.code ? C.accent : C.text }}>
+                {l.label}
+              </div>
+              <div style={{ fontSize:13, color:C.muted, marginTop:3 }}>
+                {l.code === "en" ? "English" : "Русский язык"}
+              </div>
+            </div>
+            {selected === l.code && (
+              <div style={{ width:28, height:28, borderRadius:"50%", background:C.accent, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <span style={{ fontSize:14, color:C.bg, fontWeight:800 }}>✓</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={() => onPick(selected)}
+        style={{
+          width:"100%", background:C.accent, color:C.bg,
+          border:"none", borderRadius:18, padding:"17px",
+          fontSize:16, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
+          cursor:"pointer",
+        }}
+      >
+        {selected === "ru" ? "Продолжить" : "Continue"}
+      </button>
+    </div>
+  );
+}
 
 // ── Language Context ──────────────────────────────────────────────────────────
 const LangContext = createContext({ lang: "en", t: k => k, setLang: () => {} });
@@ -12,18 +110,18 @@ export function useLang() { return useContext(LangContext); }
 // ── Language Provider — wrap your entire App in this ─────────────────────────
 export function LangProvider({ children }) {
   const [lang, setLangState] = useState(() => {
-    return localStorage.getItem("form16_lang_v2") || null; // null = not chosen yet
+    return localStorage.getItem("form16_lang") || null; // null = not chosen yet
   });
 
   function setLang(code) {
-    localStorage.setItem("form16_lang_v2", code);
+    localStorage.setItem("form16_lang", code);
     setLangState(code);
   }
 
   const t = createTranslator(lang || "en");
 
   return (
-    <LangContext.Provider value={{ lang: lang || "ru", t, setLang, chosen: !!lang }}>
+    <LangContext.Provider value={{ lang: lang || "en", t, setLang, chosen: !!lang }}>
       {children}
     </LangContext.Provider>
   );
