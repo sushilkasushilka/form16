@@ -12,18 +12,18 @@ export function useLang() { return useContext(LangContext); }
 // ── Language Provider — wrap your entire App in this ─────────────────────────
 export function LangProvider({ children }) {
   const [lang, setLangState] = useState(() => {
-    return localStorage.getItem("form16_lang") || "ru"; // null = not chosen yet
+    return localStorage.getItem("form16_lang_v2") || null; // null = not chosen yet
   });
 
   function setLang(code) {
-    localStorage.setItem("form16_lang", code);
+    localStorage.setItem("form16_lang_v2", code);
     setLangState(code);
   }
 
   const t = createTranslator(lang || "en");
 
   return (
-    <LangContext.Provider value={{ lang: lang || "en", t, setLang, chosen: !!lang }}>
+    <LangContext.Provider value={{ lang: lang || "ru", t, setLang, chosen: !!lang }}>
       {children}
     </LangContext.Provider>
   );
