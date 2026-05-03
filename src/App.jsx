@@ -83,49 +83,138 @@ function calcTDEE(w,h,age,gender,activity){
 // ═════════════════════════════════════════════════════════════════════════════
 const PROGRAM = [
   { week:1,theme:"Foundation",color:"#C8F135",
-    overview:"Week 1 is about building habits. No heroics — just showing up consistently, learning your baseline, and establishing daily rituals of logging, moving, and eating with intention.",
-    training:{ title:"Full Body Activation",duration:30,intensity:"Low",
+    overview:"Неделя 1 — это формирование привычек. Никаких подвигов — просто регулярное выполнение, изучение своих показателей и установление ежедневных ритуалов: записи, движения и осознанного питания.",
+    training:{ title:"Активация всего тела",duration:30,intensity:"Низкая",
       exercises:[
-        {name:"Bodyweight Squat",sets:"3",reps:"10",rest:"60s",note:"Sit back into heels, chest tall, knees track over toes."},
-        {name:"Wall Push-Up",sets:"3",reps:"10",rest:"60s",note:"Stand arm's length from wall, body in a straight line."},
-        {name:"Glute Bridge",sets:"3",reps:"12",rest:"60s",note:"Drive through heels, squeeze glutes at the top."},
-        {name:"Dead Bug",sets:"3",reps:"8/side",rest:"60s",note:"Press lower back into floor throughout. Slow and controlled."},
-        {name:"Standing Hip Circle",sets:"2",reps:"10/dir",rest:"30s",note:"Full range, slow circles — mobility cool-down."},
+        {name:"Приседания с весом тела",sets:"3",reps:"10",rest:"60s",note:"Отталкивайтесь пятками, грудь прямая, колени над носками."},
+        {name:"Отжимания от стены",sets:"3",reps:"10",rest:"60s",note:"Встаньте на расстоянии вытянутой руки от стены, тело прямое."},
+        {name:"Ягодичный мостик",sets:"3",reps:"12",rest:"60s",note:"Давите пятками, сжимайте ягодицы в верхней точке."},
+        {name:"Мёртвый жук",sets:"3",reps:"8/сторону",rest:"60s",note:"Прижмите поясницу к полу. Медленно и контролируемо."},
+        {name:"Вращение бёдрами стоя",sets:"2",reps:"10/направл.",rest:"30s",note:"Полный диапазон, медленные круги — заминка на подвижность."},
       ]},
-    nutrition:{ title:"Protein at Every Meal",tip:"Include a palm-sized portion of protein at every meal — breakfast included. This single habit changes body composition over time.",proteinPerKg:1.6,
-      meal:{name:"Scrambled Eggs & Oats",desc:"3 whole eggs scrambled with spinach, served alongside oats with berries.",macros:"480 kcal · 32g protein · 48g carbs · 16g fat"}},
-    mindset:{ title:"Identity, Not Goals",quote:"Every action you take is a vote for the type of person you wish to become. — James Clear",practice:"Each morning say: 'I am someone who moves every day and eats to fuel my body.' Say it even if it doesn't feel true yet."},
+    nutrition:{ title:"Начни считать — просто наблюдай",tip:"На этой неделе твоя единственная задача — записывать всё, что ты ешь, как можно точнее. Не ограничивай себя, просто фиксируй. Это фундамент осознанного питания.",proteinPerKg:1.6,
+      meal:{name:"Яичница со шпинатом и овсянка",desc:"3 целых яйца, обжаренных со шпинатом, и тарелка овсянки с ягодами.",macros:"480 ккал · 32г белок · 48г углеводы · 16г жиры"}},
+    mindset:{ title:"Идентичность, а не цели",quote:"Каждое твоё действие — это голос за того человека, которым ты хочешь стать. — Джеймс Клир",practice:"Каждое утро говори себе: «Я человек, который двигается каждый день и питается осознанно». Говори это, даже если пока не веришь."},
     days:[
-      {day:1,type:"training",icon:"🏃",title:"Morning Activation",task:"Complete your Week 1 Full Body Activation session. Focus on form, not speed.",tip:{cat:"Training",text:"The first workout is the hardest mentally. After this one, your brain starts to expect it."},xp:20},
-      {day:2,type:"nutrition",icon:"🥚",title:"Protein at Breakfast",task:"Eat at least 20g of protein within 30 minutes of waking. Log it.",tip:{cat:"Nutrition",text:"Protein at breakfast reduces hunger hormones for up to 4 hours vs. a carb-only meal."},xp:15},
-      {day:3,type:"mindset",icon:"📝",title:"Your Why",task:"Write down in 3 sentences why you started this program. Keep it somewhere visible.",tip:{cat:"Mindset",text:"People who write their 'why' are 2× more likely to stick to a habit after 30 days."},xp:15},
-      {day:4,type:"training",icon:"🚶",title:"10-Minute Walk",task:"Walk outside for exactly 10 minutes, no phone. Morning is ideal.",tip:{cat:"Training",text:"A brisk 10-min walk reduces cortisol by up to 15%."},xp:10},
-      {day:5,type:"nutrition",icon:"💧",title:"Hydration Baseline",task:"Drink 2.5 litres of water today. Set reminders, track it.",tip:{cat:"Nutrition",text:"Being just 1% dehydrated reduces strength output by up to 5%."},xp:15},
-      {day:6,type:"training",icon:"💪",title:"Push-Up Practice",task:"3 sets of push-ups with 60s rest. Any variation — wall, knee, or full.",tip:{cat:"Training",text:"Knee push-ups still activate 90% of the same muscles as full push-ups."},xp:20},
-      {day:7,type:"rest",icon:"😴",title:"Rest & Reflect",task:"No training. Write 3 things your body did well this week.",tip:{cat:"Recovery",text:"Muscle protein synthesis peaks 24-48 hours after training. Rest days are when you get stronger."},xp:10},
+      {
+        day:1,type:"nutrition",icon:"⚖️",
+        title:"Утренний замер веса",
+        task:"Сегодня утром, после туалета и до еды, встань на весы. Запиши вес в приложении. Это твоя отправная точка.",
+        info:{
+          why:"Зачем взвешиваться утром?\n\nУтренний вес — самый стабильный показатель. За ночь организм обезвоживается, желудок пуст. Это исключает влияние еды и воды, которые могут добавлять 1–3 кг в течение дня.\n\nВес — это не просто число. Это инструмент обратной связи. Он помогает тебе понять, как твоё тело реагирует на еду, сон и активность.",
+          howTo:"Как правильно отслеживать вес:\n\n• Взвешивайся каждое утро в одно и то же время\n• После туалета, до завтрака\n• В нижнем белье или без одежды\n• Записывай каждый раз — даже если кажется, что число «плохое»\n\nВажно: вес колеблется на 1–3 кг в течение дня и между днями. Нормально видеть рост после солёной еды или перед критическими днями. Смотри на тренд за 7–14 дней, не на каждое утреннее число.",
+          weekTarget:"Цель недели 1:\nПросто наблюдай. Не пытайся есть меньше или больше. Записывай всё, что ешь, как можно точнее — порции, продукты, время. Это создаёт осознанность, которая сама по себе меняет поведение."
+        },
+        tip:{cat:"Питание",text:"Люди, которые регулярно взвешиваются, теряют в среднем на 2× больше веса, чем те, кто взвешивается редко — даже без диеты."},
+        xp:25
+      },
+      {
+        day:2,type:"nutrition",icon:"🔥",
+        title:"Калории и метаболизм",
+        task:"Сегодня взвесься утром (напоминание в приложении). Потом прочитай информацию ниже — это основа, которую важно понять.",
+        info:{
+          why:"Что такое метаболизм?\n\nМетаболизм — это все химические процессы в твоём организме, которые поддерживают жизнь. Проще говоря: это то, как твоё тело использует энергию.\n\nОсновной обмен веществ (BMR) — это количество калорий, которые твоё тело сжигает в состоянии полного покоя: на дыхание, работу сердца, температуру тела. У среднего человека это 60–70% всех затрат энергии.",
+          howTo:"Из чего складывается суточный расход калорий (TDEE):\n\n• BMR (базовый обмен) — ~60–70%\n• Термический эффект пищи (переваривание еды) — ~10%\n• Физическая активность (тренировки + движение) — ~20–30%\n\nТвой TDEE рассчитан в профиле — это целевой ориентир. Но пока не старайся попасть в него точно. Просто записывай.",
+          weekTarget:"Задача сегодня:\nПродолжай записывать питание. Обрати внимание: сколько калорий ты реально съедаешь? Без оценки — просто наблюдение."
+        },
+        tip:{cat:"Питание",text:"Большинство людей недооценивают потребление калорий на 20–40%. Именно поэтому отслеживание — первый шаг к любым изменениям."},
+        xp:20
+      },
+      {
+        day:3,type:"mindset",icon:"🏆",
+        title:"Ты уже молодец",
+        task:"Третий день подряд. Это уже больше, чем делает большинство людей. Сегодня — про три главных макронутриента.",
+        info:{
+          why:"Три кита питания: белки, жиры, углеводы\n\nВся еда состоит из трёх макронутриентов. Понимание каждого из них — ключ к управлению телом.\n\n🥩 Белок (протеин)\nСтроительный материал для мышц, кожи, гормонов. 1 г белка = 4 ккал. Белок насыщает лучше всего и требует больше энергии на переваривание.\n\n🍚 Углеводы\nОсновное топливо для мозга и мышц. 1 г углеводов = 4 ккал. Простые углеводы (сахар) — быстрая энергия. Сложные (крупы, овощи) — медленная и стабильная.\n\n🥑 Жиры\nНеобходимы для гормонов, усвоения витаминов и работы мозга. 1 г жиров = 9 ккал. Жиры не делают тебя жирным — избыток калорий делает.",
+          howTo:"Как выглядит сбалансированная тарелка:\n\n• 25–35% калорий — из белка\n• 40–50% калорий — из углеводов\n• 25–35% калорий — из жиров\n\nНа этой неделе просто смотри на соотношение в своих записях. Не пытайся попасть в цифры — просто изучай.",
+          weekTarget:"Задача дня: посмотри в своих записях — какого макронутриента у тебя больше всего? Это и есть твоя точка отсчёта."
+        },
+        tip:{cat:"Психология",text:"Исследования показывают: люди, которые ведут пищевой дневник хотя бы 3 дня подряд, едят в среднем на 15% меньше — даже без попытки ограничить себя."},
+        xp:20
+      },
+      {
+        day:4,type:"nutrition",icon:"📈",
+        title:"Почему мы набираем вес",
+        task:"Взвесься утром. Сегодня узнаешь, почему вес растёт — и это не всегда то, о чём ты думаешь.",
+        info:{
+          why:"Почему мы набираем вес?\n\nОтвет простой: когда мы едим больше калорий, чем тратим — излишек откладывается в виде жира. Это называется положительный энергетический баланс.\n\nНо почему так происходит в реальной жизни?\n\n• Калорийная пища стала доступной и вкусной\n• Порции выросли — мы привыкли к большим тарелкам\n• Малоподвижный образ жизни снижает расход\n• Стресс и недосып повышают аппетит (через гормоны кортизол и грелин)\n• Ультра-обработанная еда блокирует сигналы насыщения",
+          howTo:"Важно понять:\n\nНабор веса — это не слабость воли. Это результат системы: среды, привычек и биологии. Понимая механизм, ты можешь его изменить.\n\n1 кг жира ≈ 7 700 ккал. Это значит, что для потери 1 кг жира нужен дефицит в 7 700 ккал — примерно 500 ккал/день в течение 15 дней.",
+          weekTarget:"Задача: посмотри на свои записи за последние 3 дня. Видишь закономерности? В какое время дня ты ешь больше всего?"
+        },
+        tip:{cat:"Питание",text:"Жировая ткань не появляется за один день — и не уходит за один день. Тренд важнее любого отдельного числа."},
+        xp:20
+      },
+      {
+        day:5,type:"nutrition",icon:"⚡",
+        title:"Калорийный баланс",
+        task:"Взвесься утром. Сегодня — самая важная концепция в управлении весом.",
+        info:{
+          why:"Калорийный баланс — основа всего\n\nЭто закон термодинамики, применённый к телу:\n\n📉 Дефицит (ешь меньше, чем тратишь) → вес снижается\n⚖️ Баланс (ешь столько же, сколько тратишь) → вес стабилен\n📈 Профицит (ешь больше, чем тратишь) → вес растёт\n\nВсе диеты — кето, интервальное голодание, веганство — работают только потому, что в итоге создают дефицит калорий. Нет магии, есть математика.",
+          howTo:"Как использовать это знание:\n\nТвой целевой показатель калорий указан в профиле. Это не строгий лимит — это ориентир.\n\n• Если твоя цель — снижение жира: стремись к дефициту 300–500 ккал/день\n• Если цель — рекомпозиция: держись около своего TDEE\n• Если цель — здоровье: просто наблюдай и не уходи далеко от TDEE\n\nПочему отслеживание помогает: видя цифры, ты делаешь осознанные выборы. Не запрещаешь себе еду — просто понимаешь последствия.",
+          weekTarget:"Задача: сравни свои средние калории за 5 дней с твоим TDEE из профиля. Больше или меньше? Это объясняет динамику твоего веса."
+        },
+        tip:{cat:"Питание",text:"Исследования показывают: люди, отслеживающие калории регулярно, теряют в 3× больше веса, чем те, кто «просто старается есть меньше»."},
+        xp:25
+      },
+      {
+        day:6,type:"mindset",icon:"📊",
+        title:"Почему вес меняется каждый день",
+        task:"Взвесься утром. Если ты заметил колебания веса за эту неделю — это нормально. Сейчас объясним почему.",
+        info:{
+          why:"Вес — это не только жир\n\nТвой вес состоит из:\n\n• Мышцы и кости (~60–70%)\n• Жировая ткань (~15–40% в зависимости от человека)\n• Вода (~60% тела)\n• Содержимое желудка и кишечника\n\nИз всего этого жировая ткань меняется МЕДЛЕННЕЕ всего. А что меняется быстро? Вода и содержимое ЖКТ.",
+          howTo:"Что влияет на вес в течение дня и недели:\n\n💧 Вода: солёная еда задерживает воду, +1–2 кг\n🍽️ Содержимое кишечника: после обеда ты тяжелее, чем утром\n🏋️ Тренировки: мышцы удерживают воду для восстановления, +0.5–1 кг после нагрузки\n😴 Сон: за ночь теряем 0.5–1 кг с дыханием и потом\n🩸 Гормональный цикл (у женщин): +1–3 кг в определённые фазы\n\nВот почему нельзя судить о прогрессе по одному замеру. Смотри на среднее за 7–14 дней.",
+          weekTarget:"Совет: посмотри на минимальный и максимальный вес за эту неделю. Разница — это колебание воды и еды, а не жира."
+        },
+        tip:{cat:"Психология",text:"Знание причин колебаний веса снижает тревогу и помогает не бросить программу в первые 2 недели — именно тогда большинство сдаются."},
+        xp:20
+      },
+      {
+        day:7,type:"mindset",icon:"🧠",
+        title:"Внутренняя и внешняя мотивация",
+        task:"День 7. Неделя почти позади. Сегодня — о том, что будет двигать тебя дальше, когда первый энтузиазм пройдёт.",
+        info:{
+          why:"Два типа мотивации\n\n🏆 Внешняя мотивация\nДействие ради награды или избегания наказания.\nПримеры: «хочу влезть в старые джинсы», «хочу произвести впечатление», «мне стыдно за своё тело».\n\nОна работает — но недолго. Когда цель достигнута (или кажется далёкой), мотивация исчезает.\n\n❤️ Внутренняя мотивация\nДействие ради самого процесса и ценностей.\nПримеры: «хочу чувствовать себя сильным», «хочу быть энергичным для детей», «мне важно заботиться о себе».\n\nОна устойчива, потому что не зависит от внешних результатов.",
+          howTo:"Как найти свою внутреннюю мотивацию:\n\nСпроси себя: «Зачем мне это на самом деле?» — и задай этот вопрос 5 раз подряд к каждому ответу.\n\nПример:\n— Хочу похудеть → зачем?\n— Хочу лучше выглядеть → зачем?\n— Хочу чувствовать себя уверенно → зачем?\n— Чтобы не бояться встречаться с людьми → зачем?\n— Потому что одиночество мучает меня.\n\nВот настоящая мотивация. Именно она не даст тебе остановиться.",
+          weekTarget:"Задание: запиши свою внутреннюю мотивацию. Не «хочу похудеть» — а почему это важно для твоей жизни. Перечитывай это в трудные дни."
+        },
+        tip:{cat:"Психология",text:"Исследования показывают: люди с внутренней мотивацией поддерживают здоровые привычки в среднем в 3× дольше, чем те, кто ориентируется только на внешние цели."},
+        xp:25
+      },
     ]},
 
   { week:2,theme:"Momentum",color:"#00D2FF",
-    overview:"Build on Week 1 — stack small wins daily. Slightly increase intensity, dial in sleep habits, and add a step count target. Make the routine feel normal.",
-    training:{ title:"Lower Body Power",duration:35,intensity:"Moderate",
+    overview:"Продолжай строить на фундаменте недели 1. Накапливай маленькие победы каждый день. Немного увеличь интенсивность, наладь привычки сна и добавь цель по шагам.",
+    training:{ title:"Сила нижней части тела",duration:35,intensity:"Умеренная",
       exercises:[
-        {name:"Goblet Squat",sets:"4",reps:"12",rest:"75s",note:"Drive the floor away. Controlled descent, explosive up."},
-        {name:"Romanian Deadlift",sets:"3",reps:"10",rest:"75s",note:"Hinge at hips, slight knee bend. Feel the hamstring stretch."},
-        {name:"Reverse Lunge",sets:"3",reps:"10/leg",rest:"60s",note:"Step back, not forward. Front knee over ankle."},
-        {name:"Calf Raise",sets:"3",reps:"15",rest:"45s",note:"Pause 1s at the top for maximum activation."},
-        {name:"Hip Flexor Stretch",sets:"2",reps:"30s/side",rest:"30s",note:"Kneel, tuck pelvis, shift forward. Feel the front of the rear hip."},
+        {name:"Гоблет-приседание",sets:"4",reps:"12",rest:"75s",note:"Давите пол от себя. Контролируемый спуск, взрывной подъём."},
+        {name:"Румынская тяга",sets:"3",reps:"10",rest:"75s",note:"Шарнир в бёдрах, слегка согнутые колени. Почувствуй растяжение бицепса бедра."},
+        {name:"Обратные выпады",sets:"3",reps:"10/ногу",rest:"60s",note:"Шаг назад, не вперёд. Переднее колено над голеностопом."},
+        {name:"Подъём на носки",sets:"3",reps:"15",rest:"45s",note:"Пауза 1 сек в верхней точке для максимальной активации."},
+        {name:"Растяжка сгибателей бедра",sets:"2",reps:"30с/сторону",rest:"30s",note:"На колено, наклони таз, сдвинься вперёд. Почувствуй переднюю поверхность задней ноги."},
       ]},
-    nutrition:{ title:"Eat More Colour",tip:"Add at least 2 different coloured vegetables to every main meal. Colour = micronutrients, fibre, and antioxidants.",proteinPerKg:1.7,
-      meal:{name:"Chicken & Roasted Veg Bowl",desc:"Grilled chicken breast with roasted peppers, courgette, and cherry tomatoes on quinoa.",macros:"520 kcal · 45g protein · 38g carbs · 14g fat"}},
-    mindset:{ title:"Track Without Judgment",quote:"You can't manage what you don't measure. But measuring is not judging — it's learning.",practice:"Log food and workouts this week purely as data. No guilt, no pride. Treat yourself like a scientist studying a subject."},
+    nutrition:{ title:"Больше цвета в тарелке",tip:"Добавляй не менее 2 разных цветных овощей к каждому основному блюду. Цвет = микронутриенты, клетчатка и антиоксиданты.",proteinPerKg:1.7,
+      meal:{name:"Курица с запечёнными овощами",desc:"Жареная куриная грудка с запечёнными перцем, цукини и помидорами черри на киноа.",macros:"520 ккал · 45г белок · 38г углеводы · 14г жиры"}},
+    mindset:{ title:"Отслеживай без осуждения",quote:"Нельзя управлять тем, что не измеряешь. Но измерение — это не осуждение, это знание.",practice:"Записывай еду и тренировки на этой неделе как данные. Без вины, без гордости. Относись к себе как учёный к объекту исследования."},
     days:[
-      {day:1,type:"training",icon:"🦵",title:"Lower Body Session",task:"Complete the Lower Body Power session. Focus on feeling your glutes and hamstrings working.",tip:{cat:"Training",text:"The glutes are the largest muscle in the body — training them increases metabolic rate and reduces lower back pain."},xp:25},
-      {day:2,type:"nutrition",icon:"🌈",title:"Colourful Plate",task:"At dinner, make sure your plate has at least 3 different coloured foods. Take a photo.",tip:{cat:"Nutrition",text:"Phytonutrients that give vegetables their colour are anti-inflammatory and support hormonal health."},xp:15},
-      {day:3,type:"mindset",icon:"😴",title:"Sleep Audit",task:"Go to bed 30 minutes earlier than usual. Phone in another room. Note how you feel in the morning.",tip:{cat:"Recovery",text:"Even one night of 6 hours sleep reduces testosterone by up to 15% and increases cortisol."},xp:15},
-      {day:4,type:"training",icon:"👟",title:"Step Count",task:"Hit 8,000 steps today. Walk instead of driving short distances, take stairs, walk at lunch.",tip:{cat:"Training",text:"NEAT — non-exercise activity — accounts for up to 30% of total daily calorie burn."},xp:20},
-      {day:5,type:"nutrition",icon:"🥣",title:"Prep One Meal",task:"Prepare tomorrow's lunch today. Batch cooking is the biggest predictor of diet consistency.",tip:{cat:"Nutrition",text:"People who meal prep eat 2× fewer calories from ultra-processed foods."},xp:20},
-      {day:6,type:"training",icon:"🧘",title:"Mobility Work",task:"Spend 15 minutes on hip and thoracic spine mobility. Hip flexor + cat-cow sequence.",tip:{cat:"Training",text:"Poor hip mobility is the #1 cause of lower back pain in sedentary adults."},xp:15},
-      {day:7,type:"rest",icon:"📊",title:"Weekly Check-In",task:"Weigh yourself, note energy and mood from 1-10, log anything that was hard this week.",tip:{cat:"Mindset",text:"Weight fluctuates up to 2kg daily. Weekly averages are more meaningful than daily numbers."},xp:10},
+      {
+        day:1,type:"nutrition",icon:"📊",
+        title:"Итоги первой недели — твоя статистика",
+        task:"Отличная работа! Ты прошёл первую неделю. Сегодня смотрим на твои данные и делаем первые выводы.",
+        isWeeklyStats:true,
+        info:{
+          why:"Что показывают твои данные за неделю?\n\nПосмотри на средние значения за 7 дней — они объективнее любого отдельного дня.",
+          howTo:"Как читать свою статистику:\n\n⚖️ Средний вес: сравни с начальным. Колебания ±1 кг — норма.\n🔥 Средние калории: больше или меньше твоего TDEE?\n🥩 Средний белок: достигаешь ли целевого уровня?\n👟 Средние шаги: насколько ты активен вне тренировок?\n\nЕсли калории выше TDEE — это объясняет любой рост веса.\nЕсли белок ниже нормы — мышцы восстанавливаются хуже.\nЕсли шагов мало — NEAT (бытовая активность) тянет вниз.",
+          weekTarget:"Рекомендации на основе твоих данных будут сформированы автоматически из твоих реальных показателей."
+        },
+        tip:{cat:"Питание",text:"Первая неделя отслеживания — самая важная. Ты создал базу данных о себе, которую большинство людей никогда не имеют."},
+        xp:40
+      },
+      {day:2,type:"nutrition",icon:"🌈",title:"Цветная тарелка",task:"За ужином убедись, что в тарелке есть не менее 3 разных цветных продуктов. Сфотографируй.",tip:{cat:"Питание",text:"Фитонутриенты, дающие овощам цвет, обладают противовоспалительным действием и поддерживают гормональное здоровье."},xp:15},
+      {day:3,type:"mindset",icon:"😴",title:"Аудит сна",task:"Ляг спать на 30 минут раньше обычного. Телефон — в другую комнату. Отметь, как себя чувствуешь утром.",tip:{cat:"Восстановление",text:"Даже одна ночь с 6 часами сна снижает тестостерон до 15% и повышает кортизол."},xp:15},
+      {day:4,type:"training",icon:"👟",title:"Цель по шагам",task:"Набери 8 000 шагов сегодня. Иди пешком вместо поездки на короткие расстояния, поднимайся по лестнице.",tip:{cat:"Тренировка",text:"NEAT — бытовая активность вне тренировок — составляет до 30% суточного расхода калорий."},xp:20},
+      {day:5,type:"nutrition",icon:"🥣",title:"Приготовь одно блюдо заранее",task:"Сегодня приготовь обед на завтра. Заготовка еды — главный предиктор постоянства в питании.",tip:{cat:"Питание",text:"Те, кто заготавливает еду заранее, едят в 2× меньше калорий из ультра-обработанных продуктов."},xp:20},
+      {day:6,type:"training",icon:"🧘",title:"Работа над подвижностью",task:"15 минут на подвижность бёдер и грудного отдела. Последовательность: сгибатели бедра + кошка-корова.",tip:{cat:"Тренировка",text:"Плохая подвижность бёдер — причина болей в пояснице №1 у людей с малоподвижным образом жизни."},xp:15},
+      {day:7,type:"rest",icon:"📊",title:"Еженедельная проверка",task:"Взвесься, оцени энергию и настроение от 1 до 10, запиши всё, что было сложно на этой неделе.",tip:{cat:"Психология",text:"Вес колеблется до 2 кг в сутки. Недельные средние важнее ежедневных чисел."},xp:10},
     ]},
 
   { week:3,theme:"Strength",color:"#3B8BEB",
@@ -803,41 +892,136 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
       {tab==="today"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div><div style={{fontFamily:"'Syne',sans-serif",fontSize:21,fontWeight:800}}>{new Date().toLocaleDateString("en-US",{weekday:"long"})}</div><div style={{fontSize:12,color:C.muted}}>{new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div></div>
+            <div>
+              <div style={{fontFamily:"'Syne',sans-serif",fontSize:21,fontWeight:800}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long"})}</div>
+              <div style={{fontSize:12,color:C.muted}}>{new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"})}</div>
+            </div>
             <button onClick={()=>setShowLog(true)} style={{background:todayLog?C.accentDim:C.accent,color:todayLog?C.accent:C.bg,border:todayLog?`1.5px solid ${C.accent}55`:"none",borderRadius:22,padding:"9px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>{todayLog?t("today.logged"):t("today.log")}</button>
+          </div>
+
+          {/* ── WEEKLY SCROLL BAR ── */}
+          <div style={{marginBottom:16}}>
+            <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>
+              Неделя {profile.currentWeek} — {currentWeekData.theme}
+            </div>
+            <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
+              {currentWeekData.days.map(day=>{
+                const dow = new Date().getDay();
+                const todayDayIdx = dow===0?7:dow; // 1=Mon…7=Sun
+                const isDone = day.day < todayDayIdx;
+                const isToday = day.day === todayDayIdx;
+                const isFuture = day.day > todayDayIdx;
+                const col = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted}[day.type]||C.muted;
+                return (
+                  <div key={day.day} style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>setSelectedWeek(currentWeekData)}>
+                    <div style={{width:44,height:44,borderRadius:14,background:isToday?col:isDone?`${col}33`:C.card,border:`2px solid ${isToday?col:isDone?`${col}55`:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isToday?20:16,opacity:isFuture?0.4:1,transition:"all 0.15s"}}>
+                      {isDone?"✓":day.icon}
+                    </div>
+                    <div style={{fontSize:10,color:isToday?col:C.muted,fontWeight:isToday?700:400,textAlign:"center",maxWidth:44,lineHeight:1.3,opacity:isFuture?0.4:1}}>
+                      {["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][day.day-1]}
+                    </div>
+                    {isToday&&<div style={{width:6,height:6,borderRadius:"50%",background:col}}/>}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Today's Task — from program JSON */}
           {todayDayData && (
             <div style={{background:`${taskTypeColor}18`,border:`1px solid ${taskTypeColor}44`,borderRadius:22,padding:"18px 20px",marginBottom:14}}>
               <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>
-                🎯 Day {todayDayData.day} · {todayDayData.type}
+                🎯 День {todayDayData.day} · {todayDayData.type}
               </div>
               <div style={{display:"flex",gap:13,alignItems:"flex-start"}}>
                 <div style={{width:52,height:52,borderRadius:16,background:`${taskTypeColor}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>{todayDayData.icon}</div>
                 <div style={{flex:1}}>
                   <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{todayDayData.title}</div>
                   <div style={{fontSize:13,color:C.muted,lineHeight:1.65}}>{todayDayData.task}</div>
-                  <div style={{marginTop:12,background:C.accentDim,border:`1px solid ${C.accent}22`,borderRadius:11,padding:"9px 13px"}}>
-                    <div style={{fontSize:12,color:C.muted,lineHeight:1.65}}><b style={{color:C.accent}}>{todayDayData.tip.cat}:</b> {todayDayData.tip.text}</div>
-                  </div>
                   <div style={{marginTop:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span style={{fontSize:11,color:C.yellow,background:C.yellowDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ +{todayDayData.xp} XP on completion</span>
-                    <button onClick={()=>setSelectedWeek(currentWeekData)} style={{fontSize:11,color:taskTypeColor,background:`${taskTypeColor}18`,border:"none",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Week {profile.currentWeek} details →</button>
+                    <span style={{fontSize:11,color:C.yellow,background:C.yellowDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ +{todayDayData.xp} XP</span>
+                    <button onClick={()=>setSelectedWeek(currentWeekData)} style={{fontSize:11,color:taskTypeColor,background:`${taskTypeColor}18`,border:"none",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Детали →</button>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Week nutrition tip */}
-          {currentWeekData && (
-            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"14px 16px",marginBottom:14,display:"flex",gap:12,alignItems:"flex-start"}}>
-              <span style={{fontSize:24}}>🥗</span>
-              <div>
-                <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:4}}>{t("today.nutrition")}</div>
-                <div style={{fontWeight:700,fontSize:14,marginBottom:3}}>{currentWeekData.nutrition.title}</div>
-                <div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{currentWeekData.nutrition.tip.substring(0,120)}…</div>
+              {/* Extended info block — shown for days with educational content */}
+              {todayDayData.info&&(
+                <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:10}}>
+                  {todayDayData.info.why&&(
+                    <div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}>
+                      <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>📖 Почему это важно</div>
+                      <div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.why}</div>
+                    </div>
+                  )}
+                  {todayDayData.info.howTo&&(
+                    <div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}>
+                      <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>✅ Как это делать</div>
+                      <div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.howTo}</div>
+                    </div>
+                  )}
+                  {todayDayData.info.weekTarget&&(
+                    <div style={{background:`${taskTypeColor}10`,border:`1px solid ${taskTypeColor}33`,borderRadius:14,padding:"12px 14px"}}>
+                      <div style={{fontSize:12,color:C.muted,lineHeight:1.7,whiteSpace:"pre-line"}}><b style={{color:taskTypeColor}}>🎯 </b>{todayDayData.info.weekTarget}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Weekly stats — shown on Day 8 (Week 2 Day 1) */}
+              {todayDayData.isWeeklyStats&&profile.logs.length>0&&(()=>{
+                const weekLogs7 = profile.logs.slice(-7);
+                const avgCal = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.calories||0),0)/weekLogs7.length):0;
+                const avgProt = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.protein||0),0)/weekLogs7.length):0;
+                const avgSteps = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.steps||0),0)/weekLogs7.length):0;
+                const avgWeight = weekLogs7.length?+(weekLogs7.reduce((s,l)=>s+(l.weight||0),0)/weekLogs7.length).toFixed(1):profile.weight;
+                const tdee = profile.tdee||2000;
+                const protTarget = profile.dailyTargets?.protein||150;
+                const calDiff = avgCal - tdee;
+                return (
+                  <div style={{marginTop:14,background:C.surface,borderRadius:16,padding:"16px 16px"}}>
+                    <div style={{fontSize:12,color:C.accent,fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:0.8}}>📊 Твоя статистика за неделю 1</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                      {[
+                        {label:"Ср. вес",val:`${avgWeight} кг`,color:C.blue},
+                        {label:"Ср. калории",val:`${avgCal} ккал`,color:C.orange},
+                        {label:"Ср. белок",val:`${avgProt} г`,color:C.purple},
+                        {label:"Ср. шаги",val:avgSteps.toLocaleString(),color:C.accent},
+                      ].map(s=>(
+                        <div key={s.label} style={{background:C.card,borderRadius:12,padding:"10px 12px"}}>
+                          <div style={{fontSize:10,color:C.muted,marginBottom:4}}>{s.label}</div>
+                          <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:s.color}}>{s.val}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Recommendations */}
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:2}}>💡 Рекомендации</div>
+                      {avgCal>0&&(
+                        <div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>
+                          🔥 Калории: ты потреблял в среднем <b style={{color:C.orange}}>{avgCal} ккал/день</b>.{" "}
+                          {calDiff>300?"Это выше твоего TDEE. Для снижения жира попробуй уменьшить порции или убрать высококалорийные перекусы.":calDiff<-500?"Это значительно ниже нормы. Убедись, что не голодаешь — это может замедлить метаболизм.":"Отличный результат — ты близко к своей норме!"}
+                        </div>
+                      )}
+                      {avgProt>0&&(
+                        <div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>
+                          🥩 Белок: <b style={{color:C.purple}}>{avgProt} г/день</b> из целевых {protTarget} г.{" "}
+                          {avgProt<protTarget*0.7?"Белка явно не хватает. Добавь источник белка к каждому приёму пищи: яйца, курица, творог, рыба.":avgProt<protTarget*0.9?"Почти у цели! Добавь 1 белковый перекус в день.":"Отлично — белок на хорошем уровне!"}
+                        </div>
+                      )}
+                      {avgSteps>0&&(
+                        <div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>
+                          👟 Шаги: <b style={{color:C.accent}}>{avgSteps.toLocaleString()} шагов/день</b>.{" "}
+                          {avgSteps<5000?"Постарайся добавить 20-минутную прогулку после обеда — это простой способ набрать +2 000 шагов.":avgSteps<8000?"Хороший старт. Цель на эту неделю — 8 000 шагов ежедневно.":"Отличная активность!"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div style={{marginTop:12,background:C.accentDim,border:`1px solid ${C.accent}22`,borderRadius:11,padding:"9px 13px"}}>
+                <div style={{fontSize:12,color:C.muted,lineHeight:1.65}}><b style={{color:C.accent}}>{todayDayData.tip.cat}:</b> {todayDayData.tip.text}</div>
               </div>
             </div>
           )}
@@ -847,8 +1031,8 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"16px 16px"}}>
               <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.weight")}</div>
               <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,lineHeight:1}}>{currentWeight}</div>
-              <div style={{fontSize:11,color:C.muted,marginTop:2}}>kg</div>
-              <div style={{fontSize:12,marginTop:8,color:weightDiff<=0?C.accent:C.orange,fontWeight:600}}>{weightDiff>0?"+":""}{weightDiff} kg since start</div>
+              <div style={{fontSize:11,color:C.muted,marginTop:2}}>кг</div>
+              <div style={{fontSize:12,marginTop:8,color:weightDiff<=0?C.accent:C.orange,fontWeight:600}}>{weightDiff>0?"+":""}{weightDiff} кг с начала</div>
             </div>
             <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:20,padding:"16px 16px"}}>
               <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.bodyfat")}</div>
@@ -865,9 +1049,9 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
           {(todayLog||nutritionSource)?(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:22,padding:"18px 20px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div style={{fontWeight:700}}>{t("today.metrics")}</div>{nutritionSource?.fromFatSecret&&<span style={{fontSize:11,color:C.accent,background:C.accentDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ FatSecret</span>}</div>
-              <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="kcal" color={C.orange} icon="🔥"/>
-              <MetricBar label={t("metric.protein")} value={nutritionSource?.protein||0} target={profile.dailyTargets?.protein||150} unit="g" color={C.purple} icon="🥩"/>
-              <MetricBar label={t("metric.steps")} value={todayLog?.steps||0} target={profile.dailyTargets?.steps||10000} unit={t("unit.steps")} color={C.accent} icon="👟"/>
+              <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="ккал" color={C.orange} icon="🔥"/>
+              <MetricBar label={t("metric.protein")} value={nutritionSource?.protein||0} target={profile.dailyTargets?.protein||150} unit="г" color={C.purple} icon="🥩"/>
+              <MetricBar label={t("metric.steps")} value={todayLog?.steps||0} target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.accent} icon="👟"/>
             </div>
           ):(
             <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:22,padding:"24px",textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>📋</div><div style={{color:C.muted,fontSize:14}}>{t("today.no_log")}</div></div>
