@@ -673,10 +673,15 @@ function WeekDetailModal({ weekData, profile, onClose }) {
 // ─── LOG DAY MODAL ────────────────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
 function LogModal({profile,onSave,onClose}){
-  const [vals,setVals]=useState({weight:"",calories:"",protein:"",steps:""});
+  const [vals,setVals]=useState({weight:"",calories:"",protein:"",steps:"",waist:"",neck:"",hips:""});
   const [fsSyncing,setFsSyncing]=useState(false);
   const [fsSynced,setFsSynced]=useState(false);
   const set=(k,v)=>setVals(p=>({...p,[k]:v}));
+
+  // Is today a measurement day? Day 8 (start of week 2) then every 7 days
+  const userGlobalDay = (profile.currentWeek-1)*7 + (new Date().getDay()===0?7:new Date().getDay());
+  const isMeasureDay = userGlobalDay >= 8 && (userGlobalDay - 8) % 7 === 0;
+  const isMeasureReminder = userGlobalDay >= 7 && (userGlobalDay - 7) % 7 === 0 && !isMeasureDay;
   useEffect(()=>{
     if(profile.fsSyncData&&profile.fsSyncedAt){
       const sd=new Date(profile.fsSyncedAt).toISOString().split("T")[0];
@@ -689,7 +694,7 @@ function LogModal({profile,onSave,onClose}){
     setFsSyncing(false);
   }
   function handleSave(){
-    onSave({date:todayStr(),fromFatSecret:fsSynced,weight:parseFloat(vals.weight)||profile.weight,calories:parseInt(vals.calories)||0,protein:parseInt(vals.protein)||0,steps:parseInt(vals.steps)||0});
+    onSave({date:todayStr(),fromFatSecret:fsSynced,weight:parseFloat(vals.weight)||profile.weight,calories:parseInt(vals.calories)||0,protein:parseInt(vals.protein)||0,steps:parseInt(vals.steps)||0,waist:vals.waist?parseFloat(vals.waist):undefined,neck:vals.neck?parseFloat(vals.neck):undefined,hips:vals.hips?parseFloat(vals.hips):undefined});
     onClose();
   }
   const fields=[{key:"weight",label:t("log.weight"),unit:t("unit.kg"),icon:"⚖️",ph:t("log.weight.ph"),color:C.blue},{key:"calories",label:t("log.calories"),unit:t("unit.kcal"),icon:"🔥",ph:t("log.calories.ph"),color:C.orange},{key:"protein",label:t("log.protein"),unit:t("unit.g"),icon:"🥩",ph:t("log.protein.ph"),color:C.purple},{key:"steps",label:t("log.steps"),unit:t("unit.steps"),icon:"👟",ph:t("log.steps.ph"),color:C.accent}];
@@ -702,6 +707,12 @@ function LogModal({profile,onSave,onClose}){
           {profile.fatsecretConnected&&<button onClick={syncFS} disabled={fsSyncing} style={{background:fsSynced?C.accentDim:C.accent,color:fsSynced?C.accent:C.bg,border:fsSynced?`1px solid ${C.accent}44`:"none",borderRadius:20,padding:"8px 16px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>{fsSyncing?t("log.syncing"):fsSynced?t("log.synced"):t("log.sync")}</button>}
         </div>
         {fsSynced&&<div style={{background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:12,padding:"9px 14px",marginBottom:16,fontSize:12,color:C.accent}}>{t("log.synced.note")}</div>}
+
+        {/* Measurement reminder banner */}
+        {isMeasureReminder&&<div style={{background:C.yellowDim,border:`1px solid ${C.yellow}44`,borderRadius:12,padding:"10px 14px",marginBottom:16,fontSize:12,color:C.muted,lineHeight:1.6}}>
+          📏 <b style={{color:C.yellow}}>Завтра день замеров!</b> Подготовьте сантиметровую ленту — завтра нужно измерить талию, шею и бёдра.
+        </div>}
+
         {fields.map(field=>(
           <div key={field.key} style={{marginBottom:14}}>
             <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.9,marginBottom:7,display:"flex",gap:6,alignItems:"center"}}><span>{field.icon}</span>{field.label}</div>
@@ -711,6 +722,23 @@ function LogModal({profile,onSave,onClose}){
             </div>
           </div>
         ))}
+
+        {/* Measurement fields — shown on measurement days */}
+        {isMeasureDay&&(
+          <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:16,padding:"14px 16px",marginBottom:14}}>
+            <div style={{fontSize:12,color:C.purple,fontWeight:700,marginBottom:12}}>📏 День замеров — внесите обмеры тела</div>
+            {[{key:"waist",label:t("measure.waist"),ph:t("measure.waist.ph")},{key:"neck",label:t("measure.neck"),ph:t("measure.neck.ph")},{key:"hips",label:"Бёдра",ph:"напр. 96"}].map(mf=>(
+              <div key={mf.key} style={{marginBottom:10}}>
+                <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.9,marginBottom:6}}>{mf.label}</div>
+                <div style={{display:"flex",alignItems:"center",background:C.card,borderRadius:12,border:`1.5px solid ${C.border}`,overflow:"hidden"}} onFocusCapture={e=>e.currentTarget.style.borderColor=C.purple} onBlurCapture={e=>e.currentTarget.style.borderColor=C.border}>
+                  <input type="number" value={vals[mf.key]} placeholder={mf.ph} onChange={e=>set(mf.key,e.target.value)} step="0.5" style={{flex:1,background:"none",border:"none",outline:"none",padding:"11px 14px",color:C.text,fontSize:15,fontFamily:"'DM Sans',sans-serif"}}/>
+                  <span style={{padding:"0 12px 0 0",color:C.muted,fontSize:12,fontWeight:600}}>см</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <button onClick={handleSave} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:15,padding:"15px",fontSize:15,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",marginTop:10}}>{t("log.save")}</button>
       </div>
     </div>
@@ -847,36 +875,57 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
         </div>
       )}
 
-      {/* ── PROGRAM (wired to program JSON, tappable week cards) ── */}
+      {/* ── PROGRAM — 112 daily cards ── */}
       {tab==="program"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
           <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:4}}>{t("program.title")}</div>
           <div style={{fontSize:13,color:C.muted,marginBottom:18}}>{t("program.tap")}</div>
           {PROGRAM.map(wk=>{
-            const unlocked=wk.week<=profile.currentWeek;
-            const active=wk.week===profile.currentWeek;
-            const done=wk.week<profile.currentWeek;
+            const weekUnlocked = wk.week <= profile.currentWeek;
+            const weekActive = wk.week === profile.currentWeek;
+            // Global day number: week 1 day 1 = day 1, week 2 day 1 = day 8, etc.
             return (
-              <div key={wk.week} onClick={()=>unlocked&&setSelectedWeek(wk)} style={{background:C.card,borderRadius:20,padding:"14px 16px",marginBottom:10,border:`1px solid ${active?wk.color+"66":C.border}`,opacity:unlocked?1:0.38,cursor:unlocked?"pointer":"default",transition:"transform 0.15s"}}
-                onMouseEnter={e=>unlocked&&(e.currentTarget.style.transform="translateY(-1px)")}
-                onMouseLeave={e=>e.currentTarget.style.transform="none"}
-              >
-                <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <div style={{width:44,height:44,borderRadius:14,background:`${wk.color}18`,border:`2px solid ${wk.color}${unlocked?"55":"22"}`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:14,color:unlocked?wk.color:C.dim,flexShrink:0}}>
-                    {done?"✓":!unlocked?"🔒":wk.week}
+              <div key={wk.week} style={{marginBottom:8}}>
+                {/* Week header */}
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,marginTop:wk.week>1?16:0}}>
+                  <div style={{width:28,height:28,borderRadius:8,background:`${wk.color}22`,border:`1.5px solid ${wk.color}${weekUnlocked?"88":"33"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:weekUnlocked?wk.color:C.dim,flexShrink:0}}>
+                    {wk.week}
                   </div>
                   <div style={{flex:1}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div style={{fontWeight:700,fontSize:14}}>Week {wk.week}: {t(`week.${wk.week}.theme`)}</div>
-                      <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:8}}>
-                        {active&&<span style={{fontSize:10,color:wk.color,background:`${wk.color}22`,padding:"2px 8px",borderRadius:20,fontWeight:700}}>{t("program.active")}</span>}
-                        {unlocked&&<span style={{fontSize:14,color:C.muted}}>›</span>}
+                    <span style={{fontSize:13,fontWeight:700,color:weekUnlocked?C.text:C.dim}}>{t(`week.${wk.week}.theme`)}</span>
+                    {weekActive&&<span style={{marginLeft:8,fontSize:10,color:wk.color,background:`${wk.color}22`,padding:"2px 8px",borderRadius:20,fontWeight:700}}>{t("program.active")}</span>}
+                  </div>
+                  {!weekUnlocked&&<span style={{fontSize:14}}>🔒</span>}
+                </div>
+
+                {/* Day cards */}
+                {wk.days.map(day=>{
+                  const globalDay = (wk.week-1)*7 + day.day;
+                  const userDay = (profile.currentWeek-1)*7 + (new Date().getDay()===0?7:new Date().getDay());
+                  const dayDone = globalDay < userDay;
+                  const dayActive = globalDay === userDay && weekActive;
+                  const dayUnlocked = globalDay <= userDay && weekUnlocked;
+                  const typeColor = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted,active_recovery:C.blue}[day.type]||C.muted;
+                  return (
+                    <div key={day.day}
+                      onClick={()=>dayUnlocked&&setSelectedWeek(wk)}
+                      style={{background:dayActive?`${typeColor}14`:dayDone?C.surface:C.card,border:`1px solid ${dayActive?typeColor+"66":dayDone?C.dim:C.border}`,borderRadius:16,padding:"12px 14px",marginBottom:6,opacity:dayUnlocked?1:0.3,cursor:dayUnlocked?"pointer":"default",display:"flex",alignItems:"center",gap:12,transition:"all 0.15s"}}
+                    >
+                      {/* Day number */}
+                      <div style={{width:36,height:36,borderRadius:10,background:dayDone?C.accent+"33":dayActive?`${typeColor}22`:C.dim,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:dayDone?16:13,fontWeight:800,color:dayDone?C.accent:dayActive?typeColor:C.muted}}>
+                        {dayDone?"✓":day.icon}
+                      </div>
+                      {/* Content */}
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                          <div style={{fontSize:13,fontWeight:700,color:dayActive?typeColor:dayDone?C.muted:C.text,flex:1,marginRight:8}}>{day.title}</div>
+                          <span style={{fontSize:10,color:C.yellow,background:C.yellowDim,padding:"2px 7px",borderRadius:12,fontWeight:700,flexShrink:0}}>⚡{day.xp}</span>
+                        </div>
+                        <div style={{fontSize:11,color:C.muted,marginTop:2,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day.task}</div>
                       </div>
                     </div>
-                    <div style={{fontSize:11,color:C.muted,marginTop:2}}>{wk.training.title} · {wk.training.duration}min · {wk.nutrition.title}</div>
-                    {unlocked&&<div style={{height:4,background:C.dim,borderRadius:2,marginTop:8,overflow:"hidden"}}><div style={{height:"100%",borderRadius:2,width:done?"100%":active?"42%":"0%",background:wk.color,transition:"width 0.8s"}}/></div>}
-                  </div>
-                </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -1002,83 +1051,77 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
 // ─── SIGN UP (6 steps, same as v7) ───────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
 const STEP_META=[
-  {title:()=>t("step.1.title"),sub:()=>t("step.1.sub")},
-  {title:()=>t("step.2.title"),sub:()=>t("step.2.sub")},
-  {title:()=>t("step.3.title"),sub:()=>t("step.3.sub")},
-  {title:()=>t("step.4.title"),sub:()=>t("step.4.sub")},
-  {title:()=>t("step.5.title"),sub:()=>t("step.5.sub")},
-  {title:()=>t("step.6.title"),sub:()=>t("step.6.sub")},
+  {title:()=>t("step.1.title"),sub:()=>"1 / 4"},
+  {title:()=>t("step.3.title"),sub:()=>"2 / 4"},
+  {title:()=>t("step.5.title"),sub:()=>"3 / 4"},
+  {title:()=>t("step.6.title"),sub:()=>"4 / 4"},
 ];
 const AVATARS=["💪","🧑‍💻","👩‍🎨","🧔","👩‍🔬","🏃‍♂️","🏋️","🧘‍♀️"];
 
 function SignUp({onComplete,onBack}){
   const [step,setStep]=useState(0);
-  const [f,setF]=useState({avatar:"💪",name:"",email:"",password:"",gender:"male",age:"",height:"",weight:"",waist:"",neck:"",thigh:"",goal:"fat_loss",stress:3,sleep:3,dietQuality:3,training:"none",trainingExp:"",activity:"moderate",fatsecret:false});
+  const [f,setF]=useState({avatar:"💪",name:"",email:"",password:"",gender:"male",age:"",height:"",weight:"",goal:"fat_loss",stress:3,sleep:3,dietQuality:3,training:"none",trainingExp:"",activity:"moderate"});
   const set=(k,v)=>setF(p=>({...p,[k]:v}));
   const wNum=parseFloat(f.weight),hNum=parseFloat(f.height);
   const bmi=wNum&&hNum?calcBMI(wNum,hNum):null;
   const tdee=calcTDEE(wNum,hNum,parseFloat(f.age),f.gender,f.activity);
-  const bfp=calcBFP(wNum,hNum,parseFloat(f.waist),parseFloat(f.neck),f.gender,parseFloat(f.thigh));
   const needsExp=f.training==="1_2x_week"||f.training==="3plus_week";
-  const canNext=[f.name.trim()&&f.email.trim()&&f.password.length>=6,f.gender&&f.age&&f.height&&f.weight,f.waist&&f.neck&&(f.gender==="male"||f.thigh),!!f.goal,f.stress&&f.sleep&&f.dietQuality&&f.training&&(!needsExp||f.trainingExp),f.activity][step];
-  function next(){step<5?setStep(s=>s+1):finish();}
+  // canNext per step: 0=profile+body, 1=goal, 2=lifestyle, 3=activity
+  const canNext=[
+    f.name.trim()&&f.email.trim()&&f.password.length>=6&&f.age&&f.height&&f.weight,
+    !!f.goal,
+    f.stress&&f.sleep&&f.dietQuality&&f.training&&(!needsExp||f.trainingExp),
+    f.activity,
+  ][step];
+  function next(){step<3?setStep(s=>s+1):finish();}
   function back(){step>0?setStep(s=>s-1):onBack();}
   function finish(){
-    onComplete({id:"u_"+Date.now(),...f,age:parseFloat(f.age),height:parseFloat(f.height),weight:parseFloat(f.weight),waist:parseFloat(f.waist),neck:parseFloat(f.neck),thigh:f.thigh?parseFloat(f.thigh):null,targetWeight:null,bmi:bmi?parseFloat(bmi):null,bfp:bfp!=="—"?parseFloat(bfp):null,tdee,currentWeek:1,streak:0,totalXP:0,fatsecretConnected:false,joinedAt:todayStr(),notes:"",logs:[],foodLog:[],dailyTargets:{calories:f.goal==="fat_loss"?tdee-400:tdee,protein:Math.round(parseFloat(f.weight||80)*1.8),steps:10000}});
+    onComplete({id:"u_"+Date.now(),...f,age:parseFloat(f.age),height:parseFloat(f.height),weight:parseFloat(f.weight),waist:null,neck:null,thigh:null,targetWeight:null,bmi:bmi?parseFloat(bmi):null,bfp:null,tdee,currentWeek:1,streak:0,totalXP:0,fatsecretConnected:false,joinedAt:todayStr(),notes:"",logs:[],foodLog:[],dailyTargets:{calories:f.goal==="fat_loss"?tdee-400:tdee,protein:Math.round(parseFloat(f.weight||80)*1.8),steps:10000}});
   }
   return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column"}}>
       <div style={{padding:"52px 22px 16px",display:"flex",alignItems:"center",gap:14}}>
         <button onClick={back} style={{width:40,height:40,borderRadius:12,background:C.card,border:`1px solid ${C.border}`,color:C.text,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>←</button>
-        <div style={{flex:1}}><ProgressDots total={6} current={step}/></div>
+        <div style={{flex:1}}><ProgressDots total={4} current={step}/></div>
       </div>
       <div style={{padding:"0 22px 6px"}}>
         <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:1.5,marginBottom:5}}>{STEP_META[step].sub()}</div>
         <div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800,color:C.text,lineHeight:1.2}}>{STEP_META[step].title()}</div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"18px 22px 0"}}>
+        {/* Step 0: Avatar + Name + Email + Password + Gender + Age + Height + Weight */}
         {step===0&&<div style={{animation:"slideUp 0.3s both"}}>
           <div style={{display:"flex",gap:9,flexWrap:"wrap",marginBottom:22}}>{AVATARS.map(a=><div key={a} onClick={()=>set("avatar",a)} style={{width:50,height:50,borderRadius:15,fontSize:25,display:"flex",alignItems:"center",justifyContent:"center",background:f.avatar===a?C.accentDim:C.card,border:`2px solid ${f.avatar===a?C.accent:C.border}`,cursor:"pointer",transition:"all 0.15s"}}>{a}</div>)}</div>
           <TextInput label={t("field.name")} value={f.name} onChange={v=>set("name",v)} placeholder={t("field.name.ph")}/>
           <TextInput label={t("field.email")} value={f.email} onChange={v=>set("email",v)} type="email" placeholder={t("field.email.ph")}/>
           <TextInput label={t("field.password")} value={f.password} onChange={v=>set("password",v)} type="password" placeholder={t("field.password.ph")}/>
-        </div>}
-        {step===1&&<div style={{animation:"slideUp 0.3s both"}}>
           <PillSelect label={t("field.gender")} value={f.gender} onChange={v=>set("gender",v)} options={[{value:"male",label:t("field.gender.male")},{value:"female",label:t("field.gender.female")}]}/>
-          <NumberInput label={t("field.age")} value={f.age} onChange={v=>set("age",v)} unit={t("field.age.unit")} placeholder={t("field.age.ph")} step="1"/>
-          <NumberInput label={t("field.height")} value={f.height} onChange={v=>set("height",v)} unit="cm" placeholder={t("field.height.ph")} step="1"/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            <NumberInput label={t("field.age")} value={f.age} onChange={v=>set("age",v)} unit={t("field.age.unit")} placeholder={t("field.age.ph")} step="1"/>
+            <NumberInput label={t("field.height")} value={f.height} onChange={v=>set("height",v)} unit="cm" placeholder={t("field.height.ph")} step="1"/>
+          </div>
           <NumberInput label={t("field.weight")} value={f.weight} onChange={v=>set("weight",v)} unit="kg" placeholder={t("field.weight.ph")}/>
-          {bmi&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"16px 20px",display:"flex",gap:28}}><div><div style={{fontSize:11,color:C.muted,marginBottom:4}}>BMI</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:24,fontWeight:800,color:C.accent}}>{bmi}</div><div style={{fontSize:11,color:C.muted}}>{+bmi<18.5?t("bmi.underweight"):+bmi<25?t("bmi.normal"):+bmi<30?t("bmi.overweight"):t("bmi.obese")}</div></div>{tdee>0&&<div><div style={{fontSize:11,color:C.muted,marginBottom:4}}>TDEE</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:24,fontWeight:800,color:C.blue}}>{tdee}</div><div style={{fontSize:11,color:C.muted}}>{t("stats.tdee")}</div></div>}</div>}
+          {bmi&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 18px",display:"flex",gap:28,marginTop:4}}><div><div style={{fontSize:11,color:C.muted,marginBottom:4}}>BMI</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,color:C.accent}}>{bmi}</div><div style={{fontSize:11,color:C.muted}}>{+bmi<18.5?t("bmi.underweight"):+bmi<25?t("bmi.normal"):+bmi<30?t("bmi.overweight"):t("bmi.obese")}</div></div>{tdee>0&&<div><div style={{fontSize:11,color:C.muted,marginBottom:4}}>TDEE</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,color:C.blue}}>{tdee}</div><div style={{fontSize:11,color:C.muted}}>{t("stats.tdee")}</div></div>}</div>}
         </div>}
-        {step===2&&<div style={{animation:"slideUp 0.3s both"}}>
-          <div style={{background:C.accentDim,border:`1px solid ${C.accent}2A`,borderRadius:14,padding:"12px 15px",marginBottom:22}}><div style={{fontSize:13,color:C.muted,lineHeight:1.65}}>📏 <b style={{color:C.text}}>{t("measure.howto")}</b><br/>{t("measure.intro")}</div></div>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px",marginBottom:14}}><div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:14}}><div style={{width:44,height:44,borderRadius:13,background:`${C.orange}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🎯</div><div><div style={{fontWeight:700,fontSize:15,marginBottom:3}}>{t("measure.waist")}</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{t("measure.waist.desc")}</div></div></div><NumberInput value={f.waist} onChange={v=>set("waist",v)} unit="cm" placeholder={t("measure.waist.ph")} step="0.5"/></div>
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px",marginBottom:14}}><div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:14}}><div style={{width:44,height:44,borderRadius:13,background:`${C.blue}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📐</div><div><div style={{fontWeight:700,fontSize:15,marginBottom:3}}>{t("measure.neck")}</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{t("measure.neck.desc")}</div></div></div><NumberInput value={f.neck} onChange={v=>set("neck",v)} unit="cm" placeholder={t("measure.neck.ph")} step="0.5"/></div>
-          {f.gender==="female"&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px",marginBottom:14}}><div style={{display:"flex",gap:14,alignItems:"flex-start",marginBottom:14}}><div style={{width:44,height:44,borderRadius:13,background:`${C.purple}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>📏</div><div><div style={{fontWeight:700,fontSize:15,marginBottom:3}}>{t("measure.thigh")}</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{t("measure.thigh.desc")}</div></div></div><NumberInput value={f.thigh} onChange={v=>set("thigh",v)} unit="cm" placeholder={t("measure.thigh.ph")} step="0.5"/></div>}
-          {bfp!=="—"&&<div style={{background:`${C.purple}18`,border:`1px solid ${C.purple}33`,borderRadius:18,padding:"16px 20px"}}><div style={{fontSize:12,color:C.muted,marginBottom:4}}>{t("measure.bfp")}</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:30,fontWeight:800,color:C.purple}}>{bfp}%</div></div>}
-        </div>}
-        {step===3&&<div style={{animation:"slideUp 0.3s both"}}>
+        {/* Step 1: Goal */}
+        {step===1&&<div style={{animation:"slideUp 0.3s both"}}>
           <CardSelect label={t("goal.label")} value={f.goal} onChange={v=>set("goal",v)} options={[{value:"fat_loss",icon:"🔥",label:t("goal.fat_loss"),desc:t("goal.fat_loss.desc")},{value:"recomp",icon:"⚖️",label:t("goal.recomp"),desc:t("goal.recomp.desc")},{value:"health",icon:"💚",label:t("goal.health"),desc:t("goal.health.desc")}]}/>
         </div>}
-        {step===4&&<div style={{animation:"slideUp 0.3s both"}}>
+        {/* Step 2: Lifestyle */}
+        {step===2&&<div style={{animation:"slideUp 0.3s both"}}>
           <ScaleSelect label={t("lifestyle.stress")} value={f.stress} onChange={v=>set("stress",v)} icons={["😌","🙂","😐","😤","😰"]} low={t("lifestyle.stress.low")} high={t("lifestyle.stress.high")}/>
           <ScaleSelect label={t("lifestyle.sleep")} value={f.sleep} onChange={v=>set("sleep",v)} icons={["😴","🛌","😑","😟","😵"]} low={t("lifestyle.sleep.low")} high={t("lifestyle.sleep.high")}/>
           <ScaleSelect label={t("lifestyle.diet")} value={f.dietQuality} onChange={v=>set("dietQuality",v)} icons={["🥗","🍱","🍜","🍔","🍕"]} low={t("lifestyle.diet.low")} high={t("lifestyle.diet.high")}/>
           <CardSelect label={t("lifestyle.training")} value={f.training} onChange={v=>{set("training",v);set("trainingExp","");}} options={[{value:"none",icon:"🛋️",label:t("training.none"),desc:t("training.none.desc")},{value:"1_2x_week",icon:"🏃",label:t("training.1_2x"),desc:t("training.1_2x.desc")},{value:"3plus_week",icon:"💪",label:t("training.3plus"),desc:t("training.3plus.desc")}]}/>
           {needsExp&&<div style={{animation:"slideUp 0.25s both"}}><CardSelect label={t("experience.label")} value={f.trainingExp} onChange={v=>set("trainingExp",v)} options={[{value:"beginner",icon:"🌱",label:t("experience.beginner"),desc:t("experience.beginner.desc")},{value:"intermediate",icon:"📈",label:t("experience.intermediate"),desc:t("experience.intermediate.desc")},{value:"advanced",icon:"⚡",label:t("experience.advanced"),desc:t("experience.advanced.desc")}]}/></div>}
         </div>}
-        {step===5&&<div style={{animation:"slideUp 0.3s both"}}>
+        {/* Step 3: Activity level */}
+        {step===3&&<div style={{animation:"slideUp 0.3s both"}}>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"12px 16px",marginBottom:22,fontSize:13,color:C.muted,lineHeight:1.65}}>ℹ️ {t("activity.note")}</div>
           <CardSelect value={f.activity} onChange={v=>set("activity",v)} options={[{value:"sedentary",icon:"🛋️",label:t("activity.sedentary"),desc:t("activity.sedentary.desc")},{value:"light",icon:"🚶",label:t("activity.light"),desc:t("activity.light.desc")},{value:"moderate",icon:"🚴",label:t("activity.moderate"),desc:t("activity.moderate.desc")},{value:"active",icon:"⚡",label:t("activity.active"),desc:t("activity.active.desc")},{value:"veryActive",icon:"🏔️",label:t("activity.veryActive"),desc:t("activity.veryActive.desc")}]}/>
-          {f.name&&<div style={{background:C.accentDim,border:`1px solid ${C.accent}2A`,borderRadius:18,padding:"18px 20px"}}>
-            <div style={{fontSize:11,fontWeight:700,color:C.accent,marginBottom:12,textTransform:"uppercase",letterSpacing:0.8}}>{t("summary.title")}</div>
-            {[["Name",f.name],["Goal",(f.goal||"").replace("_"," ")],["Weight",`${f.weight} kg`],bmi?["BMI",bmi]:null,bfp!=="—"?["Body Fat",`${bfp}%`]:null,["Trains",(f.training||"").replace("_"," ")],f.trainingExp?["Experience",f.trainingExp]:null].filter(Boolean).map(([k,v])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:`1px solid ${C.accent}18`}}><span style={{fontSize:13,color:C.muted}}>{k}</span><span style={{fontSize:13,fontWeight:600,textTransform:"capitalize"}}>{v}</span></div>
-            ))}
-          </div>}
         </div>}
       </div>
-      <div style={{padding:"18px 22px 48px"}}><Btn onClick={next} disabled={!canNext}>{step===5?t("onboarding.finish"):t("onboarding.continue")}</Btn></div>
+      <div style={{padding:"18px 22px 48px"}}><Btn onClick={next} disabled={!canNext}>{step===3?t("onboarding.finish"):t("onboarding.continue")}</Btn></div>
     </div>
   );
 }
@@ -1221,7 +1264,7 @@ function Splash({onStart,onCoach}){
 // ─── AUTH SCREENS ─────────────────────────────────────────────────────────────
 
 function AuthScreen({ onAuth }) {
-  const [mode, setMode] = useState("login"); // login | signup
+  const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1230,26 +1273,17 @@ function AuthScreen({ onAuth }) {
   const [focused, setFocused] = useState("");
 
   async function handleEmail() {
-    if (!email || !password) { setError("Please fill in both fields."); return; }
+    if (!email || !password) { setError(t("auth.fill_fields")); return; }
     setLoading(true); setError(""); setMessage("");
     if (mode === "signup") {
       const { error: e } = await supabase.auth.signUp({ email, password });
       if (e) setError(e.message);
-      else setMessage("Check your email for a confirmation link.");
+      else setMessage(t("auth.check_email"));
     } else {
       const { error: e } = await supabase.auth.signInWithPassword({ email, password });
       if (e) setError(e.message);
     }
     setLoading(false);
-  }
-
-  async function handleGoogle() {
-    setLoading(true); setError("");
-    const { error: e } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (e) { setError(e.message); setLoading(false); }
   }
 
   const inputStyle = (name) => ({
@@ -1266,32 +1300,17 @@ function AuthScreen({ onAuth }) {
           <span style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800,color:C.text,letterSpacing:1}}>FORM16</span>
         </div>
         <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,color:C.text,marginBottom:8}}>
-          {mode==="login"?"Welcome back":"Create account"}
+          {mode==="login"?t("auth.welcome_back"):t("auth.create_account")}
         </div>
         <div style={{fontSize:14,color:C.muted}}>
-          {mode==="login"?"Sign in to continue your journey":"Start your 16-week transformation"}
+          {mode==="login"?t("auth.signin_subtitle"):t("auth.signup_subtitle")}
         </div>
       </div>
 
-      {/* Google button */}
-      <button onClick={handleGoogle} disabled={loading} style={{width:"100%",background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,padding:"14px",fontSize:15,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",color:C.text,display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:16,transition:"border-color 0.2s"}}
-        onMouseEnter={e=>e.currentTarget.style.borderColor=C.accent}
-        onMouseLeave={e=>e.currentTarget.style.borderColor=C.border}
-      >
-        <span style={{fontSize:20}}>🔵</span> Continue with Google
-      </button>
-
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
-        <div style={{flex:1,height:1,background:C.border}}/>
-        <span style={{fontSize:12,color:C.muted}}>or</span>
-        <div style={{flex:1,height:1,background:C.border}}/>
-      </div>
-
-      {/* Email + password */}
-      <input type="email" placeholder="Email address" value={email} onChange={e=>setEmail(e.target.value)}
+      <input type="email" placeholder={t("auth.email")} value={email} onChange={e=>setEmail(e.target.value)}
         style={inputStyle("email")} onFocus={()=>setFocused("email")} onBlur={()=>setFocused("")}
       />
-      <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}
+      <input type="password" placeholder={t("auth.password")} value={password} onChange={e=>setPassword(e.target.value)}
         style={inputStyle("password")} onFocus={()=>setFocused("password")} onBlur={()=>setFocused("")}
         onKeyDown={e=>e.key==="Enter"&&handleEmail()}
       />
@@ -1300,13 +1319,13 @@ function AuthScreen({ onAuth }) {
       {message && <div style={{fontSize:13,color:C.accent,marginBottom:12,background:C.accentDim,borderRadius:10,padding:"8px 12px"}}>{message}</div>}
 
       <button onClick={handleEmail} disabled={loading} style={{width:"100%",background:loading?C.dim:C.accent,color:loading?C.muted:C.bg,border:"none",borderRadius:16,padding:"16px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:loading?"default":"pointer",marginBottom:16}}>
-        {loading?"Loading…":mode==="login"?"Sign In":"Create Account"}
+        {loading?t("auth.loading"):mode==="login"?t("auth.signin_btn"):t("auth.signup_btn")}
       </button>
 
       <div style={{textAlign:"center",fontSize:14,color:C.muted}}>
-        {mode==="login"?"Don't have an account? ":"Already have an account? "}
+        {mode==="login"?t("auth.no_account"):t("auth.has_account")}
         <span onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setMessage("");}} style={{color:C.accent,cursor:"pointer",fontWeight:700}}>
-          {mode==="login"?"Sign up":"Sign in"}
+          {mode==="login"?t("auth.signup_link"):t("auth.signin_link")}
         </span>
       </div>
     </div>
