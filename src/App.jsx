@@ -804,7 +804,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
   // ── WIRED: get today's task & tip from the program JSON ──
   const userGlobalDay = getUserGlobalDay(profile);
   const currentWeekNum = Math.max(1, Math.min(16, Math.ceil((userGlobalDay) / 7) || 1));
-  const { week: currentWeekData, day: todayDayData } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
+  const { week: currentWeekData, day: todayDayData, isDay0 } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
   const fsSyncData=profile.fsSyncData;
   const nutritionSource=fsSyncData&&profile.fsSyncedAt&&new Date(profile.fsSyncedAt).toISOString().split("T")[0]===todayStr()?fsSyncData:todayLog;
 
@@ -855,7 +855,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
           </div>
 
           {/* ── DAY 0 FULL TAKEOVER ── */}
-          {todayDayData?.isDay0 ? (
+          {isDay0 ? (
             <div style={{animation:"fadeIn 0.3s both"}}>
 
               {/* Progress bar: 0 of 112 */}
@@ -1771,7 +1771,11 @@ export default function App(){
     };
 
     setProfile(fullProfile);
-    setScreen("member");
+
+    // Route to day0 if: joined today, no logs yet, and haven't seen day0 screen yet
+    const isNewUser = fullProfile.joinedAt === todayStr() && (!logs || logs.length === 0);
+    const hasSeenDay0 = localStorage.getItem(`form16_day0_${userId}`);
+    setScreen(isNewUser && !hasSeenDay0 ? "day0" : "member");
   }
 
   // ── Save profile to Supabase (called after onboarding) ───────────────────
@@ -1901,7 +1905,10 @@ export default function App(){
         {chosen && screen==="day0" && profile && (
           <Day0Screen
             profile={profile}
-            onDone={()=>setScreen("member")}
+            onDone={()=>{
+              localStorage.setItem(`form16_day0_${session?.user?.id}`,"1");
+              setScreen("member");
+            }}
           />
         )}
 
