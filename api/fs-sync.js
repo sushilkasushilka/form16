@@ -15,26 +15,6 @@ function pct(str) {
     .replace(/\(/g,"%28").replace(/\)/g,"%29").replace(/\*/g,"%2A");
 }
 
-function buildAuthHeader(method, url, extraParams, consumerSecret, tokenSecret="") {
-  const p = {
-    oauth_consumer_key:     process.env.FATSECRET_CLIENT_ID,
-    oauth_nonce:            crypto.randomBytes(16).toString("hex"),
-    oauth_signature_method: "HMAC-SHA1",
-    oauth_timestamp:        String(Math.floor(Date.now()/1000)),
-    oauth_version:          "1.0",
-    ...extraParams,
-  };
-  const normalized = Object.keys(p).sort()
-    .map(k=>`${pct(k)}=${pct(p[k])}`).join("&");
-  const base = `${method.toUpperCase()}&${pct(url)}&${pct(normalized)}`;
-  const key  = `${pct(consumerSecret)}&${pct(tokenSecret)}`;
-  const sig  = crypto.createHmac("sha1",key).update(base).digest("base64");
-  const all  = {...p, oauth_signature:sig};
-  const hdr  = Object.keys(all).sort()
-    .map(k=>`${pct(k)}="${pct(all[k])}"`).join(", ");
-  return `OAuth ${hdr}`;
-}
-
 function toFSDate(date = new Date()) {
   return Math.floor((date - new Date(1970,0,1)) / 86400000);
 }
@@ -53,25 +33,42 @@ export default async function handler(req, res) {
   if (profileError || !profile?.fs_oauth_token)
     return res.status(400).json({ error: "FatSecret not connected" });
 
+  const consumerKey    = process.env.FATSECRET_CLIENT_ID;
+  const consumerSecret = process.env.FATSECRET_CLIENT_SECRET;
+
   const apiParams = {
+    format:  "json",
     method:  "food_entries.get.v2",
     date:    String(toFSDate()),
-    format:  "json",
   };
 
-  const authHeader = buildAuthHeader(
-    "POST", FS_API_URL,
-    { oauth_token: profile.fs_oauth_token, ...apiParams },
-    process.env.FATSECRET_CLIENT_SECRET,
-    profile.fs_oauth_secret
-  );
+  const oauthParams = {
+    oauth_consumer_key:     consumerKey,
+    oauth_nonce:            crypto.randomBytes(16).toString("hex"),
+    oauth_signature_method: "HMAC-SHA1",
+    oauth_timestamp:        String(Math.floor(Date.now() / 1000)),
+    oauth_token:            profile.fs_oauth_token,
+    oauth_version:          "1.0",
+  };
+
+  // Signature covers both oauth params + api params
+  const allParams = { ...oauthParams, ...apiParams };
+  const normalized = Object.keys(allParams).sort()
+    .map(k => `${pct(k)}=${pct(allParams[k])}`).join("&");
+
+  const base = ["POST", pct(FS_API_URL), pct(normalized)].join("&");
+  const signingKey = `${pct(consumerSecret)}&${pct(profile.fs_oauth_secret)}`;
+  oauthParams.oauth_signature = crypto.createHmac("sha1", signingKey).update(base).digest("base64");
+
+  const body = new URLSearchParams({ ...oauthParams, ...apiParams }).toString();
 
   try {
     const response = await fetch(FS_API_URL, {
       method: "POST",
-      headers: { Authorization: authHeader, "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams(apiParams),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
     });
+
     const data = await response.json();
 
     if (data.error || !data.food_entries)

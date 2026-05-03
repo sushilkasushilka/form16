@@ -10,30 +10,6 @@ function pct(str) {
     .replace(/\(/g,"%28").replace(/\)/g,"%29").replace(/\*/g,"%2A");
 }
 
-function buildAuthHeader(method, url, callbackUrl, consumerKey, consumerSecret) {
-  const p = {
-    oauth_callback:         callbackUrl,
-    oauth_consumer_key:     consumerKey,
-    oauth_nonce:            crypto.randomBytes(16).toString("hex"),
-    oauth_signature_method: "HMAC-SHA1",
-    oauth_timestamp:        String(Math.floor(Date.now()/1000)),
-    oauth_version:          "1.0",
-  };
-
-  const normalized = Object.keys(p).sort()
-    .map(k => `${pct(k)}=${pct(p[k])}`).join("&");
-
-  const base = [method.toUpperCase(), pct(url), pct(normalized)].join("&");
-  const signingKey = `${pct(consumerSecret)}&`;
-  const sig = crypto.createHmac("sha1", signingKey).update(base).digest("base64");
-
-  const all = { ...p, oauth_signature: sig };
-  const headerStr = Object.keys(all).sort()
-    .map(k => `${pct(k)}="${pct(all[k])}"`).join(", ");
-
-  return `OAuth ${headerStr}`;
-}
-
 export default async function handler(req, res) {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ error: "Missing userId" });
@@ -42,26 +18,45 @@ export default async function handler(req, res) {
   const consumerSecret = process.env.FATSECRET_CLIENT_SECRET;
 
   if (!consumerKey || !consumerSecret) {
-    return res.status(500).json({
-      error: "Missing env vars",
-      hasKey: !!consumerKey,
-      hasSecret: !!consumerSecret,
-    });
+    return res.status(500).json({ error: "Missing env vars", hasKey: !!consumerKey, hasSecret: !!consumerSecret });
   }
 
   const appUrl = process.env.VITE_APP_URL || `https://${req.headers.host}`;
   const callbackUrl = `${appUrl}/api/fs-callback?userId=${userId}`;
 
-  const authHeader = buildAuthHeader("POST", FS_REQUEST_TOKEN_URL, callbackUrl, consumerKey, consumerSecret);
+  // Build OAuth params — send in POST body, not Authorization header
+  const oauthParams = {
+    oauth_callback:         callbackUrl,
+    oauth_consumer_key:     consumerKey,
+    oauth_nonce:            crypto.randomBytes(16).toString("hex"),
+    oauth_signature_method: "HMAC-SHA1",
+    oauth_timestamp:        String(Math.floor(Date.now() / 1000)),
+    oauth_version:          "1.0",
+  };
+
+  // Build signature base string
+  const normalized = Object.keys(oauthParams).sort()
+    .map(k => `${pct(k)}=${pct(oauthParams[k])}`).join("&");
+
+  const base = [
+    "POST",
+    pct(FS_REQUEST_TOKEN_URL),
+    pct(normalized),
+  ].join("&");
+
+  const signingKey = `${pct(consumerSecret)}&`;
+  oauthParams.oauth_signature = crypto
+    .createHmac("sha1", signingKey)
+    .update(base)
+    .digest("base64");
 
   try {
+    const body = new URLSearchParams(oauthParams).toString();
+
     const response = await fetch(FS_REQUEST_TOKEN_URL, {
       method: "POST",
-      headers: {
-        "Authorization": authHeader,
-        "Content-Type":  "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({ oauth_callback: callbackUrl }).toString(),
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
     });
 
     const text = await response.text();
@@ -69,11 +64,10 @@ export default async function handler(req, res) {
 
     if (!params.oauth_token) {
       return res.status(500).json({
-        error:     "No token from FatSecret",
-        raw:       text,
-        status:    response.status,
-        keyLength: consumerKey?.length,
-        header:    authHeader,
+        error:  "No token from FatSecret",
+        raw:    text,
+        status: response.status,
+        base:   base.substring(0, 200),
       });
     }
 
