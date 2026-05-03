@@ -991,8 +991,15 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
           </div>
         </div>
         <div style={{marginTop:14,display:"flex",alignItems:"center",gap:10}}>
-          <div style={{flex:1,height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}><div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${((profile.currentWeek-1)/16)*100}%`,borderRadius:3}}/></div>
-          <span style={{fontSize:11,color:C.muted,whiteSpace:"nowrap"}}>Week {profile.currentWeek}/16 — {currentWeekData.theme}</span>
+          <div style={{flex:1}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+              <span style={{fontSize:12,fontWeight:700,color:C.accent}}>День {userGlobalDay} из 112</span>
+              <span style={{fontSize:11,color:C.muted}}>Неделя {currentWeekNum} — {currentWeekData.theme}</span>
+            </div>
+            <div style={{height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${Math.min(100,(userGlobalDay/112)*100)}%`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1070,6 +1077,21 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
                 </div>
               </div>
 
+              {/* Inline chat bar — Day 0 */}
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,marginBottom:14,overflow:"hidden"}}>
+                <div style={{padding:"12px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:28,height:28,borderRadius:8,background:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🏋️</div>
+                    <div><div style={{fontSize:12,fontWeight:700}}>Персональный тренер</div><div style={{fontSize:10,color:C.accent}}>ИИ · отвечает мгновенно</div></div>
+                  </div>
+                  <button onClick={()=>setShowChat(true)} style={{fontSize:11,color:C.accent,background:C.accentDim,border:"none",borderRadius:14,padding:"4px 10px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Открыть →</button>
+                </div>
+                <div style={{padding:"10px 12px",display:"flex",gap:8,alignItems:"center"}}>
+                  <input placeholder="Спроси тренера…" onFocus={()=>setShowChat(true)} readOnly style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"8px 12px",color:C.muted,fontSize:13,fontFamily:"'DM Sans',sans-serif",outline:"none",cursor:"pointer"}}/>
+                  <div style={{width:34,height:34,borderRadius:"50%",background:C.dim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:C.bg,flexShrink:0}}>↑</div>
+                </div>
+              </div>
+
               {/* Tomorrow preview */}
               <div style={{background:C.card,border:`1.5px solid ${C.accent}44`,borderRadius:18,overflow:"hidden"}}>
                 <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`}}>
@@ -1098,17 +1120,6 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
           ) : (
             /* ── NORMAL DAY 1+ CONTENT ── */
             <>
-              {/* ── DAY PROGRESS BAR ── */}
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"12px 16px",marginBottom:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,color:C.accent}}>День {userGlobalDay}</div>
-                  <div style={{fontSize:11,color:C.muted}}>из 112 · Неделя {currentWeekNum} — {currentWeekData.theme}</div>
-                </div>
-                <div style={{height:6,background:C.dim,borderRadius:3,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:`${Math.min(100,(userGlobalDay/112)*100)}%`,background:`linear-gradient(90deg,${C.accent},#00D2FF)`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
-                </div>
-                <div style={{fontSize:10,color:C.muted,marginTop:5}}>{112-userGlobalDay} дней до финала</div>
-              </div>
 
               {/* ── HABIT TRACKER GRID ── */}
               {(()=>{
