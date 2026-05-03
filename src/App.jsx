@@ -626,132 +626,70 @@ function Btn({children,onClick,variant="primary",disabled,small}){
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// ─── WEEK DETAIL MODAL ───────────────────────────────────────────────────────
+// ─── DAY DETAIL MODAL ────────────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
-function WeekDetailModal({ weekData, profile, onClose }) {
-  const [activeSection, setActiveSection] = useState("days");
-  const typeColors = { training:C.orange, nutrition:C.accent, mindset:C.purple, rest:C.muted, active_recovery:C.blue };
-  const completedDays = profile.logs.length; // approximate
+function DayDetailModal({ weekData, day, onClose }) {
+  const col = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted,active_recovery:C.blue}[day.type]||C.accent;
 
   return (
     <div style={{position:"fixed",inset:0,background:"#000000EE",zIndex:600,display:"flex",flexDirection:"column",justifyContent:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{background:C.surface,borderRadius:"26px 26px 0 0",maxHeight:"92vh",display:"flex",flexDirection:"column",animation:"slideUp 0.35s cubic-bezier(.16,1,.3,1) both"}}>
         <div style={{width:40,height:4,background:C.border,borderRadius:2,margin:"14px auto 0",flexShrink:0}}/>
+
         {/* Header */}
-        <div style={{padding:"16px 22px 0",flexShrink:0}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
-              <div style={{width:44,height:44,borderRadius:14,background:`${weekData.color}22`,border:`2px solid ${weekData.color}55`,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Syne',sans-serif",fontWeight:800,fontSize:16,color:weekData.color}}>{weekData.week}</div>
-              <div>
-                <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800}}>Week {weekData.week}: {weekData.theme}</div>
-                <div style={{fontSize:12,color:C.muted,marginTop:2}}>{weekData.training.title} · {weekData.training.duration} min · {weekData.training.intensity}</div>
+        <div style={{padding:"16px 22px 0",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:48,height:48,borderRadius:15,background:`${col}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>{day.icon}</div>
+            <div>
+              <div style={{fontSize:10,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>
+                Неделя {weekData.week} · День {day.day}
               </div>
+              <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800}}>{day.title}</div>
             </div>
-            <button onClick={onClose} style={{width:32,height:32,borderRadius:"50%",background:C.card,border:"none",color:C.muted,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           </div>
-          {/* Section tabs */}
-          <div style={{display:"flex",gap:8,marginBottom:2,overflowX:"auto",paddingBottom:4}}>
-            {[{id:"days",label:t("week.detail.days")},{id:"training",label:t("week.detail.training")},{id:"nutrition",label:t("week.detail.nutrition")},{id:"mindset",label:t("week.detail.mindset")}].map(s=>(
-              <button key={s.id} onClick={()=>setActiveSection(s.id)} style={{flexShrink:0,background:activeSection===s.id?C.accent:C.card,border:`1px solid ${activeSection===s.id?C.accent:C.border}`,borderRadius:20,padding:"7px 14px",cursor:"pointer",color:activeSection===s.id?C.bg:C.muted,fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>{s.label}</button>
-            ))}
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:12,color:C.yellow,background:C.yellowDim,padding:"4px 10px",borderRadius:20,fontWeight:700}}>⚡{day.xp} XP</span>
+            <button onClick={onClose} style={{width:32,height:32,borderRadius:"50%",background:C.card,border:"none",color:C.muted,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           </div>
         </div>
 
         {/* Body */}
         <div style={{flex:1,overflowY:"auto",padding:"16px 22px 40px"}}>
 
-          {/* ── OVERVIEW ── always at top */}
-          <div style={{background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:16,padding:"14px 16px",marginBottom:18,fontSize:13,color:C.muted,lineHeight:1.7}}>
-            {weekData.overview}
+          {/* Task */}
+          <div style={{background:`${col}14`,border:`1px solid ${col}33`,borderRadius:16,padding:"14px 16px",marginBottom:16}}>
+            <div style={{fontSize:11,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>🎯 Задание дня</div>
+            <div style={{fontSize:14,color:C.text,lineHeight:1.7}}>{day.task}</div>
           </div>
 
-          {/* ── DAYS ── */}
-          {activeSection==="days" && weekData.days.map(day=>{
-            const col = typeColors[day.type] || C.muted;
-            return (
-              <div key={day.day} style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 16px",marginBottom:10}}>
-                <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                  <div style={{width:46,height:46,borderRadius:14,background:`${col}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{day.icon}</div>
-                  <div style={{flex:1}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-                      <div>
-                        <div style={{fontSize:10,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Day {day.day} · {day.type}</div>
-                        <div style={{fontWeight:700,fontSize:15}}>{day.title}</div>
-                      </div>
-                      <span style={{fontSize:11,color:C.yellow,background:C.yellowDim,padding:"2px 8px",borderRadius:20,fontWeight:700,flexShrink:0,marginLeft:8}}>⚡{day.xp}</span>
-                    </div>
-                    <div style={{fontSize:13,color:C.muted,lineHeight:1.6}}>{day.task}</div>
-                    {/* Tip */}
-                    <div style={{marginTop:10,background:`${col}10`,border:`1px solid ${col}22`,borderRadius:11,padding:"8px 12px",display:"flex",gap:8,alignItems:"flex-start"}}>
-                      <div style={{fontSize:13,color:C.muted,lineHeight:1.65}}><b style={{color:col}}>{day.tip.cat}:</b> {day.tip.text}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* ── TRAINING ── */}
-          {activeSection==="training" && (
-            <div>
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px 18px",marginBottom:16}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-                  <div>
-                    <div style={{fontWeight:700,fontSize:16}}>{weekData.training.title}</div>
-                    <div style={{fontSize:13,color:C.muted,marginTop:3}}>{weekData.training.duration} min · Intensity: {weekData.training.intensity}</div>
-                  </div>
-                  <span style={{fontSize:11,color:C.orange,background:C.orangeDim,padding:"3px 10px",borderRadius:20,fontWeight:700,flexShrink:0}}>🏋️ Training</span>
-                </div>
-                {weekData.training.exercises.map((ex,i)=>(
-                  <div key={i} style={{padding:"12px 0",borderTop:`1px solid ${C.border}`}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-                      <div style={{fontWeight:700,fontSize:14,flex:1}}>{ex.name}</div>
-                      <div style={{display:"flex",gap:8,flexShrink:0,marginLeft:8}}>
-                        <span style={{fontSize:11,color:C.blue,background:C.blueDim,padding:"2px 8px",borderRadius:12,fontWeight:700}}>{ex.sets} × {ex.reps}</span>
-                        {ex.rest!=="-"&&<span style={{fontSize:11,color:C.muted,background:C.dim,padding:"2px 8px",borderRadius:12,fontWeight:700}}>⏱{ex.rest}</span>}
-                      </div>
-                    </div>
-                    <div style={{fontSize:12,color:C.muted,lineHeight:1.6,fontStyle:"italic"}}>{ex.note}</div>
-                  </div>
-                ))}
-              </div>
+          {/* Extended info blocks */}
+          {day.info?.why&&(
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"16px 18px",marginBottom:12}}>
+              <div style={{fontSize:11,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>📖 Почему это важно</div>
+              <div style={{fontSize:13,color:C.muted,lineHeight:1.85,whiteSpace:"pre-line"}}>{day.info.why}</div>
             </div>
           )}
 
-          {/* ── NUTRITION ── */}
-          {activeSection==="nutrition" && (
-            <div>
-              <div style={{background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:20,padding:"18px 18px",marginBottom:14}}>
-                <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>{t("week.focus")}</div>
-                <div style={{fontWeight:700,fontSize:17,marginBottom:10}}>{weekData.nutrition.title}</div>
-                <div style={{fontSize:14,color:C.muted,lineHeight:1.7}}>{weekData.nutrition.tip}</div>
-                <div style={{marginTop:12,display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:12,color:C.purple,background:C.purpleDim,padding:"4px 12px",borderRadius:20,fontWeight:700}}>🥩 {weekData.nutrition.proteinPerKg}{t("protein.per.kg")}</span>
-                </div>
-              </div>
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px 18px"}}>
-                <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>{t("week.meal")}</div>
-                <div style={{fontWeight:700,fontSize:15,marginBottom:6}}>{weekData.nutrition.meal.name}</div>
-                <div style={{fontSize:13,color:C.muted,lineHeight:1.65,marginBottom:12}}>{weekData.nutrition.meal.desc}</div>
-                <div style={{fontSize:12,color:C.accent,background:C.accentDim,borderRadius:12,padding:"8px 12px",fontWeight:600}}>{weekData.nutrition.meal.macros}</div>
-              </div>
+          {day.info?.howTo&&(
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"16px 18px",marginBottom:12}}>
+              <div style={{fontSize:11,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>✅ Как это делать</div>
+              <div style={{fontSize:13,color:C.muted,lineHeight:1.85,whiteSpace:"pre-line"}}>{day.info.howTo}</div>
             </div>
           )}
 
-          {/* ── MINDSET ── */}
-          {activeSection==="mindset" && (
-            <div>
-              <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:20,padding:"20px 20px",marginBottom:14}}>
-                <div style={{fontSize:11,color:C.purple,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:12}}>{t("week.theme")}</div>
-                <div style={{fontWeight:700,fontSize:18,marginBottom:16,color:C.text}}>{weekData.mindset.title}</div>
-                <div style={{fontSize:15,color:C.muted,lineHeight:1.8,fontStyle:"italic",marginBottom:16,borderLeft:`3px solid ${C.purple}`,paddingLeft:14}}>"{weekData.mindset.quote}"</div>
-              </div>
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"18px 18px"}}>
-                <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>{t("week.practice")}</div>
-                <div style={{fontSize:14,color:C.muted,lineHeight:1.75}}>{weekData.mindset.practice}</div>
-              </div>
+          {day.info?.weekTarget&&(
+            <div style={{background:`${col}10`,border:`1px solid ${col}33`,borderRadius:16,padding:"14px 16px",marginBottom:12}}>
+              <div style={{fontSize:11,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>🎯 Цель</div>
+              <div style={{fontSize:13,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{day.info.weekTarget}</div>
             </div>
           )}
+
+          {/* Tip */}
+          <div style={{background:C.accentDim,border:`1px solid ${C.accent}22`,borderRadius:14,padding:"12px 14px"}}>
+            <div style={{fontSize:12,color:C.muted,lineHeight:1.65}}>
+              <b style={{color:C.accent}}>{day.tip.cat}:</b> {day.tip.text}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -840,7 +778,7 @@ function LogModal({profile,onSave,onClose}){
 function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
   const [tab,setTab]=useState("today");
   const [showLog,setShowLog]=useState(false);
-  const [selectedWeek,setSelectedWeek]=useState(null);
+  const [selectedDay,setSelectedDay]=useState(null); // {weekData, day}
 
   const lastLog=profile.logs.at(-1);
   const todayLog=profile.logs.find(l=>l.date===todayStr());
@@ -913,7 +851,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
                 const isFuture = day.day > todayDayIdx;
                 const col = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted}[day.type]||C.muted;
                 return (
-                  <div key={day.day} style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>setSelectedWeek(currentWeekData)}>
+                  <div key={day.day} style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>setSelectedDay({weekData:currentWeekData,day})}>
                     <div style={{width:44,height:44,borderRadius:14,background:isToday?col:isDone?`${col}33`:C.card,border:`2px solid ${isToday?col:isDone?`${col}55`:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isToday?20:16,opacity:isFuture?0.4:1,transition:"all 0.15s"}}>
                       {isDone?"✓":day.icon}
                     </div>
@@ -940,7 +878,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
                   <div style={{fontSize:13,color:C.muted,lineHeight:1.65}}>{todayDayData.task}</div>
                   <div style={{marginTop:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <span style={{fontSize:11,color:C.yellow,background:C.yellowDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ +{todayDayData.xp} XP</span>
-                    <button onClick={()=>setSelectedWeek(currentWeekData)} style={{fontSize:11,color:taskTypeColor,background:`${taskTypeColor}18`,border:"none",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Детали →</button>
+                    <button onClick={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})} style={{fontSize:11,color:taskTypeColor,background:`${taskTypeColor}18`,border:"none",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Детали →</button>
                   </div>
                 </div>
               </div>
@@ -1092,7 +1030,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
                   const typeColor = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted,active_recovery:C.blue}[day.type]||C.muted;
                   return (
                     <div key={day.day}
-                      onClick={()=>dayUnlocked&&setSelectedWeek(wk)}
+                      onClick={()=>dayUnlocked&&setSelectedDay({weekData:wk,day})}
                       style={{background:dayActive?`${typeColor}14`:dayDone?C.surface:C.card,border:`1px solid ${dayActive?typeColor+"66":dayDone?C.dim:C.border}`,borderRadius:16,padding:"12px 14px",marginBottom:6,opacity:dayUnlocked?1:0.3,cursor:dayUnlocked?"pointer":"default",display:"flex",alignItems:"center",gap:12,transition:"all 0.15s"}}
                     >
                       {/* Day number */}
@@ -1226,7 +1164,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
       </div>
 
       {showLog&&<LogModal profile={profile} onSave={log=>{handleSaveLog(log);setShowLog(false);}} onClose={()=>setShowLog(false)}/>}
-      {selectedWeek&&<WeekDetailModal weekData={selectedWeek} profile={profile} onClose={()=>setSelectedWeek(null)}/>}
+      {selectedDay&&<DayDetailModal weekData={selectedDay.weekData} day={selectedDay.day} onClose={()=>setSelectedDay(null)}/>}
     </div>
   );
 }
