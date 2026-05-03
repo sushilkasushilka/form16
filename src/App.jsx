@@ -990,17 +990,6 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             {onSignOut&&<button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:10,padding:"5px 10px",color:C.muted,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{t("header.signout")}</button>}
           </div>
         </div>
-        <div style={{marginTop:14,display:"flex",alignItems:"center",gap:10}}>
-          <div style={{flex:1}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-              <span style={{fontSize:12,fontWeight:700,color:C.accent}}>День {userGlobalDay} из 112</span>
-              <span style={{fontSize:11,color:C.muted}}>Неделя {currentWeekNum} — {currentWeekData.theme}</span>
-            </div>
-            <div style={{height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${Math.min(100,(userGlobalDay/112)*100)}%`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Tabs */}
@@ -1012,30 +1001,24 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
       {tab==="today"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
 
-          {/* Header — always shown */}
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div>
-              <div style={{fontFamily:"'Syne',sans-serif",fontSize:21,fontWeight:800}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long"})}</div>
-              <div style={{fontSize:12,color:C.muted}}>{new Date().toLocaleDateString("ru-RU",{day:"numeric",month:"long",year:"numeric"})}</div>
+          {/* Day progress + date + log button */}
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 16px",marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div>
+                <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,color:C.accent}}>День {userGlobalDay} <span style={{fontSize:13,color:C.muted,fontWeight:400}}>из 112</span></div>
+                <div style={{fontSize:11,color:C.muted,marginTop:1}}>Неделя {currentWeekNum} — {currentWeekData.theme}</div>
+              </div>
+              <button onClick={()=>setShowLog(true)} style={{background:todayLog?C.accentDim:C.accent,color:todayLog?C.accent:C.bg,border:todayLog?`1.5px solid ${C.accent}55`:"none",borderRadius:22,padding:"9px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",flexShrink:0}}>{todayLog?t("today.logged"):t("today.log")}</button>
             </div>
-            <button onClick={()=>setShowLog(true)} style={{background:todayLog?C.accentDim:C.accent,color:todayLog?C.accent:C.bg,border:todayLog?`1.5px solid ${C.accent}55`:"none",borderRadius:22,padding:"9px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>{todayLog?t("today.logged"):t("today.log")}</button>
+            <div style={{height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${Math.min(100,(userGlobalDay/112)*100)}%`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
+            </div>
+            <div style={{fontSize:11,color:C.muted,marginTop:5}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"})}</div>
           </div>
 
           {/* ── DAY 0 FULL TAKEOVER ── */}
           {isDay0 ? (
             <div style={{animation:"fadeIn 0.3s both"}}>
-
-              {/* Progress bar: 0 of 112 */}
-              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 18px",marginBottom:14}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={{fontSize:13,fontWeight:700}}>День 0 из 112</div>
-                  <div style={{fontSize:11,color:C.blue,background:C.blueDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>Старт завтра</div>
-                </div>
-                <div style={{height:6,background:C.dim,borderRadius:3,overflow:"hidden"}}>
-                  <div style={{height:"100%",width:"1%",background:C.blue,borderRadius:3}}/>
-                </div>
-                <div style={{fontSize:11,color:C.muted,marginTop:8}}>16 недель · 112 дней · программа начинается завтра в 07:00</div>
-              </div>
 
               {/* Setup checklist — carried from Day 0 screen */}
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,marginBottom:14,overflow:"hidden"}}>
