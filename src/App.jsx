@@ -1383,6 +1383,148 @@ function Splash({onStart,onCoach}){
   );
 }
 
+// ─── DAY 0 SCREEN ─────────────────────────────────────────────────────────────
+function Day0Screen({ profile, onDone }) {
+  const [notifDone, setNotifDone] = useState(false);
+  const [homeDone, setHomeDone] = useState(false);
+  const [mealDone, setMealDone] = useState(false);
+  const bmiLabel = !profile.bmi ? "" :
+    +profile.bmi < 18.5 ? t("bmi.underweight") :
+    +profile.bmi < 25   ? t("bmi.normal") :
+    +profile.bmi < 30   ? t("bmi.overweight") : t("bmi.obese");
+  const bmiColor = !profile.bmi ? C.muted :
+    +profile.bmi < 18.5 ? C.blue :
+    +profile.bmi < 25   ? C.accent :
+    +profile.bmi < 30   ? C.orange : C.red;
+
+  async function requestNotifications() {
+    if ("Notification" in window) {
+      const result = await Notification.requestPermission();
+      if (result === "granted") setNotifDone(true);
+      else setNotifDone(true); // still mark done even if denied
+    } else {
+      setNotifDone(true);
+    }
+  }
+
+  const tasks = [
+    { id:"profile",  icon:"📋", label:"Профиль заполнен",         sub:"Анкета завершена — твои данные сохранены",                done:true,   action:null,              badge:"готово" },
+    { id:"notif",    icon:"🔔", label:"Включить уведомления",      sub:"7:00 — замер веса · 21:00 — итог питания",               done:notifDone, action:requestNotifications, badge:"сейчас" },
+    { id:"home",     icon:"📲", label:"Добавить на главный экран", sub:"Safari → Поделиться → На экран «Домой»",                  done:homeDone, action:()=>setHomeDone(true), badge:"сегодня" },
+    { id:"meal",     icon:"🍽️", label:"Запиши первый приём пищи", sub:"Даже один перекус считается — просто начни сегодня",     done:mealDone, action:()=>setMealDone(true), badge:"сегодня" },
+  ];
+  const doneCount = tasks.filter(t=>t.done).length;
+
+  return (
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",overflowY:"auto"}}>
+
+      {/* Header */}
+      <div style={{padding:"52px 24px 24px",textAlign:"center",animation:"slideUp 0.4s both"}}>
+        <div style={{width:64,height:64,borderRadius:20,background:C.accentDim,border:`2px solid ${C.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 20px"}}>🎉</div>
+        <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,marginBottom:8}}>
+          Ты в программе,<br/><span style={{color:C.accent}}>{profile.name?.split(" ")[0]}!</span>
+        </div>
+        <div style={{fontSize:14,color:C.muted,lineHeight:1.7}}>
+          16 недель начинаются завтра утром.<br/>Сегодня — подготовка.
+        </div>
+      </div>
+
+      {/* Weight + BMI */}
+      <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.08s both"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"16px"}}>
+            <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Текущий вес</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800,color:C.text,lineHeight:1}}>{profile.weight}</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:4}}>кг · точка отсчёта</div>
+          </div>
+          <div style={{background:C.card,border:`1px solid ${bmiColor}44`,borderRadius:20,padding:"16px"}}>
+            <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Индекс массы тела</div>
+            <div style={{fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800,color:bmiColor,lineHeight:1}}>{profile.bmi||"—"}</div>
+            <div style={{fontSize:12,color:bmiColor,marginTop:4}}>{bmiLabel}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Day 0 checklist */}
+      <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.14s both"}}>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:22,overflow:"hidden"}}>
+          <div style={{padding:"16px 18px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.border}`}}>
+            <div style={{fontWeight:700,fontSize:14}}>Сделай сегодня</div>
+            <div style={{fontSize:12,color:C.accent,fontWeight:700}}>{doneCount} / {tasks.length}</div>
+          </div>
+          {tasks.map((task,i)=>(
+            <div key={task.id}
+              onClick={()=>!task.done&&task.action&&task.action()}
+              style={{display:"flex",alignItems:"center",gap:12,padding:"13px 18px",borderBottom:i<tasks.length-1?`1px solid ${C.border}`:"none",cursor:task.done||!task.action?"default":"pointer",transition:"background 0.15s"}}
+              onMouseEnter={e=>{if(!task.done&&task.action)e.currentTarget.style.background=C.surface;}}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+            >
+              {/* Checkbox */}
+              <div style={{width:22,height:22,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,background:task.done?C.accent:C.dim,border:task.done?"none":`1.5px solid ${C.border}`,color:task.done?C.bg:C.muted,transition:"all 0.2s"}}>
+                {task.done&&"✓"}
+              </div>
+              {/* Icon */}
+              <div style={{width:36,height:36,borderRadius:11,background:task.done?C.accentDim:C.surface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>
+                {task.icon}
+              </div>
+              {/* Text */}
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:600,color:task.done?C.muted:C.text,textDecoration:task.done?"line-through":"none",marginBottom:2}}>{task.label}</div>
+                <div style={{fontSize:11,color:C.muted,lineHeight:1.5}}>{task.sub}</div>
+              </div>
+              {/* Badge */}
+              {!task.done&&(
+                <div style={{fontSize:10,color:task.badge==="сейчас"?C.accent:C.muted,background:task.badge==="сейчас"?C.accentDim:C.surface,padding:"3px 8px",borderRadius:20,fontWeight:600,flexShrink:0}}>
+                  {task.badge}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tomorrow preview */}
+      <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.2s both"}}>
+        <div style={{background:C.card,border:`1.5px solid ${C.accent}44`,borderRadius:22,overflow:"hidden"}}>
+          <div style={{padding:"14px 18px 12px",borderBottom:`1px solid ${C.border}`}}>
+            <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Завтра — День 1</div>
+            <div style={{fontSize:13,color:C.muted}}>Вот что тебя ждёт</div>
+          </div>
+          <div style={{padding:"4px 0"}}>
+            {[
+              {time:"07:00",icon:"⚖️",color:C.accent,title:"Встань на весы",sub:"После туалета, до завтрака. Введи вес одним нажатием"},
+              {time:"Днём",icon:"🍽️",color:C.blue,title:"Записывай еду",sub:"Каждый приём пищи сразу после еды — так точнее всего"},
+              {time:"21:00",icon:"🌙",color:C.purple,title:"Итог дня",sub:"Пришлём напоминание проверить и дозаписать питание"},
+            ].map((item,i,arr)=>(
+              <div key={item.time} style={{display:"flex",gap:14,padding:"13px 18px",borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none",alignItems:"flex-start"}}>
+                <div style={{width:42,textAlign:"center",flexShrink:0}}>
+                  <div style={{fontSize:10,color:item.color,fontWeight:700,marginBottom:6,lineHeight:1}}>{item.time}</div>
+                  <div style={{width:36,height:36,borderRadius:11,background:`${item.color}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,margin:"0 auto"}}>{item.icon}</div>
+                </div>
+                <div style={{paddingTop:2}}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:3}}>{item.title}</div>
+                  <div style={{fontSize:12,color:C.muted,lineHeight:1.55}}>{item.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div style={{padding:"0 24px 48px",animation:"slideUp 0.4s 0.26s both"}}>
+        <button onClick={onDone} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:18,padding:"17px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>
+          Открыть приложение →
+        </button>
+        <div style={{textAlign:"center",marginTop:12,fontSize:12,color:C.muted}}>
+          Задачи дня 0 останутся на главном экране
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 // ─── AUTH SCREENS ─────────────────────────────────────────────────────────────
 
 function AuthScreen({ onAuth }) {
@@ -1589,7 +1731,7 @@ export default function App(){
 
     if (!error) {
       setProfile({ ...p, id: userId, logs: [], foodLog: [] });
-      setScreen("member");
+      setScreen("day0");
     }
   }
 
@@ -1674,6 +1816,13 @@ export default function App(){
           <SignUp
             onComplete={saveProfile}
             onBack={async()=>{ await supabase.auth.signOut(); setScreen("auth"); }}
+          />
+        )}
+
+        {chosen && screen==="day0" && profile && (
+          <Day0Screen
+            profile={profile}
+            onDone={()=>setScreen("member")}
           />
         )}
 
