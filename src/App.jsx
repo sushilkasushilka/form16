@@ -538,20 +538,35 @@ const PROGRAM = [
 ];
 
 // ─── PROGRAM HELPERS ─────────────────────────────────────────────────────────
+// ── Day calculation based on joinedAt — NOT day of week ──────────────────────
+function getUserGlobalDay(profile) {
+  // Returns 0 on signup day, 1 the next day, etc.
+  if (!profile?.joinedAt) return 0;
+  const joined = new Date(profile.joinedAt);
+  const today = new Date();
+  joined.setHours(0,0,0,0);
+  today.setHours(0,0,0,0);
+  return Math.max(0, Math.floor((today - joined) / 86400000));
+}
+
 // Get week data (1-indexed) — defensive
 function getWeek(weekNum) {
   const idx = Math.max(0, Math.min(15, (parseInt(weekNum) || 1) - 1));
   return PROGRAM[idx] || PROGRAM[0];
 }
 
-// Get today's day data based on profile's current week
+// Get today's day data based on joinedAt
 function getTodayData(profile) {
-  const week = getWeek(profile?.currentWeek || 1);
-  if (!week || !week.days) return { week: PROGRAM[0], day: PROGRAM[0].days[0] };
-  const dow = new Date().getDay(); // 0=Sun
-  const dayIdx = dow === 0 ? 6 : dow - 1;
+  const globalDay = getUserGlobalDay(profile);
+  if (globalDay === 0) {
+    // Day 0: show Day 1 as a preview
+    return { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
+  }
+  const weekIdx = Math.min(15, Math.floor((globalDay - 1) / 7));
+  const dayIdx = (globalDay - 1) % 7;
+  const week = PROGRAM[weekIdx] || PROGRAM[0];
   const day = week.days[dayIdx] || week.days[0];
-  return { week, day };
+  return { week, day, isDay0: false };
 }
 
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
@@ -706,7 +721,7 @@ function LogModal({profile,onSave,onClose}){
   const set=(k,v)=>setVals(p=>({...p,[k]:v}));
 
   // Is today a measurement day? Day 8 (start of week 2) then every 7 days
-  const userGlobalDay = (profile.currentWeek-1)*7 + (new Date().getDay()===0?7:new Date().getDay());
+  const userGlobalDay = getUserGlobalDay(profile);
   const isMeasureDay = userGlobalDay >= 8 && (userGlobalDay - 8) % 7 === 0;
   const isMeasureReminder = userGlobalDay >= 7 && (userGlobalDay - 7) % 7 === 0 && !isMeasureDay;
   useEffect(()=>{
@@ -788,7 +803,9 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
   const currentBFP=profile.bfp||"—";
 
   // ── WIRED: get today's task & tip from the program JSON ──
-  const { week: currentWeekData, day: todayDayData } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0] };
+  const userGlobalDay = getUserGlobalDay(profile);
+  const currentWeekNum = Math.max(1, Math.min(16, Math.ceil((userGlobalDay) / 7) || 1));
+  const { week: currentWeekData, day: todayDayData } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
   const fsSyncData=profile.fsSyncData;
   const nutritionSource=fsSyncData&&profile.fsSyncedAt&&new Date(profile.fsSyncedAt).toISOString().split("T")[0]===todayStr()?fsSyncData:todayLog;
 
@@ -838,17 +855,19 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
           </div>
 
           {/* ── WEEKLY SCROLL BAR ── */}
+          {(()=>{
+            const globalDay = getUserGlobalDay(profile);
+            const dayInWeek = globalDay === 0 ? 0 : ((globalDay - 1) % 7) + 1; // 0=Day0, 1-7 within week
+            return (
           <div style={{marginBottom:16}}>
             <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>
               Неделя {profile.currentWeek} — {currentWeekData.theme}
             </div>
             <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
               {currentWeekData.days.map(day=>{
-                const dow = new Date().getDay();
-                const todayDayIdx = dow===0?7:dow; // 1=Mon…7=Sun
-                const isDone = day.day < todayDayIdx;
-                const isToday = day.day === todayDayIdx;
-                const isFuture = day.day > todayDayIdx;
+                const isDone = day.day < dayInWeek;
+                const isToday = day.day === dayInWeek;
+                const isFuture = day.day > dayInWeek || dayInWeek === 0;
                 const col = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted}[day.type]||C.muted;
                 return (
                   <div key={day.day} style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>setSelectedDay({weekData:currentWeekData,day})}>
@@ -864,8 +883,31 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
               })}
             </div>
           </div>
+            );
+          })()}
 
-          {/* Today's Task — from program JSON */}
+          {/* ── DAY 0 banner — shown on signup day ── */}
+          {todayDayData?.isDay0 && (
+            <div style={{background:C.accentDim,border:`1.5px solid ${C.accent}44`,borderRadius:20,padding:"16px 18px",marginBottom:14}}>
+              <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>День 0 — подготовка</div>
+              <div style={{fontSize:13,color:C.muted,lineHeight:1.7,marginBottom:14}}>
+                Программа официально начинается <b style={{color:C.text}}>завтра утром</b>. Сегодня — одна задача: запиши что-нибудь из того, что ешь сегодня. Даже один приём пищи.
+              </div>
+              <div style={{background:C.surface,borderRadius:14,padding:"12px 14px",display:"flex",gap:12,alignItems:"center"}}>
+                <div style={{width:36,height:36,borderRadius:11,background:`${C.accent}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🍽️</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>Первый приём пищи</div>
+                  <div style={{fontSize:12,color:C.muted}}>Нажми «+ Записать день» и добавь калории</div>
+                </div>
+                <div style={{marginLeft:"auto"}}>
+                  {todayLog
+                    ? <span style={{fontSize:12,color:C.accent,fontWeight:700}}>✓ готово</span>
+                    : <span style={{fontSize:12,color:C.muted}}>→</span>
+                  }
+                </div>
+              </div>
+            </div>
+          )}
           {todayDayData && (
             <div style={{background:`${taskTypeColor}18`,border:`1px solid ${taskTypeColor}44`,borderRadius:22,padding:"18px 20px",marginBottom:14}}>
               <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>
@@ -1023,10 +1065,10 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
                 {/* Day cards */}
                 {wk.days.map(day=>{
                   const globalDay = (wk.week-1)*7 + day.day;
-                  const userDay = (profile.currentWeek-1)*7 + (new Date().getDay()===0?7:new Date().getDay());
-                  const dayDone = globalDay < userDay;
-                  const dayActive = globalDay === userDay && weekActive;
-                  const dayUnlocked = globalDay <= userDay && weekUnlocked;
+                  const userGlobalDay = getUserGlobalDay(profile);
+                  const dayDone = globalDay < userGlobalDay;
+                  const dayActive = globalDay === userGlobalDay && userGlobalDay > 0;
+                  const dayUnlocked = globalDay <= Math.max(1, userGlobalDay) && wk.week <= profile.currentWeek;
                   const typeColor = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted,active_recovery:C.blue}[day.type]||C.muted;
                   return (
                     <div key={day.day}
@@ -1387,7 +1429,6 @@ function Splash({onStart,onCoach}){
 function Day0Screen({ profile, onDone }) {
   const [notifDone, setNotifDone] = useState(false);
   const [homeDone, setHomeDone] = useState(false);
-  const [mealDone, setMealDone] = useState(false);
   const bmiLabel = !profile.bmi ? "" :
     +profile.bmi < 18.5 ? t("bmi.underweight") :
     +profile.bmi < 25   ? t("bmi.normal") :
@@ -1411,7 +1452,6 @@ function Day0Screen({ profile, onDone }) {
     { id:"profile",  icon:"📋", label:"Профиль заполнен",         sub:"Анкета завершена — твои данные сохранены",                done:true,   action:null,              badge:"готово" },
     { id:"notif",    icon:"🔔", label:"Включить уведомления",      sub:"7:00 — замер веса · 21:00 — итог питания",               done:notifDone, action:requestNotifications, badge:"сейчас" },
     { id:"home",     icon:"📲", label:"Добавить на главный экран", sub:"Safari → Поделиться → На экран «Домой»",                  done:homeDone, action:()=>setHomeDone(true), badge:"сегодня" },
-    { id:"meal",     icon:"🍽️", label:"Запиши первый приём пищи", sub:"Даже один перекус считается — просто начни сегодня",     done:mealDone, action:()=>setMealDone(true), badge:"сегодня" },
   ];
   const doneCount = tasks.filter(t=>t.done).length;
 
