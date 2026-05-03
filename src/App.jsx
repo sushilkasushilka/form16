@@ -595,19 +595,21 @@ const MOCK_ATHLETES = [
   { id:"a3",name:"Marco R.",avatar:"🧔",age:41,height:182,weight:91,waist:97,neck:41,thigh:null,gender:"male",goal:"fat_loss",targetWeight:null,activity:"light",stress:5,sleep:4,dietQuality:3,training:"1_2x_week",trainingExp:"beginner",currentWeek:1,streak:2,totalXP:90,fatsecretConnected:true,joinedAt:"2026-03-28",bfp:26.8,bmi:27.5,tdee:2280,dailyTargets:{calories:2300,protein:164,steps:12000},logs:makeLogs(91,2280,7),notes:"New client.",foodLog:[] },
 ];
 
-// ─── FatSecret LAYER (same as v7, simplified) ─────────────────────────────────
-const FS_CONFIG = { CLIENT_ID:"YOUR_FATSECRET_CLIENT_ID", CLIENT_SECRET:"YOUR_FATSECRET_CLIENT_SECRET" };
-const IS_DEMO = FS_CONFIG.CLIENT_ID === "YOUR_FATSECRET_CLIENT_ID";
+// ─── FatSecret LAYER ──────────────────────────────────────────────────────────
 const FS = {
-  searchFoods: async q => {
-    await new Promise(r=>setTimeout(r,500));
-    const db=[{food_id:"1",name:"Chicken Breast (grilled)",brand:null,calories:165,protein:31,carbs:0,fat:3.6},{food_id:"2",name:"Oatmeal (cooked)",brand:null,calories:68,protein:2.4,carbs:12,fat:1.4},{food_id:"3",name:"Brown Rice",brand:null,calories:112,protein:2.6,carbs:23,fat:0.9},{food_id:"4",name:"Greek Yogurt (0% fat)",brand:"Chobani",calories:59,protein:10,carbs:3.6,fat:0.4},{food_id:"5",name:"Banana",brand:null,calories:89,protein:1.1,carbs:23,fat:0.3},{food_id:"6",name:"Broccoli (steamed)",brand:null,calories:35,protein:2.4,carbs:7,fat:0.4},{food_id:"7",name:"Scrambled Eggs",brand:null,calories:148,protein:10,carbs:1.6,fat:11},{food_id:"8",name:"Salmon (baked)",brand:null,calories:208,protein:28,carbs:0,fat:10},{food_id:"9",name:"Sweet Potato",brand:null,calories:86,protein:1.6,carbs:20,fat:0.1},{food_id:"10",name:"Almonds",brand:null,calories:579,protein:21,carbs:22,fat:50},{food_id:"11",name:"Whey Protein Shake",brand:"ON Gold Standard",calories:120,protein:24,carbs:3,fat:1.5},{food_id:"12",name:"Cottage Cheese (low-fat)",brand:null,calories:72,protein:12,carbs:3,fat:1}];
-    const lq=q.toLowerCase();
-    return db.filter(f=>f.name.toLowerCase().includes(lq)||(f.brand||"").toLowerCase().includes(lq));
+  // Start OAuth flow — opens FatSecret login in same tab
+  connect: (userId) => {
+    window.location.href = `/api/fs-request-token?userId=${userId}`;
   },
-  fetchDiaryTotals: async () => {
-    await new Promise(r=>setTimeout(r,1200));
-    return { calories:Math.round(1700+Math.random()*700), protein:Math.round(100+Math.random()*90), carbs:Math.round(160+Math.random()*100), fat:Math.round(45+Math.random()*40), source:"FatSecret"+(IS_DEMO?" (demo)":""), foodsLogged:Math.floor(3+Math.random()*5) };
+  // Pull today's diary totals via our server proxy
+  fetchDiaryTotals: async (userId) => {
+    const res = await fetch("/api/fs-sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (!res.ok) throw new Error("Sync failed");
+    return res.json();
   },
 };
 
@@ -744,7 +746,10 @@ function LogModal({profile,onSave,onClose}){
   },[]);
   async function syncFS(){
     setFsSyncing(true);
-    try{const d=await FS.fetchDiaryTotals();if(d)setVals(p=>({...p,calories:String(d.calories),protein:String(d.protein)}));setFsSynced(true);}catch{}
+    try{
+      const d = await FS.fetchDiaryTotals(profile.id);
+      if(d){ setVals(p=>({...p,calories:String(d.calories),protein:String(d.protein)})); setFsSynced(true); }
+    }catch(e){ console.error("FS sync error",e); }
     setFsSyncing(false);
   }
   function handleSave(){
@@ -1245,9 +1250,30 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:6}}>{currentWeekData.mindset.title}</div>
             <div style={{fontSize:12,color:C.muted,lineHeight:1.7,fontStyle:"italic",borderLeft:`3px solid ${C.purple}`,paddingLeft:12}}>"{currentWeekData.mindset.quote}"</div>
           </div>
+          {/* FatSecret connection */}
+          <div style={{background:profile.fatsecretConnected?C.accentDim:C.card,border:`1px solid ${profile.fatsecretConnected?C.accent+"55":C.border}`,borderRadius:20,padding:"16px 18px",marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:profile.fatsecretConnected?0:12}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:36,height:36,borderRadius:11,background:profile.fatsecretConnected?C.accent:C.surface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18}}>🥗</div>
+                <div>
+                  <div style={{fontWeight:700,fontSize:13}}>FatSecret</div>
+                  <div style={{fontSize:11,color:profile.fatsecretConnected?C.accent:C.muted}}>{profile.fatsecretConnected?"Подключён — синхронизация активна":"Дневник питания"}</div>
+                </div>
+              </div>
+              {profile.fatsecretConnected
+                ? <span style={{fontSize:12,color:C.accent,fontWeight:700}}>✓ Подключён</span>
+                : <button onClick={()=>FS.connect(profile.id)} style={{background:C.accent,color:C.bg,border:"none",borderRadius:14,padding:"8px 16px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>Подключить →</button>
+              }
+            </div>
+            {!profile.fatsecretConnected&&(
+              <div style={{fontSize:12,color:C.muted,lineHeight:1.7}}>
+                Логируй еду в приложении FatSecret (2.3 млн российских продуктов) и синхронизируй с FORM16 одним нажатием.
+              </div>
+            )}
+          </div>
           <div style={{background:C.card,borderRadius:20,padding:"16px 18px",border:`1px solid ${C.border}`}}>
             <div style={{fontWeight:700,marginBottom:12}}>{t("profile.targets")}</div>
-            {[{l:t("profile.calories"),v:`${profile.dailyTargets?.calories||2000} kcal`,c:C.orange},{l:t("profile.protein"),v:`${profile.dailyTargets?.protein||150} g`,c:C.purple},{l:t("profile.steps"),v:(profile.dailyTargets?.steps||10000).toLocaleString(),c:C.accent}].map(tgt=>(
+            {[{l:t("profile.calories"),v:`${profile.dailyTargets?.calories||2000} kcал`,c:C.orange},{l:t("profile.protein"),v:`${profile.dailyTargets?.protein||150} г`,c:C.purple},{l:t("profile.steps"),v:(profile.dailyTargets?.steps||10000).toLocaleString(),c:C.accent}].map(tgt=>(
               <div key={tgt.l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{tgt.l}</span><span style={{fontWeight:700,color:tgt.c,fontSize:13}}>{tgt.v}</span></div>
             ))}
           </div>
@@ -1771,6 +1797,19 @@ export default function App(){
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [athletes, setAthletes] = useState(MOCK_ATHLETES);
+
+  // ── Detect FatSecret OAuth callback (?fs_connected=1) ────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("fs_connected") === "1") {
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+      // Reload profile to pick up updated fatsecret_connected flag
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user) loadProfile(data.user.id);
+      });
+    }
+  }, []);
 
   // ── Listen to auth state ──────────────────────────────────────────────────
   useEffect(() => {
