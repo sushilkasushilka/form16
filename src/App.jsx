@@ -864,7 +864,23 @@ function LogModal({profile,onSave,onClose}){
     setFsSyncing(false);
   }
   function handleSave(){
-    onSave({date:todayStr(),fromFatSecret:fsSynced,weight:parseFloat(vals.weight)||profile.weight,calories:parseInt(vals.calories)||0,protein:parseInt(vals.protein)||0,steps:parseInt(vals.steps)||0,waist:vals.waist?parseFloat(vals.waist):undefined,neck:vals.neck?parseFloat(vals.neck):undefined,hips:vals.hips?parseFloat(vals.hips):undefined});
+    const log = {
+      date:todayStr(),
+      fromFatSecret:fsSynced,
+      weight:parseFloat(vals.weight)||profile.weight,
+      calories:parseInt(vals.calories)||0,
+      protein:parseInt(vals.protein)||0,
+      steps:parseInt(vals.steps)||0,
+      waist:vals.waist?parseFloat(vals.waist):undefined,
+      neck:vals.neck?parseFloat(vals.neck):undefined,
+      hips:vals.hips?parseFloat(vals.hips):undefined,
+    };
+    // Recalculate BFP if measurements provided
+    if(log.waist&&log.neck&&profile.height){
+      const bfp = calcBFP(log.waist,log.neck,profile.height,profile.gender,log.hips||profile.thigh);
+      if(bfp!=="—") log.bfp = parseFloat(bfp);
+    }
+    onSave(log);
     onClose();
   }
   const fields=[{key:"weight",label:t("log.weight"),unit:t("unit.kg"),icon:"⚖️",ph:t("log.weight.ph"),color:C.blue},{key:"calories",label:t("log.calories"),unit:t("unit.kcal"),icon:"🔥",ph:t("log.calories.ph"),color:C.orange},{key:"protein",label:t("log.protein"),unit:t("unit.g"),icon:"🥩",ph:t("log.protein.ph"),color:C.purple},{key:"steps",label:t("log.steps"),unit:t("unit.steps"),icon:"👟",ph:t("log.steps.ph"),color:C.accent}];
@@ -953,6 +969,8 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
   function handleSaveLog(log){
     if(saveLog) saveLog(log);
     else setProfile(p=>({...p,logs:[...(p.logs||[]).filter(l=>l.date!==log.date),log],streak:p.streak+1,totalXP:p.totalXP+20}));
+    // Update BFP on profile if measurements were logged
+    if(log.bfp) setProfile(p=>({...p,bfp:log.bfp}));
   }
 
   const TABS=[{id:"today",icon:"📊",label:t("tab.today")},{id:"program",icon:"🗓",label:t("tab.program")},{id:"progress",icon:"📈",label:t("tab.progress")},{id:"profile",icon:"👤",label:t("tab.profile")}];
@@ -1080,33 +1098,150 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
           ) : (
             /* ── NORMAL DAY 1+ CONTENT ── */
             <>
-              {/* ── WEEKLY SCROLL BAR ── */}
+              {/* ── DAY PROGRESS BAR ── */}
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"12px 16px",marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:18,fontWeight:800,color:C.accent}}>День {userGlobalDay}</div>
+                  <div style={{fontSize:11,color:C.muted}}>из 112 · Неделя {currentWeekNum} — {currentWeekData.theme}</div>
+                </div>
+                <div style={{height:6,background:C.dim,borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${Math.min(100,(userGlobalDay/112)*100)}%`,background:`linear-gradient(90deg,${C.accent},#00D2FF)`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
+                </div>
+                <div style={{fontSize:10,color:C.muted,marginTop:5}}>{112-userGlobalDay} дней до финала</div>
+              </div>
+
+              {/* ── HABIT TRACKER GRID ── */}
               {(()=>{
-                const globalDay = getUserGlobalDay(profile);
-                const dayInWeek = globalDay === 0 ? 0 : ((globalDay - 1) % 7) + 1;
+                // Habits unlock progressively by week
+                const habits = [
+                  {id:"weight", icon:"⚖️", label:"Вес",     col:"#1D9E75", unlocksWeek:1, check:(log)=>log?.weight>0},
+                  {id:"meals",  icon:"🍽️", label:"Питание", col:"#378ADD", unlocksWeek:1, check:(log)=>log?.calories>0},
+                  {id:"steps",  icon:"👟", label:"Шаги",    col:"#BA7517", unlocksWeek:2, check:(log)=>log?.steps>0},
+                  {id:"protein",icon:"🥩", label:"Белок",   col:"#7F77DD", unlocksWeek:3, check:(log)=>log?.protein>0},
+                ].filter(h=>currentWeekNum>=h.unlocksWeek);
+
+                // Build 7 days of current week
+                const weekStartGlobalDay = (currentWeekNum-1)*7+1;
+                const weekDays = Array.from({length:7},(_,i)=>{
+                  const gd = weekStartGlobalDay+i;
+                  const date = new Date(profile.joinedAt);
+                  date.setDate(date.getDate()+gd);
+                  const dateStr = date.toISOString().split("T")[0];
+                  const log = profile.logs.find(l=>l.date===dateStr);
+                  const isToday = gd===userGlobalDay;
+                  const isPast = gd<userGlobalDay;
+                  const isFuture = gd>userGlobalDay;
+                  return {gd,dateStr,log,isToday,isPast,isFuture,dayNum:i+1};
+                });
+
+                const dayLabels=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+
                 return (
-                  <div style={{marginBottom:16}}>
-                    <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>
-                      Неделя {currentWeekNum} — {currentWeekData.theme}
+                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"12px 14px",marginBottom:14,overflowX:"auto"}}>
+                    <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>Привычки недели</div>
+                    <table style={{width:"100%",borderCollapse:"collapse"}}>
+                      <thead>
+                        <tr>
+                          <td style={{width:80,paddingBottom:6}}/>
+                          {weekDays.map(d=>(
+                            <td key={d.gd} style={{textAlign:"center",paddingBottom:6,width:32}}>
+                              <div style={{fontSize:10,color:d.isToday?C.accent:C.muted,fontWeight:d.isToday?700:400}}>{dayLabels[d.dayNum-1]}</div>
+                              {d.isToday&&<div style={{width:4,height:4,borderRadius:"50%",background:C.accent,margin:"2px auto 0"}}/>}
+                            </td>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {habits.map((habit,hi)=>(
+                          <tr key={habit.id} style={{borderTop:`0.5px solid ${C.border}`}}>
+                            <td style={{padding:"5px 0",display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{fontSize:13}}>{habit.icon}</span>
+                              <span style={{fontSize:11,color:C.muted}}>{habit.label}</span>
+                            </td>
+                            {weekDays.map(d=>{
+                              const done = habit.check(d.log);
+                              const missed = d.isPast && !done;
+                              return (
+                                <td key={d.gd} style={{textAlign:"center",padding:"5px 2px"}}>
+                                  <div style={{width:26,height:26,borderRadius:7,margin:"0 auto",background:done?(d.isToday?habit.col:`${habit.col}33`):missed?"transparent":C.surface,border:missed?`1.5px dashed ${C.border}`:done?"none":`0.5px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:done?(d.isToday?"#fff":habit.col):"transparent",opacity:d.isFuture?0.3:1}}>
+                                    {done?"✓":""}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+
+              {/* ── MEASUREMENT REQUEST ── every 7 days ── */}
+              {userGlobalDay>0 && userGlobalDay%7===0 && !todayLog?.waist && (
+                <div style={{background:`${C.purple}14`,border:`1.5px solid ${C.purple}44`,borderRadius:18,padding:"14px 16px",marginBottom:14}}>
+                  <div style={{fontSize:11,color:C.purple,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>📏 День замеров — Неделя {currentWeekNum}</div>
+                  <div style={{fontSize:13,color:C.muted,lineHeight:1.65,marginBottom:12}}>
+                    Раз в 7 дней замеряем тело — так мы рассчитываем % жира по методу ВМС США. Нужна сантиметровая лента.
+                    {profile.gender==="male"
+                      ? " Замеряй: талию и шею."
+                      : " Замеряй: талию, бёдра и шею."}
+                  </div>
+                  <button onClick={()=>setShowLog(true)} style={{background:C.purple,color:"#fff",border:"none",borderRadius:14,padding:"10px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>Внести замеры →</button>
+                </div>
+              )}
+
+              {/* ── INLINE CHAT BAR ── */}
+              {(()=>{
+                const [lastMsg, setLastMsg] = useState(null);
+                const [chatInput, setChatInput] = useState("");
+                const [chatLoading, setChatLoading] = useState(false);
+
+                useEffect(()=>{
+                  supabase.from("messages").select("*").eq("user_id",profile.id)
+                    .order("created_at",{ascending:false}).limit(1)
+                    .then(({data})=>{ if(data?.[0]) setLastMsg(data[0]); });
+                },[]);
+
+                async function quickSend(){
+                  if(!chatInput.trim()||chatLoading) return;
+                  const text=chatInput.trim();
+                  setChatInput(""); setChatLoading(true);
+                  try{
+                    const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:profile.id,message:text})});
+                    const data=await res.json();
+                    if(data.reply) setLastMsg({role:"assistant",content:data.reply,created_at:new Date().toISOString()});
+                  }catch{}
+                  setChatLoading(false);
+                }
+
+                return (
+                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,marginBottom:14,overflow:"hidden"}}>
+                    <div style={{padding:"12px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:28,height:28,borderRadius:8,background:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🏋️</div>
+                        <div>
+                          <div style={{fontSize:12,fontWeight:700}}>Персональный тренер</div>
+                          <div style={{fontSize:10,color:C.accent}}>ИИ · отвечает мгновенно</div>
+                        </div>
+                      </div>
+                      <button onClick={()=>setShowChat(true)} style={{fontSize:11,color:C.accent,background:C.accentDim,border:"none",borderRadius:14,padding:"4px 10px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Открыть →</button>
                     </div>
-                    <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
-                      {currentWeekData.days.map(day=>{
-                        const isDone = day.day < dayInWeek;
-                        const isToday = day.day === dayInWeek;
-                        const isFuture = day.day > dayInWeek;
-                        const col = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted}[day.type]||C.muted;
-                        return (
-                          <div key={day.day} style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>setSelectedDay({weekData:currentWeekData,day})}>
-                            <div style={{width:44,height:44,borderRadius:14,background:isToday?col:isDone?`${col}33`:C.card,border:`2px solid ${isToday?col:isDone?`${col}55`:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isToday?20:16,opacity:isFuture?0.4:1,transition:"all 0.15s"}}>
-                              {isDone?"✓":day.icon}
-                            </div>
-                            <div style={{fontSize:10,color:isToday?col:C.muted,fontWeight:isToday?700:400,textAlign:"center",maxWidth:44,lineHeight:1.3,opacity:isFuture?0.4:1}}>
-                              {["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][day.day-1]}
-                            </div>
-                            {isToday&&<div style={{width:6,height:6,borderRadius:"50%",background:col}}/>}
-                          </div>
-                        );
-                      })}
+                    {lastMsg&&(
+                      <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{lastMsg.role==="assistant"?"🏋️ Тренер":"👤 Ты"}</div>
+                        <div style={{fontSize:12,color:C.text,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lastMsg.content}</div>
+                      </div>
+                    )}
+                    <div style={{padding:"10px 12px",display:"flex",gap:8,alignItems:"center"}}>
+                      <input
+                        value={chatInput}
+                        onChange={e=>setChatInput(e.target.value)}
+                        onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();quickSend();}}}
+                        placeholder="Спроси тренера…"
+                        style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"8px 12px",color:C.text,fontSize:13,fontFamily:"'DM Sans',sans-serif",outline:"none"}}
+                      />
+                      <button onClick={quickSend} disabled={!chatInput.trim()||chatLoading} style={{width:34,height:34,borderRadius:"50%",background:chatInput.trim()&&!chatLoading?C.accent:C.dim,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:C.bg,flexShrink:0}}>↑</button>
                     </div>
                   </div>
                 );
@@ -1132,55 +1267,30 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
                   {/* Extended info blocks */}
                   {todayDayData.info&&(
                     <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:10}}>
-                      {todayDayData.info.why&&(
-                        <div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}>
-                          <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>📖 Почему это важно</div>
-                          <div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.why}</div>
-                        </div>
-                      )}
-                      {todayDayData.info.howTo&&(
-                        <div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}>
-                          <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>✅ Как это делать</div>
-                          <div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.howTo}</div>
-                        </div>
-                      )}
-                      {todayDayData.info.weekTarget&&(
-                        <div style={{background:`${taskTypeColor}10`,border:`1px solid ${taskTypeColor}33`,borderRadius:14,padding:"12px 14px"}}>
-                          <div style={{fontSize:12,color:C.muted,lineHeight:1.7,whiteSpace:"pre-line"}}><b style={{color:taskTypeColor}}>🎯 </b>{todayDayData.info.weekTarget}</div>
-                        </div>
-                      )}
+                      {todayDayData.info.why&&(<div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}><div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>📖 Почему это важно</div><div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.why}</div></div>)}
+                      {todayDayData.info.howTo&&(<div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}><div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>✅ Как это делать</div><div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.howTo}</div></div>)}
+                      {todayDayData.info.weekTarget&&(<div style={{background:`${taskTypeColor}10`,border:`1px solid ${taskTypeColor}33`,borderRadius:14,padding:"12px 14px"}}><div style={{fontSize:12,color:C.muted,lineHeight:1.7,whiteSpace:"pre-line"}}><b style={{color:taskTypeColor}}>🎯 </b>{todayDayData.info.weekTarget}</div></div>)}
                     </div>
                   )}
 
                   {/* Weekly stats — Day 8 */}
                   {todayDayData.isWeeklyStats&&profile.logs.length>0&&(()=>{
-                    const weekLogs7 = profile.logs.slice(-7);
-                    const avgCal = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.calories||0),0)/weekLogs7.length):0;
-                    const avgProt = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.protein||0),0)/weekLogs7.length):0;
-                    const avgSteps = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.steps||0),0)/weekLogs7.length):0;
-                    const avgWeight = weekLogs7.length?+(weekLogs7.reduce((s,l)=>s+(l.weight||0),0)/weekLogs7.length).toFixed(1):profile.weight;
-                    const tdee = profile.tdee||2000;
-                    const protTarget = profile.dailyTargets?.protein||150;
-                    const calDiff = avgCal - tdee;
-                    return (
-                      <div style={{marginTop:14,background:C.surface,borderRadius:16,padding:"16px 16px"}}>
-                        <div style={{fontSize:12,color:C.accent,fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:0.8}}>📊 Твоя статистика за неделю 1</div>
-                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-                          {[{label:"Ср. вес",val:`${avgWeight} кг`,color:C.blue},{label:"Ср. калории",val:`${avgCal} ккал`,color:C.orange},{label:"Ср. белок",val:`${avgProt} г`,color:C.purple},{label:"Ср. шаги",val:avgSteps.toLocaleString(),color:C.accent}].map(s=>(
-                            <div key={s.label} style={{background:C.card,borderRadius:12,padding:"10px 12px"}}>
-                              <div style={{fontSize:10,color:C.muted,marginBottom:4}}>{s.label}</div>
-                              <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:s.color}}>{s.val}</div>
-                            </div>
-                          ))}
-                        </div>
-                        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                          <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:2}}>💡 Рекомендации</div>
-                          {avgCal>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>🔥 Калории: ты потреблял в среднем <b style={{color:C.orange}}>{avgCal} ккал/день</b>. {calDiff>300?"Это выше нормы. Попробуй уменьшить порции или убрать высококалорийные перекусы.":calDiff<-500?"Это значительно ниже нормы — не голодай.":"Отлично — ты близко к своей норме!"}</div>}
-                          {avgProt>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>🥩 Белок: <b style={{color:C.purple}}>{avgProt} г/день</b> из {protTarget} г. {avgProt<protTarget*0.7?"Добавь источник белка к каждому приёму пищи.":avgProt<protTarget*0.9?"Почти у цели — добавь 1 белковый перекус.":"Отлично!"}</div>}
-                          {avgSteps>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>👟 Шаги: <b style={{color:C.accent}}>{avgSteps.toLocaleString()}/день</b>. {avgSteps<5000?"Добавь 20-минутную прогулку после обеда.":avgSteps<8000?"Цель — 8 000 шагов ежедневно.":"Отличная активность!"}</div>}
-                        </div>
+                    const w7=profile.logs.slice(-7);
+                    const avgCal=w7.length?Math.round(w7.reduce((s,l)=>s+(l.calories||0),0)/w7.length):0;
+                    const avgProt=w7.length?Math.round(w7.reduce((s,l)=>s+(l.protein||0),0)/w7.length):0;
+                    const avgSteps=w7.length?Math.round(w7.reduce((s,l)=>s+(l.steps||0),0)/w7.length):0;
+                    const avgWeight=w7.length?+(w7.reduce((s,l)=>s+(l.weight||0),0)/w7.length).toFixed(1):profile.weight;
+                    const tdee=profile.tdee||2000; const protTarget=profile.dailyTargets?.protein||150; const calDiff=avgCal-tdee;
+                    return(<div style={{marginTop:14,background:C.surface,borderRadius:16,padding:"16px"}}>
+                      <div style={{fontSize:12,color:C.accent,fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:0.8}}>📊 Статистика за неделю 1</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>{[{label:"Ср. вес",val:`${avgWeight} кг`,color:C.blue},{label:"Ср. калории",val:`${avgCal} ккал`,color:C.orange},{label:"Ср. белок",val:`${avgProt} г`,color:C.purple},{label:"Ср. шаги",val:avgSteps.toLocaleString(),color:C.accent}].map(s=>(<div key={s.label} style={{background:C.card,borderRadius:12,padding:"10px 12px"}}><div style={{fontSize:10,color:C.muted,marginBottom:4}}>{s.label}</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:s.color}}>{s.val}</div></div>))}</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                        <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:2}}>💡 Рекомендации</div>
+                        {avgCal>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>🔥 <b style={{color:C.orange}}>{avgCal} ккал/день</b>. {calDiff>300?"Выше нормы — попробуй уменьшить порции.":calDiff<-500?"Ниже нормы — не голодай.":"Отлично — близко к норме!"}</div>}
+                        {avgProt>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>🥩 <b style={{color:C.purple}}>{avgProt} г/день</b> из {protTarget} г. {avgProt<protTarget*0.7?"Добавь белок к каждому приёму пищи.":avgProt<protTarget*0.9?"Почти у цели!":"Отлично!"}</div>}
+                        {avgSteps>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>👟 <b style={{color:C.accent}}>{avgSteps.toLocaleString()}/день</b>. {avgSteps<5000?"Добавь прогулку после обеда.":avgSteps<8000?"Цель — 8 000 шагов.":"Отличная активность!"}</div>}
                       </div>
-                    );
+                    </div>);
                   })()}
 
                   <div style={{marginTop:12,background:C.accentDim,border:`1px solid ${C.accent}22`,borderRadius:11,padding:"9px 13px"}}>
@@ -1411,17 +1521,6 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
 
       {showLog&&<LogModal profile={profile} onSave={log=>{handleSaveLog(log);setShowLog(false);}} onClose={()=>setShowLog(false)}/>}
       {selectedDay&&<DayDetailModal weekData={selectedDay.weekData} day={selectedDay.day} onClose={()=>setSelectedDay(null)}/>}
-
-      {/* Floating chat button */}
-      <button
-        onClick={()=>setShowChat(true)}
-        style={{position:"fixed",bottom:96,right:20,width:52,height:52,borderRadius:"50%",background:C.accent,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,zIndex:400,boxShadow:`0 4px 16px ${C.accent}44`}}
-      >
-        💬
-        {unreadCount>0&&<div style={{position:"absolute",top:-2,right:-2,width:18,height:18,borderRadius:"50%",background:C.red,color:"#fff",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>{unreadCount}</div>}
-      </button>
-
-      {/* Chat modal */}
       {showChat&&<ChatModal profile={profile} onClose={()=>{setShowChat(false);setUnreadCount(0);}}/>}
     </div>
   );
