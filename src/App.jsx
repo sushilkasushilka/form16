@@ -663,7 +663,6 @@ function DayDetailModal({ weekData, day, onClose }) {
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:12,color:C.yellow,background:C.yellowDim,padding:"4px 10px",borderRadius:20,fontWeight:700}}>⚡{day.xp} XP</span>
             <button onClick={onClose} style={{width:32,height:32,borderRadius:"50%",background:C.card,border:"none",color:C.muted,cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>×</button>
           </div>
         </div>
@@ -828,7 +827,6 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
           <div style={{flex:1}}><div style={{fontSize:12,color:C.muted}}>{t("header.welcome")}</div><div style={{fontWeight:700,fontSize:16}}>{profile.name}</div></div>
           <div style={{display:"flex",gap:12,alignItems:"center"}}>
             <div style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.orange}}>🔥{profile.streak}</div><div style={{fontSize:10,color:C.muted}}>{t("header.streak")}</div></div>
-            <div style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.accent}}>⚡{profile.totalXP}</div><div style={{fontSize:10,color:C.muted}}>XP</div></div>
             {onSignOut&&<button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:10,padding:"5px 10px",color:C.muted,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{t("header.signout")}</button>}
           </div>
         </div>
@@ -843,9 +841,11 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
         {TABS.map(tb=><button key={tb.id} onClick={()=>setTab(tb.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"12px 4px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===tb.id?C.accent:C.muted,borderBottom:`2px solid ${tab===tb.id?C.accent:"transparent"}`,fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:0.4,transition:"color 0.18s"}}><span style={{fontSize:18}}>{tb.icon}</span>{tb.label}</button>)}
       </div>
 
-      {/* ── TODAY (wired to program JSON) ── */}
+      {/* ── TODAY ── */}
       {tab==="today"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
+
+          {/* Header — always shown */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <div>
               <div style={{fontFamily:"'Syne',sans-serif",fontSize:21,fontWeight:800}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long"})}</div>
@@ -854,187 +854,230 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             <button onClick={()=>setShowLog(true)} style={{background:todayLog?C.accentDim:C.accent,color:todayLog?C.accent:C.bg,border:todayLog?`1.5px solid ${C.accent}55`:"none",borderRadius:22,padding:"9px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>{todayLog?t("today.logged"):t("today.log")}</button>
           </div>
 
-          {/* ── WEEKLY SCROLL BAR ── */}
-          {(()=>{
-            const globalDay = getUserGlobalDay(profile);
-            const dayInWeek = globalDay === 0 ? 0 : ((globalDay - 1) % 7) + 1; // 0=Day0, 1-7 within week
-            return (
-          <div style={{marginBottom:16}}>
-            <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>
-              Неделя {profile.currentWeek} — {currentWeekData.theme}
-            </div>
-            <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
-              {currentWeekData.days.map(day=>{
-                const isDone = day.day < dayInWeek;
-                const isToday = day.day === dayInWeek;
-                const isFuture = day.day > dayInWeek || dayInWeek === 0;
-                const col = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted}[day.type]||C.muted;
-                return (
-                  <div key={day.day} style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>setSelectedDay({weekData:currentWeekData,day})}>
-                    <div style={{width:44,height:44,borderRadius:14,background:isToday?col:isDone?`${col}33`:C.card,border:`2px solid ${isToday?col:isDone?`${col}55`:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isToday?20:16,opacity:isFuture?0.4:1,transition:"all 0.15s"}}>
-                      {isDone?"✓":day.icon}
-                    </div>
-                    <div style={{fontSize:10,color:isToday?col:C.muted,fontWeight:isToday?700:400,textAlign:"center",maxWidth:44,lineHeight:1.3,opacity:isFuture?0.4:1}}>
-                      {["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][day.day-1]}
-                    </div>
-                    {isToday&&<div style={{width:6,height:6,borderRadius:"50%",background:col}}/>}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-            );
-          })()}
+          {/* ── DAY 0 FULL TAKEOVER ── */}
+          {todayDayData?.isDay0 ? (
+            <div style={{animation:"fadeIn 0.3s both"}}>
 
-          {/* ── DAY 0 banner — shown on signup day ── */}
-          {todayDayData?.isDay0 && (
-            <div style={{background:C.accentDim,border:`1.5px solid ${C.accent}44`,borderRadius:20,padding:"16px 18px",marginBottom:14}}>
-              <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>День 0 — подготовка</div>
-              <div style={{fontSize:13,color:C.muted,lineHeight:1.7,marginBottom:14}}>
-                Программа официально начинается <b style={{color:C.text}}>завтра утром</b>. Сегодня — одна задача: запиши что-нибудь из того, что ешь сегодня. Даже один приём пищи.
-              </div>
-              <div style={{background:C.surface,borderRadius:14,padding:"12px 14px",display:"flex",gap:12,alignItems:"center"}}>
-                <div style={{width:36,height:36,borderRadius:11,background:`${C.accent}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>🍽️</div>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>Первый приём пищи</div>
-                  <div style={{fontSize:12,color:C.muted}}>Нажми «+ Записать день» и добавь калории</div>
+              {/* Progress bar: 0 of 112 */}
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 18px",marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div style={{fontSize:13,fontWeight:700}}>День 0 из 112</div>
+                  <div style={{fontSize:11,color:C.blue,background:C.blueDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>Старт завтра</div>
                 </div>
-                <div style={{marginLeft:"auto"}}>
-                  {todayLog
-                    ? <span style={{fontSize:12,color:C.accent,fontWeight:700}}>✓ готово</span>
-                    : <span style={{fontSize:12,color:C.muted}}>→</span>
-                  }
+                <div style={{height:6,background:C.dim,borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:"1%",background:C.blue,borderRadius:3}}/>
                 </div>
+                <div style={{fontSize:11,color:C.muted,marginTop:8}}>16 недель · 112 дней · программа начинается завтра в 07:00</div>
               </div>
-            </div>
-          )}
-          {todayDayData && (
-            <div style={{background:`${taskTypeColor}18`,border:`1px solid ${taskTypeColor}44`,borderRadius:22,padding:"18px 20px",marginBottom:14}}>
-              <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>
-                🎯 День {todayDayData.day} · {todayDayData.type}
-              </div>
-              <div style={{display:"flex",gap:13,alignItems:"flex-start"}}>
-                <div style={{width:52,height:52,borderRadius:16,background:`${taskTypeColor}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>{todayDayData.icon}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{todayDayData.title}</div>
-                  <div style={{fontSize:13,color:C.muted,lineHeight:1.65}}>{todayDayData.task}</div>
-                  <div style={{marginTop:10,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span style={{fontSize:11,color:C.yellow,background:C.yellowDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ +{todayDayData.xp} XP</span>
-                    <button onClick={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})} style={{fontSize:11,color:taskTypeColor,background:`${taskTypeColor}18`,border:"none",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Детали →</button>
+
+              {/* Setup checklist — carried from Day 0 screen */}
+              <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,marginBottom:14,overflow:"hidden"}}>
+                <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{fontSize:13,fontWeight:700}}>Настройка</div>
+                  <div style={{fontSize:11,color:C.accent,fontWeight:700}}>
+                    {[
+                      true, // profile always done
+                      "Notification" in window && Notification.permission==="granted",
+                      false, // home screen — can't detect
+                    ].filter(Boolean).length} / 3
                   </div>
                 </div>
+                {[
+                  {icon:"📋",label:"Профиль заполнен",done:true},
+                  {icon:"🔔",label:"Уведомления",done:"Notification" in window && Notification.permission==="granted"},
+                  {icon:"📲",label:"Добавлено на главный экран",done:false},
+                ].map((item,i,arr)=>(
+                  <div key={item.label} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 18px",borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none"}}>
+                    <div style={{width:22,height:22,borderRadius:"50%",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,background:item.done?C.accent:C.dim,color:item.done?C.bg:C.muted}}>
+                      {item.done?"✓":""}
+                    </div>
+                    <div style={{fontSize:14,flexShrink:0}}>{item.icon}</div>
+                    <div style={{fontSize:13,color:item.done?C.muted:C.text,textDecoration:item.done?"line-through":"none"}}>{item.label}</div>
+                  </div>
+                ))}
               </div>
 
-              {/* Extended info block — shown for days with educational content */}
-              {todayDayData.info&&(
-                <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:10}}>
-                  {todayDayData.info.why&&(
-                    <div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}>
-                      <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>📖 Почему это важно</div>
-                      <div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.why}</div>
-                    </div>
-                  )}
-                  {todayDayData.info.howTo&&(
-                    <div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}>
-                      <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>✅ Как это делать</div>
-                      <div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.howTo}</div>
-                    </div>
-                  )}
-                  {todayDayData.info.weekTarget&&(
-                    <div style={{background:`${taskTypeColor}10`,border:`1px solid ${taskTypeColor}33`,borderRadius:14,padding:"12px 14px"}}>
-                      <div style={{fontSize:12,color:C.muted,lineHeight:1.7,whiteSpace:"pre-line"}}><b style={{color:taskTypeColor}}>🎯 </b>{todayDayData.info.weekTarget}</div>
-                    </div>
-                  )}
+              {/* Day 0 single task */}
+              <div style={{background:C.blueDim,border:`1.5px solid ${C.blue}44`,borderRadius:18,padding:"16px 18px",marginBottom:14}}>
+                <div style={{fontSize:11,color:C.blue,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:12}}>Задача дня 0</div>
+                <div style={{display:"flex",gap:14,alignItems:"center"}}>
+                  <div style={{width:48,height:48,borderRadius:15,background:`${C.blue}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🍽️</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>Запиши первый приём пищи</div>
+                    <div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>Даже один перекус считается. Нажми «+ Записать день» выше и добавь калории.</div>
+                  </div>
+                  {todayLog&&<div style={{fontSize:20,flexShrink:0}}>✅</div>}
                 </div>
-              )}
+              </div>
 
-              {/* Weekly stats — shown on Day 8 (Week 2 Day 1) */}
-              {todayDayData.isWeeklyStats&&profile.logs.length>0&&(()=>{
-                const weekLogs7 = profile.logs.slice(-7);
-                const avgCal = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.calories||0),0)/weekLogs7.length):0;
-                const avgProt = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.protein||0),0)/weekLogs7.length):0;
-                const avgSteps = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.steps||0),0)/weekLogs7.length):0;
-                const avgWeight = weekLogs7.length?+(weekLogs7.reduce((s,l)=>s+(l.weight||0),0)/weekLogs7.length).toFixed(1):profile.weight;
-                const tdee = profile.tdee||2000;
-                const protTarget = profile.dailyTargets?.protein||150;
-                const calDiff = avgCal - tdee;
-                return (
-                  <div style={{marginTop:14,background:C.surface,borderRadius:16,padding:"16px 16px"}}>
-                    <div style={{fontSize:12,color:C.accent,fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:0.8}}>📊 Твоя статистика за неделю 1</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
-                      {[
-                        {label:"Ср. вес",val:`${avgWeight} кг`,color:C.blue},
-                        {label:"Ср. калории",val:`${avgCal} ккал`,color:C.orange},
-                        {label:"Ср. белок",val:`${avgProt} г`,color:C.purple},
-                        {label:"Ср. шаги",val:avgSteps.toLocaleString(),color:C.accent},
-                      ].map(s=>(
-                        <div key={s.label} style={{background:C.card,borderRadius:12,padding:"10px 12px"}}>
-                          <div style={{fontSize:10,color:C.muted,marginBottom:4}}>{s.label}</div>
-                          <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:s.color}}>{s.val}</div>
-                        </div>
-                      ))}
+              {/* Tomorrow preview */}
+              <div style={{background:C.card,border:`1.5px solid ${C.accent}44`,borderRadius:18,overflow:"hidden"}}>
+                <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`}}>
+                  <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Завтра — День 1</div>
+                  <div style={{fontSize:12,color:C.muted}}>Вот что тебя ждёт</div>
+                </div>
+                {[
+                  {time:"07:00",icon:"⚖️",col:C.accent,label:"Встань на весы",sub:"После туалета, до завтрака"},
+                  {time:"Днём",icon:"🍽️",col:C.blue,label:"Записывай еду",sub:"Каждый приём пищи сразу после еды"},
+                  {time:"21:00",icon:"🌙",col:C.purple,label:"Итог дня",sub:"Напомним проверить и дозаписать питание"},
+                ].map((item,i,arr)=>(
+                  <div key={item.time} style={{display:"flex",gap:14,padding:"12px 18px",borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none",alignItems:"center"}}>
+                    <div style={{width:38,textAlign:"center",flexShrink:0}}>
+                      <div style={{fontSize:10,color:item.col,fontWeight:700,marginBottom:5}}>{item.time}</div>
+                      <div style={{width:34,height:34,borderRadius:10,background:`${item.col}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,margin:"0 auto"}}>{item.icon}</div>
                     </div>
-                    {/* Recommendations */}
-                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                      <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:2}}>💡 Рекомендации</div>
-                      {avgCal>0&&(
-                        <div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>
-                          🔥 Калории: ты потреблял в среднем <b style={{color:C.orange}}>{avgCal} ккал/день</b>.{" "}
-                          {calDiff>300?"Это выше твоего TDEE. Для снижения жира попробуй уменьшить порции или убрать высококалорийные перекусы.":calDiff<-500?"Это значительно ниже нормы. Убедись, что не голодаешь — это может замедлить метаболизм.":"Отличный результат — ты близко к своей норме!"}
-                        </div>
-                      )}
-                      {avgProt>0&&(
-                        <div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>
-                          🥩 Белок: <b style={{color:C.purple}}>{avgProt} г/день</b> из целевых {protTarget} г.{" "}
-                          {avgProt<protTarget*0.7?"Белка явно не хватает. Добавь источник белка к каждому приёму пищи: яйца, курица, творог, рыба.":avgProt<protTarget*0.9?"Почти у цели! Добавь 1 белковый перекус в день.":"Отлично — белок на хорошем уровне!"}
-                        </div>
-                      )}
-                      {avgSteps>0&&(
-                        <div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>
-                          👟 Шаги: <b style={{color:C.accent}}>{avgSteps.toLocaleString()} шагов/день</b>.{" "}
-                          {avgSteps<5000?"Постарайся добавить 20-минутную прогулку после обеда — это простой способ набрать +2 000 шагов.":avgSteps<8000?"Хороший старт. Цель на эту неделю — 8 000 шагов ежедневно.":"Отличная активность!"}
-                        </div>
-                      )}
+                    <div>
+                      <div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{item.label}</div>
+                      <div style={{fontSize:11,color:C.muted,lineHeight:1.5}}>{item.sub}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+          ) : (
+            /* ── NORMAL DAY 1+ CONTENT ── */
+            <>
+              {/* ── WEEKLY SCROLL BAR ── */}
+              {(()=>{
+                const globalDay = getUserGlobalDay(profile);
+                const dayInWeek = globalDay === 0 ? 0 : ((globalDay - 1) % 7) + 1;
+                return (
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>
+                      Неделя {currentWeekNum} — {currentWeekData.theme}
+                    </div>
+                    <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none"}}>
+                      {currentWeekData.days.map(day=>{
+                        const isDone = day.day < dayInWeek;
+                        const isToday = day.day === dayInWeek;
+                        const isFuture = day.day > dayInWeek;
+                        const col = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted}[day.type]||C.muted;
+                        return (
+                          <div key={day.day} style={{flexShrink:0,display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}} onClick={()=>setSelectedDay({weekData:currentWeekData,day})}>
+                            <div style={{width:44,height:44,borderRadius:14,background:isToday?col:isDone?`${col}33`:C.card,border:`2px solid ${isToday?col:isDone?`${col}55`:C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:isToday?20:16,opacity:isFuture?0.4:1,transition:"all 0.15s"}}>
+                              {isDone?"✓":day.icon}
+                            </div>
+                            <div style={{fontSize:10,color:isToday?col:C.muted,fontWeight:isToday?700:400,textAlign:"center",maxWidth:44,lineHeight:1.3,opacity:isFuture?0.4:1}}>
+                              {["Пн","Вт","Ср","Чт","Пт","Сб","Вс"][day.day-1]}
+                            </div>
+                            {isToday&&<div style={{width:6,height:6,borderRadius:"50%",background:col}}/>}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );
               })()}
 
-              <div style={{marginTop:12,background:C.accentDim,border:`1px solid ${C.accent}22`,borderRadius:11,padding:"9px 13px"}}>
-                <div style={{fontSize:12,color:C.muted,lineHeight:1.65}}><b style={{color:C.accent}}>{todayDayData.tip.cat}:</b> {todayDayData.tip.text}</div>
+              {/* Today's task card */}
+              {todayDayData && (
+                <div style={{background:`${taskTypeColor}18`,border:`1px solid ${taskTypeColor}44`,borderRadius:22,padding:"18px 20px",marginBottom:14}}>
+                  <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>
+                    🎯 День {todayDayData.day} · {todayDayData.type}
+                  </div>
+                  <div style={{display:"flex",gap:13,alignItems:"flex-start"}}>
+                    <div style={{width:52,height:52,borderRadius:16,background:`${taskTypeColor}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>{todayDayData.icon}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{todayDayData.title}</div>
+                      <div style={{fontSize:13,color:C.muted,lineHeight:1.65}}>{todayDayData.task}</div>
+                      <div style={{marginTop:10,display:"flex",alignItems:"center",justifyContent:"flex-end"}}>
+                        <button onClick={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})} style={{fontSize:11,color:taskTypeColor,background:`${taskTypeColor}18`,border:"none",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Детали →</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Extended info blocks */}
+                  {todayDayData.info&&(
+                    <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:10}}>
+                      {todayDayData.info.why&&(
+                        <div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}>
+                          <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>📖 Почему это важно</div>
+                          <div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.why}</div>
+                        </div>
+                      )}
+                      {todayDayData.info.howTo&&(
+                        <div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}>
+                          <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>✅ Как это делать</div>
+                          <div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.howTo}</div>
+                        </div>
+                      )}
+                      {todayDayData.info.weekTarget&&(
+                        <div style={{background:`${taskTypeColor}10`,border:`1px solid ${taskTypeColor}33`,borderRadius:14,padding:"12px 14px"}}>
+                          <div style={{fontSize:12,color:C.muted,lineHeight:1.7,whiteSpace:"pre-line"}}><b style={{color:taskTypeColor}}>🎯 </b>{todayDayData.info.weekTarget}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Weekly stats — Day 8 */}
+                  {todayDayData.isWeeklyStats&&profile.logs.length>0&&(()=>{
+                    const weekLogs7 = profile.logs.slice(-7);
+                    const avgCal = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.calories||0),0)/weekLogs7.length):0;
+                    const avgProt = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.protein||0),0)/weekLogs7.length):0;
+                    const avgSteps = weekLogs7.length?Math.round(weekLogs7.reduce((s,l)=>s+(l.steps||0),0)/weekLogs7.length):0;
+                    const avgWeight = weekLogs7.length?+(weekLogs7.reduce((s,l)=>s+(l.weight||0),0)/weekLogs7.length).toFixed(1):profile.weight;
+                    const tdee = profile.tdee||2000;
+                    const protTarget = profile.dailyTargets?.protein||150;
+                    const calDiff = avgCal - tdee;
+                    return (
+                      <div style={{marginTop:14,background:C.surface,borderRadius:16,padding:"16px 16px"}}>
+                        <div style={{fontSize:12,color:C.accent,fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:0.8}}>📊 Твоя статистика за неделю 1</div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                          {[{label:"Ср. вес",val:`${avgWeight} кг`,color:C.blue},{label:"Ср. калории",val:`${avgCal} ккал`,color:C.orange},{label:"Ср. белок",val:`${avgProt} г`,color:C.purple},{label:"Ср. шаги",val:avgSteps.toLocaleString(),color:C.accent}].map(s=>(
+                            <div key={s.label} style={{background:C.card,borderRadius:12,padding:"10px 12px"}}>
+                              <div style={{fontSize:10,color:C.muted,marginBottom:4}}>{s.label}</div>
+                              <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:s.color}}>{s.val}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                          <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:2}}>💡 Рекомендации</div>
+                          {avgCal>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>🔥 Калории: ты потреблял в среднем <b style={{color:C.orange}}>{avgCal} ккал/день</b>. {calDiff>300?"Это выше нормы. Попробуй уменьшить порции или убрать высококалорийные перекусы.":calDiff<-500?"Это значительно ниже нормы — не голодай.":"Отлично — ты близко к своей норме!"}</div>}
+                          {avgProt>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>🥩 Белок: <b style={{color:C.purple}}>{avgProt} г/день</b> из {protTarget} г. {avgProt<protTarget*0.7?"Добавь источник белка к каждому приёму пищи.":avgProt<protTarget*0.9?"Почти у цели — добавь 1 белковый перекус.":"Отлично!"}</div>}
+                          {avgSteps>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>👟 Шаги: <b style={{color:C.accent}}>{avgSteps.toLocaleString()}/день</b>. {avgSteps<5000?"Добавь 20-минутную прогулку после обеда.":avgSteps<8000?"Цель — 8 000 шагов ежедневно.":"Отличная активность!"}</div>}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <div style={{marginTop:12,background:C.accentDim,border:`1px solid ${C.accent}22`,borderRadius:11,padding:"9px 13px"}}>
+                    <div style={{fontSize:12,color:C.muted,lineHeight:1.65}}><b style={{color:C.accent}}>{todayDayData.tip.cat}:</b> {todayDayData.tip.text}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Weight + BFP */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
+                <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"16px"}}>
+                  <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.weight")}</div>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,lineHeight:1}}>{currentWeight}</div>
+                  <div style={{fontSize:11,color:C.muted,marginTop:2}}>кг</div>
+                  <div style={{fontSize:12,marginTop:8,color:weightDiff<=0?C.accent:C.orange,fontWeight:600}}>{weightDiff>0?"+":""}{weightDiff} кг с начала</div>
+                </div>
+                <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:20,padding:"16px"}}>
+                  <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.bodyfat")}</div>
+                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,lineHeight:1,color:C.purple}}>{currentBFP}</div>
+                  <div style={{fontSize:11,color:C.muted,marginTop:2}}>%</div>
+                  <div style={{fontSize:11,color:C.muted,marginTop:8}}>{t("today.navy")}</div>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Weight + BFP */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
-            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"16px 16px"}}>
-              <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.weight")}</div>
-              <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,lineHeight:1}}>{currentWeight}</div>
-              <div style={{fontSize:11,color:C.muted,marginTop:2}}>кг</div>
-              <div style={{fontSize:12,marginTop:8,color:weightDiff<=0?C.accent:C.orange,fontWeight:600}}>{weightDiff>0?"+":""}{weightDiff} кг с начала</div>
-            </div>
-            <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:20,padding:"16px 16px"}}>
-              <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.bodyfat")}</div>
-              <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,lineHeight:1,color:C.purple}}>{currentBFP}</div>
-              <div style={{fontSize:11,color:C.muted,marginTop:2}}>%</div>
-              <div style={{fontSize:11,color:C.muted,marginTop:8}}>{t("today.navy")}</div>
-            </div>
-          </div>
+              {/* Weight trend */}
+              {profile.logs.length>1&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"14px 16px",marginBottom:14}}><div style={{fontSize:12,color:C.muted,marginBottom:10}}>{t("today.trend")}</div><WeightChart logs={profile.logs} compact/></div>}
 
-          {/* Weight trend */}
-          {profile.logs.length>1&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"14px 16px",marginBottom:14}}><div style={{fontSize:12,color:C.muted,marginBottom:10}}>{t("today.trend")}</div><WeightChart logs={profile.logs} compact/></div>}
-
-          {/* Metrics */}
-          {(todayLog||nutritionSource)?(
-            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:22,padding:"18px 20px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div style={{fontWeight:700}}>{t("today.metrics")}</div>{nutritionSource?.fromFatSecret&&<span style={{fontSize:11,color:C.accent,background:C.accentDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ FatSecret</span>}</div>
-              <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="ккал" color={C.orange} icon="🔥"/>
-              <MetricBar label={t("metric.protein")} value={nutritionSource?.protein||0} target={profile.dailyTargets?.protein||150} unit="г" color={C.purple} icon="🥩"/>
-              <MetricBar label={t("metric.steps")} value={todayLog?.steps||0} target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.accent} icon="👟"/>
-            </div>
-          ):(
-            <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:22,padding:"24px",textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>📋</div><div style={{color:C.muted,fontSize:14}}>{t("today.no_log")}</div></div>
+              {/* Metrics */}
+              {(todayLog||nutritionSource)?(
+                <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:22,padding:"18px 20px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div style={{fontWeight:700}}>{t("today.metrics")}</div>{nutritionSource?.fromFatSecret&&<span style={{fontSize:11,color:C.accent,background:C.accentDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ FatSecret</span>}</div>
+                  <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="ккал" color={C.orange} icon="🔥"/>
+                  <MetricBar label={t("metric.protein")} value={nutritionSource?.protein||0} target={profile.dailyTargets?.protein||150} unit="г" color={C.purple} icon="🥩"/>
+                  <MetricBar label={t("metric.steps")} value={todayLog?.steps||0} target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.accent} icon="👟"/>
+                </div>
+              ):(
+                <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:22,padding:"24px",textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>📋</div><div style={{color:C.muted,fontSize:14}}>{t("today.no_log")}</div></div>
+              )}
+            </>
           )}
         </div>
       )}
@@ -1082,8 +1125,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
                       {/* Content */}
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                          <div style={{fontSize:13,fontWeight:700,color:dayActive?typeColor:dayDone?C.muted:C.text,flex:1,marginRight:8}}>{day.title}</div>
-                          <span style={{fontSize:10,color:C.yellow,background:C.yellowDim,padding:"2px 7px",borderRadius:12,fontWeight:700,flexShrink:0}}>⚡{day.xp}</span>
+                          <div style={{fontSize:13,fontWeight:700,color:dayActive?typeColor:dayDone?C.muted:C.text,flex:1}}>{day.title}</div>
                         </div>
                         <div style={{fontSize:11,color:C.muted,marginTop:2,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day.task}</div>
                       </div>
@@ -1151,8 +1193,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800}}>{profile.name}</div>
             <div style={{color:C.muted,fontSize:13,marginTop:3,textTransform:"capitalize"}}>{(profile.goal||"").replace("_"," ")} · Week {profile.currentWeek} — {currentWeekData.theme}</div>
             <div style={{display:"flex",justifyContent:"center",gap:10,marginTop:10}}>
-              <span style={{fontSize:12,color:C.accent,background:C.accentDim,padding:"4px 12px",borderRadius:20,fontWeight:700}}>⚡ {profile.totalXP} XP</span>
-              <span style={{fontSize:12,color:C.orange,background:C.orangeDim,padding:"4px 12px",borderRadius:20,fontWeight:700}}>🔥 {profile.streak} days</span>
+              <span style={{fontSize:12,color:C.orange,background:C.orangeDim,padding:"4px 12px",borderRadius:20,fontWeight:700}}>🔥 {profile.streak} дней подряд</span>
             </div>
           </div>
           <div style={{background:C.card,borderRadius:20,padding:"16px 18px",marginBottom:12,border:`1px solid ${C.border}`}}>
@@ -1232,7 +1273,7 @@ function SignUp({onComplete,onBack}){
   const needsExp=f.training==="1_2x_week"||f.training==="3plus_week";
   // canNext per step: 0=profile+body, 1=goal, 2=lifestyle, 3=activity
   const canNext=[
-    f.name.trim()&&f.email.trim()&&f.password.length>=6&&f.age&&f.height&&f.weight,
+    f.name.trim()&&f.age&&f.height&&f.weight,
     !!f.goal,
     f.stress&&f.sleep&&f.dietQuality&&f.training&&(!needsExp||f.trainingExp),
     f.activity,
@@ -1253,12 +1294,10 @@ function SignUp({onComplete,onBack}){
         <div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800,color:C.text,lineHeight:1.2}}>{STEP_META[step].title()}</div>
       </div>
       <div style={{flex:1,overflowY:"auto",padding:"18px 22px 0"}}>
-        {/* Step 0: Avatar + Name + Email + Password + Gender + Age + Height + Weight */}
+        {/* Step 0: Avatar + Name + Gender + Age + Height + Weight */}
         {step===0&&<div style={{animation:"slideUp 0.3s both"}}>
           <div style={{display:"flex",gap:9,flexWrap:"wrap",marginBottom:22}}>{AVATARS.map(a=><div key={a} onClick={()=>set("avatar",a)} style={{width:50,height:50,borderRadius:15,fontSize:25,display:"flex",alignItems:"center",justifyContent:"center",background:f.avatar===a?C.accentDim:C.card,border:`2px solid ${f.avatar===a?C.accent:C.border}`,cursor:"pointer",transition:"all 0.15s"}}>{a}</div>)}</div>
           <TextInput label={t("field.name")} value={f.name} onChange={v=>set("name",v)} placeholder={t("field.name.ph")}/>
-          <TextInput label={t("field.email")} value={f.email} onChange={v=>set("email",v)} type="email" placeholder={t("field.email.ph")}/>
-          <TextInput label={t("field.password")} value={f.password} onChange={v=>set("password",v)} type="password" placeholder={t("field.password.ph")}/>
           <PillSelect label={t("field.gender")} value={f.gender} onChange={v=>set("gender",v)} options={[{value:"male",label:t("field.gender.male")},{value:"female",label:t("field.gender.female")}]}/>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
             <NumberInput label={t("field.age")} value={f.age} onChange={v=>set("age",v)} unit={t("field.age.unit")} placeholder={t("field.age.ph")} step="1"/>
@@ -1346,7 +1385,7 @@ function CoachDashboard({athletes,setAthletes,onBack}){
             </div>}
             <div style={{display:"flex",alignItems:"center",gap:9}}>
               <div style={{flex:1,height:4,background:C.dim,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${((a.currentWeek-1)/16)*100}%`,borderRadius:2}}/></div>
-              <span style={{fontSize:11,color:C.muted,whiteSpace:"nowrap"}}>{a.streak}🔥 · {a.totalXP}⚡</span>
+              <span style={{fontSize:11,color:C.muted,whiteSpace:"nowrap"}}>{a.streak}🔥</span>
             </div>
           </div>;
         })}</div>}
@@ -1408,7 +1447,7 @@ function Splash({onStart,onCoach}){
         <div style={{fontFamily:"'Syne',sans-serif",fontSize:44,fontWeight:800,lineHeight:1.1,color:C.text,marginBottom:18}}>16 weeks.<br/><span style={{color:C.accent}}>Transform</span><br/>for good.</div>
         <div style={{fontSize:15,color:C.muted,lineHeight:1.75,marginBottom:44}}>Science-backed program with daily habits, nutrition tracking, and real results.</div>
         <div style={{display:"flex",flexDirection:"column",gap:11}}>
-          {[{icon:"📅",label:"Real daily tasks from a 16-week program"},{icon:"🍎",label:"FatSecret food diary sync"},{icon:"📊",label:"Training, nutrition & mindset per week"},{icon:"🏆",label:"Duolingo-style streaks & XP"},{icon:"👨‍💼",label:"Coach dashboard for trainers"}].map((f,i)=>(
+          {[{icon:"📅",label:"Real daily tasks from a 16-week program"},{icon:"🍎",label:"FatSecret food diary sync"},{icon:"📊",label:"Training, nutrition & mindset per week"},{icon:"🔥",label:"Daily streaks to keep you consistent"},{icon:"👨‍💼",label:"Coach dashboard for trainers"}].map((f,i)=>(
             <div key={i} style={{display:"flex",alignItems:"center",gap:12,animation:`slideUp 0.45s ${0.08+i*0.07}s both`}}>
               <div style={{width:36,height:36,borderRadius:11,background:C.card,border:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{f.icon}</div>
               <span style={{fontSize:13,color:C.muted}}>{f.label}</span>
