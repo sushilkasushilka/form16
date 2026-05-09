@@ -37,20 +37,8 @@ export default async function handler(req, res) {
 
   // Build notification payload
   const payload = (isForced || isMorning)
-    ? {
-        title: "FORM16 — доброе утро 🌅",
-        body: "Встань на весы до завтрака и запиши вес. Это займёт 10 секунд.",
-        tag: "morning-weight",
-        url: "/?action=log",
-        actions: [{ action: "log", title: "⚖️ Записать вес" }],
-      }
-    : {
-        title: "FORM16 — итог дня 🌙",
-        body: "Ты записал всё питание сегодня? Дозапиши, пока не забыл.",
-        tag: "evening-meals",
-        url: "/?action=log",
-        actions: [{ action: "log", title: "🍽️ Дозаписать" }],
-      };
+    ? { title:"FORM16 — доброе утро 🌅", body:"Встань на весы до завтрака. Это займёт 10 секунд.", tag:"morning-weight", url:"/?action=morning", actions:[{action:"morning",title:"⚖️ Записать вес"}] }
+    : { title:"FORM16 — итог дня 🌙", body:"Ты записал всё питание сегодня? Дозапиши, пока не забыл.", tag:"evening-meals", url:"/?action=evening", actions:[{action:"evening",title:"🌙 Внести итог"}] };
 
   // Get all subscriptions
   const { data: subs, error } = await supabase

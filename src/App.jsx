@@ -997,6 +997,132 @@ function DayDetailModal({ weekData, day, onClose }) {
   );
 }
 
+// ─── MORNING LOG MODAL ────────────────────────────────────────────────────────
+function MorningLogModal({ profile, userGlobalDay, onSave, onClose }) {
+  const isMeasureDay = userGlobalDay > 0 && userGlobalDay % 7 === 0;
+  const [weight, setWeight] = useState(String(profile.weight||""));
+  const [waist,  setWaist]  = useState("");
+  const [neck,   setNeck]   = useState("");
+  const [hips,   setHips]   = useState("");
+
+  function handleSave() {
+    const log = { date:todayStr(), weight:parseFloat(weight)||profile.weight };
+    if(isMeasureDay && waist && neck){
+      log.waist = parseFloat(waist);
+      log.neck  = parseFloat(neck);
+      if(profile.gender==="female" && hips) log.hips = parseFloat(hips);
+      const bfp = calcBFP(log.waist,log.neck,profile.height,profile.gender,log.hips);
+      if(bfp!=="—") log.bfp = parseFloat(bfp);
+    }
+    onSave(log);
+  }
+
+  const inputStyle = {width:"100%",boxSizing:"border-box",background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px",color:C.text,fontSize:22,fontFamily:"'Syne',sans-serif",fontWeight:800,outline:"none",textAlign:"center",marginBottom:12};
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"#000000EE",zIndex:600,display:"flex",flexDirection:"column",justifyContent:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{background:C.surface,borderRadius:"26px 26px 0 0",padding:"24px 24px 40px",animation:"slideUp 0.35s cubic-bezier(.16,1,.3,1) both",maxHeight:"90vh",overflowY:"auto"}}>
+        <div style={{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}/>
+        <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>⚖️ Утренний замер</div>
+        <div style={{fontSize:18,fontWeight:800,marginBottom:20}}>{isMeasureDay?"Вес + замеры тела":"Утренний вес"}</div>
+
+        <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Вес (кг)</div>
+        <input type="number" value={weight} onChange={e=>setWeight(e.target.value)} placeholder="0.0" style={inputStyle} autoFocus/>
+
+        {isMeasureDay&&(
+          <>
+            <div style={{background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:14,padding:"10px 14px",marginBottom:16,fontSize:12,color:C.muted,lineHeight:1.6}}>
+              📏 Раз в 7 дней замеряем тело для расчёта % жира. Используй сантиметровую ленту.
+            </div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Талия (см) — на уровне пупка</div>
+            <input type="number" value={waist} onChange={e=>setWaist(e.target.value)} placeholder="0" style={{...inputStyle,fontSize:18}}/>
+            <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Шея (см) — под кадыком</div>
+            <input type="number" value={neck} onChange={e=>setNeck(e.target.value)} placeholder="0" style={{...inputStyle,fontSize:18}}/>
+            {profile.gender==="female"&&(
+              <>
+                <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Бёдра (см) — в самом широком месте</div>
+                <input type="number" value={hips} onChange={e=>setHips(e.target.value)} placeholder="0" style={{...inputStyle,fontSize:18}}/>
+              </>
+            )}
+          </>
+        )}
+
+        <button onClick={handleSave} disabled={!weight} style={{width:"100%",background:weight?C.accent:C.dim,color:weight?C.bg:C.muted,border:"none",borderRadius:18,padding:"16px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:weight?"pointer":"default"}}>
+          Сохранить
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── EVENING LOG MODAL ────────────────────────────────────────────────────────
+function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave, onClose }) {
+  const [calories, setCalories] = useState("");
+  const [protein,  setProtein]  = useState("");
+  const [steps,    setSteps]    = useState("");
+  const [greens,   setGreens]   = useState(false);
+
+  const showProtein = currentWeekNum >= 2;
+  const showSteps   = currentWeekNum >= 3;
+  const showGreens  = currentWeekNum >= 4;
+
+  function handleSave() {
+    const todayExisting = profile.logs?.find(l=>l.date===todayStr())||{};
+    onSave({
+      ...todayExisting,
+      date:     todayStr(),
+      weight:   todayExisting.weight || profile.weight,
+      calories: parseInt(calories)||0,
+      protein:  showProtein ? parseInt(protein)||0   : todayExisting.protein,
+      steps:    showSteps   ? parseInt(steps)||0     : todayExisting.steps,
+      greens:   showGreens  ? greens                 : todayExisting.greens,
+    });
+  }
+
+  const inputStyle = {width:"100%",boxSizing:"border-box",background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"13px 16px",color:C.text,fontSize:20,fontFamily:"'Syne',sans-serif",fontWeight:800,outline:"none",textAlign:"center",marginBottom:12};
+
+  const fields=[
+    {show:true,        label:"Калории (ккал)", val:calories, set:setCalories, target:profile.dailyTargets?.calories||2000, color:C.orange},
+    {show:showProtein, label:"Белок (г)",       val:protein,  set:setProtein,  target:profile.dailyTargets?.protein||150,  color:C.purple},
+    {show:showSteps,   label:"Шаги",            val:steps,    set:setSteps,    target:profile.dailyTargets?.steps||10000,  color:C.accent},
+  ].filter(f=>f.show);
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"#000000EE",zIndex:600,display:"flex",flexDirection:"column",justifyContent:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div style={{background:C.surface,borderRadius:"26px 26px 0 0",padding:"24px 24px 40px",animation:"slideUp 0.35s cubic-bezier(.16,1,.3,1) both",maxHeight:"90vh",overflowY:"auto"}}>
+        <div style={{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}/>
+        <div style={{fontSize:11,color:C.blue,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>🌙 Вечерний итог</div>
+        <div style={{fontSize:18,fontWeight:800,marginBottom:4}}>Итог дня</div>
+        <div style={{fontSize:12,color:C.muted,marginBottom:20}}>Неделя {currentWeekNum} — заполни то, что отслеживаешь</div>
+
+        {fields.map(f=>(
+          <div key={f.label}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <div style={{fontSize:12,color:C.muted}}>{f.label}</div>
+              <div style={{fontSize:11,color:f.color}}>цель: {f.target.toLocaleString()}</div>
+            </div>
+            <input type="number" value={f.val} onChange={e=>f.set(e.target.value)} placeholder="0" style={{...inputStyle,borderColor:f.val?`${f.color}66`:C.border}}/>
+          </div>
+        ))}
+
+        {showGreens&&(
+          <div onClick={()=>setGreens(v=>!v)} style={{display:"flex",alignItems:"center",gap:12,background:greens?`${C.accent}14`:C.card,border:`1.5px solid ${greens?C.accent:C.border}`,borderRadius:14,padding:"14px 16px",marginBottom:12,cursor:"pointer",transition:"all 0.15s"}}>
+            <div style={{width:24,height:24,borderRadius:8,background:greens?C.accent:C.dim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:greens?C.bg:"transparent",flexShrink:0}}>✓</div>
+            <div>
+              <div style={{fontSize:13,fontWeight:600}}>🥦 Съел овощи сегодня</div>
+              <div style={{fontSize:11,color:C.muted}}>Минимум 2 порции разных овощей</div>
+            </div>
+          </div>
+        )}
+
+        <button onClick={handleSave} disabled={!calories} style={{width:"100%",background:calories?C.blue:C.dim,color:calories?C.bg:C.muted,border:"none",borderRadius:18,padding:"16px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:calories?"pointer":"default"}}>
+          Сохранить итог дня
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // ─── LOG DAY MODAL ────────────────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1098,16 +1224,16 @@ function LogModal({profile,onSave,onClose}){
 function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened}){
   const [tab,setTab]=useState("today");
   const [showLog,setShowLog]=useState(false);
+  const [showMorningLog,setShowMorningLog]=useState(false);
+  const [showEveningLog,setShowEveningLog]=useState(false);
   const [selectedDay,setSelectedDay]=useState(null);
   const [showChat,setShowChat]=useState(false);
   const [unreadCount,setUnreadCount]=useState(0);
 
-  // Auto-open log modal when arriving from push notification
+  // Auto-open correct modal when arriving from push notification
   useEffect(()=>{
-    if(openLogOnLoad){
-      setShowLog(true);
-      if(onLogOpened) onLogOpened();
-    }
+    if(openLogOnLoad==="morning"){ setShowMorningLog(true); if(onLogOpened) onLogOpened(); }
+    if(openLogOnLoad==="evening"){ setShowEveningLog(true); if(onLogOpened) onLogOpened(); }
   },[openLogOnLoad]);
 
   // Load unread coach messages count
@@ -1170,14 +1296,21 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnL
       {tab==="today"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
 
-          {/* Day progress + date + log button */}
+          {/* Day progress + date + log buttons */}
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 16px",marginBottom:14}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
               <div>
                 <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,color:C.accent}}>День {userGlobalDay} <span style={{fontSize:13,color:C.muted,fontWeight:400}}>из 112</span></div>
                 <div style={{fontSize:11,color:C.muted,marginTop:1}}>Неделя {currentWeekNum} — {currentWeekData.theme}</div>
               </div>
-              <button onClick={()=>setShowLog(true)} style={{background:todayLog?C.accentDim:C.accent,color:todayLog?C.accent:C.bg,border:todayLog?`1.5px solid ${C.accent}55`:"none",borderRadius:22,padding:"9px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",flexShrink:0}}>{todayLog?t("today.logged"):t("today.log")}</button>
+              <div style={{display:"flex",gap:8,flexShrink:0}}>
+                <button onClick={()=>setShowMorningLog(true)} style={{background:todayLog?.weight?C.accentDim:C.accent,color:todayLog?.weight?C.accent:C.bg,border:todayLog?.weight?`1.5px solid ${C.accent}55`:"none",borderRadius:18,padding:"8px 12px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>
+                  {todayLog?.weight?"⚖️ ✓":"⚖️ Утро"}
+                </button>
+                <button onClick={()=>setShowEveningLog(true)} style={{background:todayLog?.calories?C.blueDim:C.blue,color:todayLog?.calories?C.blue:C.bg,border:todayLog?.calories?`1.5px solid ${C.blue}55`:"none",borderRadius:18,padding:"8px 12px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>
+                  {todayLog?.calories?"🌙 ✓":"🌙 Вечер"}
+                </button>
+              </div>
             </div>
             <div style={{height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}>
               <div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${Math.min(100,(userGlobalDay/112)*100)}%`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
@@ -1611,6 +1744,8 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnL
       </div>
 
       {showLog&&<LogModal profile={profile} onSave={log=>{handleSaveLog(log);setShowLog(false);}} onClose={()=>setShowLog(false)}/>}
+      {showMorningLog&&<MorningLogModal profile={profile} userGlobalDay={userGlobalDay} onSave={log=>{handleSaveLog(log);setShowMorningLog(false);}} onClose={()=>setShowMorningLog(false)}/>}
+      {showEveningLog&&<EveningLogModal profile={profile} userGlobalDay={userGlobalDay} currentWeekNum={currentWeekNum} onSave={log=>{handleSaveLog(log);setShowEveningLog(false);}} onClose={()=>setShowEveningLog(false)}/>}
       {selectedDay&&<DayDetailModal weekData={selectedDay.weekData} day={selectedDay.day} onClose={()=>setSelectedDay(null)}/>}
       {showChat&&<ChatModal profile={profile} onClose={()=>{setShowChat(false);setUnreadCount(0);}}/>}
     </div>
@@ -2135,14 +2270,14 @@ export default function App(){
     }
   },[profile?.streak, profile?.currentWeek, profile?.weight, profile?.is_subscribed]);
 
-  // ── Detect notification tap → open log modal ─────────────────────────────
+  // ── Detect notification tap → open correct modal ─────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("action") === "log") {
+    const action = params.get("action");
+    if (action === "morning" || action === "evening" || action === "log") {
       window.history.replaceState({}, "", window.location.pathname);
-      // Wait for profile to load then open log modal
       const timer = setTimeout(() => {
-        setOpenLogOnLoad(true);
+        setOpenLogOnLoad(action === "evening" ? "evening" : "morning");
       }, 800);
       return () => clearTimeout(timer);
     }
