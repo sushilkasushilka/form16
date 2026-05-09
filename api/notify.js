@@ -38,18 +38,18 @@ export default async function handler(req, res) {
   // Build notification payload
   const payload = (isForced || isMorning)
     ? {
-        title: "FORM16 — доброе утро",
-        body: "Встань на весы до завтрака и запиши вес. Это займёт 30 секунд.",
+        title: "FORM16 — доброе утро 🌅",
+        body: "Встань на весы до завтрака и запиши вес. Это займёт 10 секунд.",
         tag: "morning-weight",
         url: "/?action=log",
-        actions: [{ action: "log", title: "Записать вес" }],
+        actions: [{ action: "log", title: "⚖️ Записать вес" }],
       }
     : {
-        title: "FORM16 — итог дня",
+        title: "FORM16 — итог дня 🌙",
         body: "Ты записал всё питание сегодня? Дозапиши, пока не забыл.",
         tag: "evening-meals",
         url: "/?action=log",
-        actions: [{ action: "log", title: "Дозаписать" }],
+        actions: [{ action: "log", title: "🍽️ Дозаписать" }],
       };
 
   // Get all subscriptions

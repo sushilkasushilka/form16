@@ -1095,12 +1095,20 @@ function LogModal({profile,onSave,onClose}){
 // ═════════════════════════════════════════════════════════════════════════════
 // ─── MEMBER DASHBOARD ─────────────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
-function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
+function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened}){
   const [tab,setTab]=useState("today");
   const [showLog,setShowLog]=useState(false);
   const [selectedDay,setSelectedDay]=useState(null);
   const [showChat,setShowChat]=useState(false);
   const [unreadCount,setUnreadCount]=useState(0);
+
+  // Auto-open log modal when arriving from push notification
+  useEffect(()=>{
+    if(openLogOnLoad){
+      setShowLog(true);
+      if(onLogOpened) onLogOpened();
+    }
+  },[openLogOnLoad]);
 
   // Load unread coach messages count
   useEffect(()=>{
@@ -2113,6 +2121,7 @@ export default function App(){
   function setLang(code) { localStorage.setItem("form16_lang", code); setLangState(code); }
   const [screen, setScreen]   = useState("loading");
   const [session, setSession] = useState(null);
+  const [openLogOnLoad, setOpenLogOnLoad] = useState(false);
   const [profile, setProfile] = useState(()=>{
     // Load cached profile instantly — eliminates white screen on reload
     try { const c=localStorage.getItem("form16_profile_cache"); return c?JSON.parse(c):null; } catch{ return null; }
@@ -2125,6 +2134,19 @@ export default function App(){
       try { localStorage.setItem("form16_profile_cache", JSON.stringify({...profile, logs:[]})); } catch{}
     }
   },[profile?.streak, profile?.currentWeek, profile?.weight, profile?.is_subscribed]);
+
+  // ── Detect notification tap → open log modal ─────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("action") === "log") {
+      window.history.replaceState({}, "", window.location.pathname);
+      // Wait for profile to load then open log modal
+      const timer = setTimeout(() => {
+        setOpenLogOnLoad(true);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // ── Detect FatSecret OAuth callback (?fs_connected=1) ────────────────────
   useEffect(() => {
@@ -2390,6 +2412,8 @@ export default function App(){
             setProfile={updateProfile}
             saveLog={saveLog}
             onSignOut={signOut}
+            openLogOnLoad={openLogOnLoad}
+            onLogOpened={()=>setOpenLogOnLoad(false)}
           />
         )}
 
