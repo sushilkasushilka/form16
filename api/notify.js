@@ -27,9 +27,9 @@ export default async function handler(req, res) {
   }
 
   const hour = new Date().getUTCHours();
-  const isMorning = hour === MORNING_UTC_HOUR;
-  const isEvening = hour === EVENING_UTC_HOUR;
-  const isForced = req.method === "POST"; // POST = force send regardless of hour
+  const isMorning = hour >= 4 && hour <= 8;   // 07:00–11:00 MSK
+  const isEvening = hour >= 18 && hour <= 22; // 21:00–01:00 MSK
+  const isForced = req.method === "POST";
 
   if (!isForced && !isMorning && !isEvening) {
     return res.status(200).json({ ok: true, message: "Not a notification hour" });
