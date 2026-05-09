@@ -15,6 +15,13 @@ function pct(str) {
     .replace(/\(/g,"%28").replace(/\)/g,"%29").replace(/\*/g,"%2A");
 }
 
+function parseCookies(cookieHeader) {
+  if (!cookieHeader) return {};
+  return Object.fromEntries(
+    cookieHeader.split(";").map(c => c.trim().split("=").map(decodeURIComponent))
+  );
+}
+
 export default async function handler(req, res) {
   const { oauth_token, oauth_verifier, userId } = req.query;
   if (!oauth_token || !oauth_verifier || !userId)
@@ -23,11 +30,18 @@ export default async function handler(req, res) {
   const consumerKey    = process.env.FATSECRET_CLIENT_ID;
   const consumerSecret = process.env.FATSECRET_CLIENT_SECRET;
 
+  // Get token secret from cookie set by fs-request-token
+  const cookies = parseCookies(req.headers.cookie);
+  const tokenSecret = cookies.fs_token_secret || "";
+
+  const nonce = crypto.randomBytes(16).toString("hex");
+  const timestamp = String(Math.floor(Date.now() / 1000));
+
   const oauthParams = {
     oauth_consumer_key:     consumerKey,
-    oauth_nonce:            crypto.randomBytes(16).toString("hex"),
+    oauth_nonce:            nonce,
     oauth_signature_method: "HMAC-SHA1",
-    oauth_timestamp:        String(Math.floor(Date.now() / 1000)),
+    oauth_timestamp:        timestamp,
     oauth_token,
     oauth_verifier,
     oauth_version:          "1.0",
@@ -37,8 +51,11 @@ export default async function handler(req, res) {
     .map(k => `${pct(k)}=${pct(oauthParams[k])}`).join("&");
 
   const base = ["POST", pct(FS_ACCESS_TOKEN_URL), pct(normalized)].join("&");
-  const signingKey = `${pct(consumerSecret)}&`; // no token secret at this stage
-  oauthParams.oauth_signature = crypto.createHmac("sha1", signingKey).update(base).digest("base64");
+  // Sign with consumer secret + token secret
+  const signingKey = `${pct(consumerSecret)}&${pct(tokenSecret)}`;
+  const signature = crypto.createHmac("sha1", signingKey).update(base).digest("base64");
+
+  oauthParams.oauth_signature = signature;
 
   try {
     const response = await fetch(FS_ACCESS_TOKEN_URL, {
@@ -60,6 +77,9 @@ export default async function handler(req, res) {
     }).eq("id", userId);
 
     if (error) return res.status(500).json({ error: error.message });
+
+    // Clear the token secret cookie
+    res.setHeader("Set-Cookie", "fs_token_secret=; Path=/; HttpOnly; Max-Age=0");
 
     const appUrl = process.env.VITE_APP_URL || `https://${req.headers.host}`;
     res.redirect(302, `${appUrl}/?fs_connected=1`);

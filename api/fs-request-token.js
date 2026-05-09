@@ -11,48 +11,43 @@ function pct(str) {
 }
 
 export default async function handler(req, res) {
-  const { userId } = req.query;
+  const { userId, debug } = req.query;
   if (!userId) return res.status(400).json({ error: "Missing userId" });
 
   const consumerKey    = process.env.FATSECRET_CLIENT_ID;
   const consumerSecret = process.env.FATSECRET_CLIENT_SECRET;
 
   if (!consumerKey || !consumerSecret) {
-    return res.status(500).json({ error: "Missing env vars", hasKey: !!consumerKey, hasSecret: !!consumerSecret });
+    return res.status(500).json({ error: "Missing env vars" });
   }
 
   const appUrl = process.env.VITE_APP_URL || `https://${req.headers.host}`;
   const callbackUrl = `${appUrl}/api/fs-callback?userId=${userId}`;
 
-  // Build OAuth params — send in POST body, not Authorization header
+  const nonce = crypto.randomBytes(16).toString("hex");
+  const timestamp = String(Math.floor(Date.now() / 1000));
+
   const oauthParams = {
     oauth_callback:         callbackUrl,
     oauth_consumer_key:     consumerKey,
-    oauth_nonce:            crypto.randomBytes(16).toString("hex"),
+    oauth_nonce:            nonce,
     oauth_signature_method: "HMAC-SHA1",
-    oauth_timestamp:        String(Math.floor(Date.now() / 1000)),
+    oauth_timestamp:        timestamp,
     oauth_version:          "1.0",
   };
 
-  // Build signature base string
   const normalized = Object.keys(oauthParams).sort()
     .map(k => `${pct(k)}=${pct(oauthParams[k])}`).join("&");
 
-  const base = [
-    "POST",
-    pct(FS_REQUEST_TOKEN_URL),
-    pct(normalized),
-  ].join("&");
-
+  const base = ["POST", pct(FS_REQUEST_TOKEN_URL), pct(normalized)].join("&");
   const signingKey = `${pct(consumerSecret)}&`;
-  oauthParams.oauth_signature = crypto
-    .createHmac("sha1", signingKey)
-    .update(base)
-    .digest("base64");
+  const signature = crypto.createHmac("sha1", signingKey).update(base).digest("base64");
+
+  oauthParams.oauth_signature = signature;
+
+  const body = new URLSearchParams(oauthParams).toString();
 
   try {
-    const body = new URLSearchParams(oauthParams).toString();
-
     const response = await fetch(FS_REQUEST_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -62,15 +57,29 @@ export default async function handler(req, res) {
     const text = await response.text();
     const params = Object.fromEntries(new URLSearchParams(text));
 
-    if (!params.oauth_token) {
-      return res.status(500).json({
-        error:  "No token from FatSecret",
-        raw:    text,
-        status: response.status,
-        base:   base.substring(0, 200),
+    // Debug mode — show full response without redirecting
+    if (debug === "1") {
+      return res.status(200).json({
+        httpStatus: response.status,
+        rawResponse: text,
+        parsedParams: params,
+        requestBody: body,
+        signatureBase: base,
+        callbackUrl,
+        hasToken: !!params.oauth_token,
+        hasConfirmed: params.oauth_callback_confirmed,
+        authorizeUrl: params.oauth_token
+          ? `${FS_AUTHORIZE_URL}?oauth_token=${params.oauth_token}`
+          : null,
       });
     }
 
+    if (!params.oauth_token) {
+      return res.status(500).json({ error: "No token", raw: text, status: response.status });
+    }
+
+    // Store token secret in a short-lived cookie so callback can use it
+    res.setHeader("Set-Cookie", `fs_token_secret=${params.oauth_token_secret}; Path=/; HttpOnly; SameSite=Lax; Max-Age=600`);
     res.redirect(302, `${FS_AUTHORIZE_URL}?oauth_token=${params.oauth_token}`);
   } catch (err) {
     res.status(500).json({ error: err.message });
