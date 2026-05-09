@@ -1587,7 +1587,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
             <div style={{fontSize:12,color:C.muted,lineHeight:1.7,fontStyle:"italic",borderLeft:`3px solid ${C.purple}`,paddingLeft:12}}>"{currentWeekData.mindset.quote}"</div>
           </div>
           {/* FatSecret connection */}
-          <FatSecretConnect profile={profile} setProfile={setProfile} userId={session?.user?.id}/>
+          <FatSecretConnect profile={profile} setProfile={setProfile} userId={profile.id}/>
           <div style={{background:C.card,borderRadius:20,padding:"16px 18px",border:`1px solid ${C.border}`}}>
             <div style={{fontWeight:700,marginBottom:12}}>{t("profile.targets")}</div>
             {[{l:t("profile.calories"),v:`${profile.dailyTargets?.calories||2000} kcал`,c:C.orange},{l:t("profile.protein"),v:`${profile.dailyTargets?.protein||150} г`,c:C.purple},{l:t("profile.steps"),v:(profile.dailyTargets?.steps||10000).toLocaleString(),c:C.accent}].map(tgt=>(
