@@ -2019,16 +2019,24 @@ export default function App(){
   function setLang(code) { localStorage.setItem("form16_lang", code); setLangState(code); }
   const [screen, setScreen]   = useState("loading");
   const [session, setSession] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState(()=>{
+    // Load cached profile instantly — eliminates white screen on reload
+    try { const c=localStorage.getItem("form16_profile_cache"); return c?JSON.parse(c):null; } catch{ return null; }
+  });
   const [athletes, setAthletes] = useState(MOCK_ATHLETES);
+
+  // Cache profile to localStorage whenever it changes
+  useEffect(()=>{
+    if(profile) {
+      try { localStorage.setItem("form16_profile_cache", JSON.stringify({...profile, logs:[]})); } catch{}
+    }
+  },[profile?.streak, profile?.currentWeek, profile?.weight, profile?.is_subscribed]);
 
   // ── Detect FatSecret OAuth callback (?fs_connected=1) ────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("fs_connected") === "1") {
-      // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
-      // Reload profile to pick up updated fatsecret_connected flag
       supabase.auth.getUser().then(({ data }) => {
         if (data?.user) loadProfile(data.user.id);
       });
@@ -2039,33 +2047,53 @@ export default function App(){
   useEffect(() => {
     let initialDone = false;
 
-    // onAuthStateChange fires on initial load AND on login/logout/refresh
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
 
       if (session) {
         if (!initialDone) {
-          // First fire — restore session on reload
           initialDone = true;
+          // If we have cached profile, show app immediately while loading fresh data
+          const cached = localStorage.getItem("form16_profile_cache");
+          if (cached) {
+            try {
+              const p = JSON.parse(cached);
+              if (p.id === session.user.id) {
+                const hasSeenDay0 = localStorage.getItem(`form16_day0_${session.user.id}`);
+                const isNewUser = p.joinedAt === todayStr() && !hasSeenDay0;
+                setScreen(isNewUser ? "day0" : "member");
+              }
+            } catch{}
+          }
+          // Always load fresh profile in background
           loadProfile(session.user.id);
-        } else if (_event === "SIGNED_IN") {
-          // User just logged in fresh
+        } else if (event === "SIGNED_IN") {
           loadProfile(session.user.id);
+        } else if (event === "TOKEN_REFRESHED") {
+          // Session refreshed — keep user logged in, no action needed
+          console.log("Session refreshed");
         }
-      } else {
+      } else if (event === "SIGNED_OUT") {
+        // Only logout on explicit sign out, not on token refresh failures
         initialDone = true;
+        localStorage.removeItem("form16_profile_cache");
         setScreen("auth");
         setProfile(null);
+      } else if (!initialDone) {
+        initialDone = true;
+        // No session — check if we have a cached profile to show auth faster
+        localStorage.removeItem("form16_profile_cache");
+        setScreen("auth");
       }
     });
 
-    // Safety fallback: if nothing fires in 4s, show auth screen
+    // Shorter safety fallback: 2s instead of 4s
     const timeout = setTimeout(() => {
       if (!initialDone) {
         initialDone = true;
         setScreen("auth");
       }
-    }, 4000);
+    }, 2000);
 
     return () => {
       subscription.unsubscribe();
