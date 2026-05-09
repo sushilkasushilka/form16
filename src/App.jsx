@@ -1268,7 +1268,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnL
     if(log.bfp) setProfile(p=>({...p,bfp:log.bfp}));
   }
 
-  const TABS=[{id:"today",icon:"📊",label:t("tab.today")},{id:"program",icon:"🗓",label:t("tab.program")},{id:"progress",icon:"📈",label:t("tab.progress")},{id:"profile",icon:"👤",label:t("tab.profile")}];
+  const TABS=[{id:"today",icon:"📊",label:t("tab.today")},{id:"program",icon:"🗓",label:t("tab.program")},{id:"account",icon:"👤",label:"Я"}];
 
   const taskTypeColor = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted}[todayDayData?.type]||C.orange;
 
@@ -1287,10 +1287,6 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnL
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{display:"flex",background:C.surface,borderBottom:`1px solid ${C.border}`}}>
-        {TABS.map(tb=><button key={tb.id} onClick={()=>setTab(tb.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",padding:"12px 4px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===tb.id?C.accent:C.muted,borderBottom:`2px solid ${tab===tb.id?C.accent:"transparent"}`,fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:0.4,transition:"color 0.18s"}}><span style={{fontSize:18}}>{tb.icon}</span>{tb.label}</button>)}
-      </div>
 
       {/* ── TODAY ── */}
       {tab==="today"&&(
@@ -1633,9 +1629,10 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnL
         </div>
       )}
 
-      {/* ── PROGRESS ── */}
-      {tab==="progress"&&(
+      {/* ── ACCOUNT (Progress + Profile combined) ── */}
+      {tab==="account"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
+          <div style={{fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>Прогресс</div>
           <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:18}}>{t("progress.title")}</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
             {[{label:t("progress.start"),val:`${profile.weight} kg`,color:C.muted,icon:"📍"},{label:t("progress.current"),val:`${currentWeight} kg`,color:C.blue,icon:"⚖️"},{label:weightDiff<=0?t("progress.lost"):t("progress.gained"),val:`${Math.abs(weightDiff)} kg`,color:weightDiff<=0?C.accent:C.orange,icon:weightDiff<=0?"📉":"📈"},{label:t("progress.bodyfat"),val:`${currentBFP}%`,color:C.purple,icon:"📊"},{label:t("progress.bmi"),val:String(profile.bmi||calcBMI(currentWeight,profile.height)),color:C.blue,icon:"🩺"}].map(s=>(
@@ -1680,9 +1677,9 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnL
         </div>
       )}
 
-      {/* ── PROFILE ── */}
-      {tab==="profile"&&(
-        <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
+      {tab==="account"&&(
+        <div style={{padding:"18px",paddingTop:4,animation:"slideUp 0.28s both"}}>
+          <div style={{fontWeight:800,marginBottom:14,color:C.muted,textTransform:"uppercase",letterSpacing:0.8,fontSize:11}}>Профиль</div>
           <div style={{textAlign:"center",marginBottom:22}}>
             <div style={{width:76,height:76,borderRadius:"50%",fontSize:36,background:C.accentDim,border:`3px solid ${C.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>{profile.avatar}</div>
             <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800}}>{profile.name}</div>
