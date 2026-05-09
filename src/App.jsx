@@ -655,6 +655,54 @@ function Btn({children,onClick,variant="primary",disabled,small}){
   return <button onClick={onClick} disabled={disabled} style={{width:small?"auto":"100%",border:"none",borderRadius:small?20:16,padding:small?"9px 18px":"16px 24px",fontSize:small?13:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:disabled?"default":"pointer",background:variant==="primary"?(disabled?C.dim:C.accent):variant==="ghost"?"transparent":variant==="danger"?C.red:C.card,color:variant==="primary"?(disabled?C.muted:C.bg):variant==="danger"?"#fff":variant==="ghost"?C.muted:C.text,border:variant==="outline"?`1.5px solid ${C.border}`:"none",opacity:disabled?0.55:1,transition:"all 0.15s"}}>{children}</button>;
 }
 
+// ─── INLINE CHAT BAR ──────────────────────────────────────────────────────────
+function InlineChatBar({ profile, onOpen }) {
+  const [lastMsg, setLastMsg] = useState(null);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+
+  useEffect(()=>{
+    supabase.from("messages").select("*").eq("user_id",profile.id)
+      .order("created_at",{ascending:false}).limit(1)
+      .then(({data})=>{ if(data?.[0]) setLastMsg(data[0]); });
+  },[]);
+
+  async function quickSend(){
+    if(!chatInput.trim()||chatLoading) return;
+    const text=chatInput.trim();
+    setChatInput(""); setChatLoading(true);
+    try{
+      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:profile.id,message:text})});
+      const data=await res.json();
+      if(data.reply) setLastMsg({role:"assistant",content:data.reply,created_at:new Date().toISOString()});
+      if(data.error==="limit_reached") onOpen();
+    }catch{}
+    setChatLoading(false);
+  }
+
+  return (
+    <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,marginBottom:14,overflow:"hidden"}}>
+      <div style={{padding:"12px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{width:28,height:28,borderRadius:8,background:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🏋️</div>
+          <div><div style={{fontSize:12,fontWeight:700}}>Персональный тренер</div><div style={{fontSize:10,color:C.accent}}>ИИ · отвечает мгновенно</div></div>
+        </div>
+        <button onClick={onOpen} style={{fontSize:11,color:C.accent,background:C.accentDim,border:"none",borderRadius:14,padding:"4px 10px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Открыть →</button>
+      </div>
+      {lastMsg&&(
+        <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
+          <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{lastMsg.role==="assistant"?"🏋️ Тренер":"👤 Ты"}</div>
+          <div style={{fontSize:12,color:C.text,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lastMsg.content}</div>
+        </div>
+      )}
+      <div style={{padding:"10px 12px",display:"flex",gap:8,alignItems:"center"}}>
+        <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();quickSend();}}} placeholder="Спроси тренера…" style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"8px 12px",color:C.text,fontSize:13,fontFamily:"'DM Sans',sans-serif",outline:"none"}}/>
+        <button onClick={quickSend} disabled={!chatInput.trim()||chatLoading} style={{width:34,height:34,borderRadius:"50%",background:chatInput.trim()&&!chatLoading?C.accent:C.dim,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:C.bg,flexShrink:0}}>↑</button>
+      </div>
+    </div>
+  );
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // ─── CHAT MODAL ───────────────────────────────────────────────────────────────
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1186,60 +1234,7 @@ function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack}){
               )}
 
               {/* ── INLINE CHAT BAR ── */}
-              {(()=>{
-                const [lastMsg, setLastMsg] = useState(null);
-                const [chatInput, setChatInput] = useState("");
-                const [chatLoading, setChatLoading] = useState(false);
-
-                useEffect(()=>{
-                  supabase.from("messages").select("*").eq("user_id",profile.id)
-                    .order("created_at",{ascending:false}).limit(1)
-                    .then(({data})=>{ if(data?.[0]) setLastMsg(data[0]); });
-                },[]);
-
-                async function quickSend(){
-                  if(!chatInput.trim()||chatLoading) return;
-                  const text=chatInput.trim();
-                  setChatInput(""); setChatLoading(true);
-                  try{
-                    const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:profile.id,message:text})});
-                    const data=await res.json();
-                    if(data.reply) setLastMsg({role:"assistant",content:data.reply,created_at:new Date().toISOString()});
-                  }catch{}
-                  setChatLoading(false);
-                }
-
-                return (
-                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,marginBottom:14,overflow:"hidden"}}>
-                    <div style={{padding:"12px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{width:28,height:28,borderRadius:8,background:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🏋️</div>
-                        <div>
-                          <div style={{fontSize:12,fontWeight:700}}>Персональный тренер</div>
-                          <div style={{fontSize:10,color:C.accent}}>ИИ · отвечает мгновенно</div>
-                        </div>
-                      </div>
-                      <button onClick={()=>setShowChat(true)} style={{fontSize:11,color:C.accent,background:C.accentDim,border:"none",borderRadius:14,padding:"4px 10px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Открыть →</button>
-                    </div>
-                    {lastMsg&&(
-                      <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
-                        <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{lastMsg.role==="assistant"?"🏋️ Тренер":"👤 Ты"}</div>
-                        <div style={{fontSize:12,color:C.text,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lastMsg.content}</div>
-                      </div>
-                    )}
-                    <div style={{padding:"10px 12px",display:"flex",gap:8,alignItems:"center"}}>
-                      <input
-                        value={chatInput}
-                        onChange={e=>setChatInput(e.target.value)}
-                        onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();quickSend();}}}
-                        placeholder="Спроси тренера…"
-                        style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"8px 12px",color:C.text,fontSize:13,fontFamily:"'DM Sans',sans-serif",outline:"none"}}
-                      />
-                      <button onClick={quickSend} disabled={!chatInput.trim()||chatLoading} style={{width:34,height:34,borderRadius:"50%",background:chatInput.trim()&&!chatLoading?C.accent:C.dim,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:C.bg,flexShrink:0}}>↑</button>
-                    </div>
-                  </div>
-                );
-              })()}
+              <InlineChatBar profile={profile} onOpen={()=>setShowChat(true)}/>
 
               {/* Today's task card */}
               {todayDayData && (
