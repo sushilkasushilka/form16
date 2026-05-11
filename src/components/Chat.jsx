@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../supabase.js";
 import { C } from "../theme.js";
 import { getUserGlobalDay } from "../program.js";
+import { Icon } from "./icons.jsx";
 
 export function InlineChatBar({ profile, onOpen }) {
   const [lastMsg, setLastMsg] = useState(null);
@@ -34,19 +35,19 @@ export function InlineChatBar({ profile, onOpen }) {
     <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,marginBottom:14,overflow:"hidden"}}>
       <div style={{padding:"12px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
-          <div style={{width:28,height:28,borderRadius:8,background:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🏋️</div>
-          <div><div style={{fontSize:12,fontWeight:700}}>Персональный тренер</div><div style={{fontSize:10,color:C.accent}}>ИИ · отвечает мгновенно</div></div>
+          <div style={{width:28,height:28,borderRadius:8,background:C.accentDim,color:C.accent,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="coach" size={17} /></div>
+          <div><div style={{fontSize:12,fontWeight:500}}>Персональный тренер</div><div style={{fontSize:10,color:C.accent}}>ИИ · отвечает мгновенно</div></div>
         </div>
-        <button onClick={onOpen} style={{fontSize:11,color:C.accent,background:C.accentDim,border:"none",borderRadius:14,padding:"4px 10px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Открыть →</button>
+        <button onClick={onOpen} style={{fontSize:11,color:C.accent,background:C.accentDim,border:"none",borderRadius:14,padding:"4px 10px",cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:500}}>Открыть →</button>
       </div>
       {lastMsg&&(
         <div style={{padding:"10px 14px",borderBottom:`1px solid ${C.border}`}}>
-          <div style={{fontSize:11,color:C.muted,marginBottom:4}}>{lastMsg.role==="assistant"?"🏋️ Тренер":"👤 Ты"}</div>
+          <div style={{fontSize:10,color:C.muted,marginBottom:4,letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:600}}>{lastMsg.role==="assistant"?"Тренер":"Ты"}</div>
           <div style={{fontSize:12,color:C.text,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{lastMsg.content}</div>
         </div>
       )}
       <div style={{padding:"10px 12px",display:"flex",gap:8,alignItems:"center"}}>
-        <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();quickSend();}}} placeholder="Спроси тренера…" style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"8px 12px",color:C.text,fontSize:13,fontFamily:"'DM Sans',sans-serif",outline:"none"}}/>
+        <input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();quickSend();}}} placeholder="Спроси тренера…" style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"8px 12px",color:C.text,fontSize:13,fontFamily:"'Inter',system-ui,sans-serif",outline:"none"}}/>
         <button onClick={quickSend} disabled={!chatInput.trim()||chatLoading} style={{width:34,height:34,borderRadius:"50%",background:chatInput.trim()&&!chatLoading?C.accent:C.dim,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:C.bg,flexShrink:0}}>↑</button>
       </div>
     </div>
@@ -104,8 +105,8 @@ export function ChatModal({ profile, onClose }) {
     <div style={{position:"fixed",inset:0,background:C.bg,zIndex:500,display:"flex",flexDirection:"column"}}>
       <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"52px 20px 16px",display:"flex",alignItems:"center",gap:12}}>
         <button onClick={onClose} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20,padding:0}}>←</button>
-        <div style={{width:40,height:40,borderRadius:12,background:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>🏋️</div>
-        <div style={{flex:1}}><div style={{fontWeight:700,fontSize:15}}>Персональный тренер</div><div style={{fontSize:11,color:C.accent}}>ИИ · отвечает мгновенно</div></div>
+        <div style={{width:40,height:40,borderRadius:12,background:C.accentDim,color:C.accent,display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="coach" size={22} /></div>
+        <div style={{flex:1}}><div style={{fontWeight:500,fontSize:15}}>Персональный тренер</div><div style={{fontSize:11,color:C.accent}}>ИИ · отвечает мгновенно</div></div>
         {remaining!==null&&<div style={{fontSize:11,color:C.muted,background:C.surface,border:`1px solid ${C.border}`,borderRadius:20,padding:"3px 10px"}}>{remaining}/{limit}</div>}
       </div>
 
@@ -113,10 +114,10 @@ export function ChatModal({ profile, onClose }) {
         {messages.length===0&&(
           <div style={{textAlign:"center",padding:"40px 20px"}}>
             <div style={{fontSize:40,marginBottom:16}}>💪</div>
-            <div style={{fontWeight:700,fontSize:16,marginBottom:8}}>Привет, {profile.name?.split(" ")[0]}!</div>
+            <div style={{fontWeight:500,fontSize:16,marginBottom:8}}>Привет, {profile.name?.split(" ")[0]}!</div>
             <div style={{fontSize:13,color:C.muted,lineHeight:1.7,marginBottom:20}}>Я твой персональный тренер. Спроси меня про питание, тренировки или прогресс.</div>
             {["Почему мой вес не снижается?","Сколько белка мне нужно?","Что делать если нет мотивации?"].map(q=>(
-              <button key={q} onClick={()=>setInput(q)} style={{display:"block",width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"10px 14px",fontSize:12,color:C.muted,cursor:"pointer",fontFamily:"'DM Sans',sans-serif",textAlign:"left",marginBottom:8}}>{q}</button>
+              <button key={q} onClick={()=>setInput(q)} style={{display:"block",width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"10px 14px",fontSize:12,color:C.muted,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",textAlign:"left",marginBottom:8}}>{q}</button>
             ))}
           </div>
         )}
@@ -125,7 +126,7 @@ export function ChatModal({ profile, onClose }) {
             {msg.role!=="user"&&<div style={{width:28,height:28,borderRadius:"50%",background:msg.is_coach?C.orangeDim:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,marginRight:8,flexShrink:0,marginTop:4}}>{msg.is_coach?"👨‍💼":"🏋️"}</div>}
             <div style={{maxWidth:"78%",background:msg.role==="user"?C.accent:C.card,color:msg.role==="user"?C.bg:C.text,borderRadius:msg.role==="user"?"18px 18px 4px 18px":"18px 18px 18px 4px",padding:"11px 14px",fontSize:13,lineHeight:1.65}}>
               {msg.content}
-              {msg.is_coach&&<div style={{fontSize:10,color:C.orange,marginTop:4,fontWeight:700}}>от тренера</div>}
+              {msg.is_coach&&<div style={{fontSize:10,color:C.orange,marginTop:4,fontWeight:500}}>от тренера</div>}
             </div>
           </div>
         ))}
@@ -143,17 +144,17 @@ export function ChatModal({ profile, onClose }) {
       {showPaywall&&(
         <div style={{background:C.surface,borderTop:`1px solid ${C.border}`,padding:"16px 20px"}}>
           <div style={{background:C.accentDim,border:`1.5px solid ${C.accent}44`,borderRadius:18,padding:"16px 18px"}}>
-            <div style={{fontWeight:700,fontSize:14,marginBottom:6}}>{limitReached?`Лимит ${limit} сообщений исчерпан`:"Неделя 3 — время апгрейда"}</div>
+            <div style={{fontWeight:500,fontSize:14,marginBottom:6}}>{limitReached?`Лимит ${limit} сообщений исчерпан`:"Неделя 3 — время апгрейда"}</div>
             <div style={{fontSize:12,color:C.muted,lineHeight:1.6,marginBottom:14}}>{limitReached?"С подпиской — до 10 сообщений в день и доступ к живому тренеру.":"Ты прошёл 2 недели! Подпишись чтобы получить 10 сообщений в день и живого тренера."}</div>
-            <button onClick={subscribe} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:14,padding:"13px",fontSize:14,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",marginBottom:8}}>Подписаться →</button>
-            <button onClick={()=>setShowPaywall(false)} style={{width:"100%",background:"none",border:"none",color:C.muted,fontSize:12,cursor:"pointer",fontFamily:"'DM Sans',sans-serif"}}>Не сейчас</button>
+            <button onClick={subscribe} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:14,padding:"13px",fontSize:14,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",cursor:"pointer",marginBottom:8}}>Подписаться →</button>
+            <button onClick={()=>setShowPaywall(false)} style={{width:"100%",background:"none",border:"none",color:C.muted,fontSize:12,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif"}}>Не сейчас</button>
           </div>
         </div>
       )}
 
       {!limitReached&&(
         <div style={{background:C.surface,borderTop:`1px solid ${C.border}`,padding:"12px 16px 32px",display:"flex",gap:10,alignItems:"flex-end"}}>
-          <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder="Напиши вопрос тренеру…" rows={1} style={{flex:1,background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,padding:"11px 14px",color:C.text,fontSize:14,fontFamily:"'DM Sans',sans-serif",outline:"none",resize:"none",lineHeight:1.5}} onFocus={e=>e.target.style.borderColor=C.accent} onBlur={e=>e.target.style.borderColor=C.border}/>
+          <textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder="Напиши вопрос тренеру…" rows={1} style={{flex:1,background:C.card,border:`1.5px solid ${C.border}`,borderRadius:16,padding:"11px 14px",color:C.text,fontSize:14,fontFamily:"'Inter',system-ui,sans-serif",outline:"none",resize:"none",lineHeight:1.5}} onFocus={e=>e.target.style.borderColor=C.accent} onBlur={e=>e.target.style.borderColor=C.border}/>
           <button onClick={sendMessage} disabled={!input.trim()||loading} style={{width:44,height:44,borderRadius:"50%",background:input.trim()&&!loading?C.accent:C.dim,border:"none",cursor:input.trim()&&!loading?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0,color:C.bg,transition:"background 0.15s"}}>↑</button>
         </div>
       )}

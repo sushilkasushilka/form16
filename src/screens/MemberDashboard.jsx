@@ -3,7 +3,7 @@
 // Hosts every log/chat/day-detail modal.
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase.js";
-import { C } from "../theme.js";
+import { C, F } from "../theme.js";
 import { todayStr, fmtDate, calcBMI } from "../utils.js";
 import { t } from "../i18n.js";
 import { PROGRAM, getUserGlobalDay, getTodayData, getMissedMeasurement } from "../program.js";
@@ -11,16 +11,20 @@ import { MetricBar, WeightChart } from "../components/ui.jsx";
 import { FatSecretConnect } from "../components/FatSecretConnect.jsx";
 import { InlineChatBar, ChatModal } from "../components/Chat.jsx";
 import { DayDetailModal, MorningLogModal, EveningLogModal, LogModal } from "../components/LogModals.jsx";
-import { MissionStrip } from "../components/MissionStrip.jsx";
-import { DailyTaskCarousel } from "../components/DailyTaskCarousel.jsx";
+import { Icon, Avatar, AVATAR_OPTIONS } from "../components/icons.jsx";
+import { ProgramView } from "../components/ProgramView.jsx";
 
-export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened}){
+export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened,lang,setLang}){
   const [tab,setTab]=useState("today");
   const [showLog,setShowLog]=useState(false);
   const [showMorningLog,setShowMorningLog]=useState(false);
   const [showEveningLog,setShowEveningLog]=useState(false);
   const [selectedDay,setSelectedDay]=useState(null);
   const [showChat,setShowChat]=useState(false);
+  const [showAvatarPicker,setShowAvatarPicker]=useState(false);
+  const [showUpgrade,setShowUpgrade]=useState(false);
+  const [showTargetsEdit,setShowTargetsEdit]=useState(false);
+  const [showLangSheet,setShowLangSheet]=useState(false);
   const [unreadCount,setUnreadCount]=useState(0);
 
   // Auto-open correct modal when arriving from push notification
@@ -62,88 +66,71 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
     if(log.bfp) setProfile(p=>({...p,bfp:log.bfp}));
   }
 
-  const TABS=[{id:"today",icon:"📊",label:t("tab.today")},{id:"program",icon:"🗓",label:t("tab.program")},{id:"account",icon:"👤",label:"Я"}];
+  const TABS=[{id:"today",icon:"sun",label:t("tab.today")},{id:"program",icon:"grid",label:t("tab.program")},{id:"account",icon:"user",label:"Я"}];
 
-  const taskTypeColor = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted}[todayDayData?.type]||C.orange;
+  // Lab: single accent for all task types. Differentiate via labels.
+  const taskTypeLabel = {training:"Тренировка",nutrition:"Питание",mindset:"Мышление",rest:"Отдых",active_recovery:"Восстановление"}[todayDayData?.type]||"Сегодня";
+  const dayProgressPct = Math.min(100,(userGlobalDay/112)*100);
 
   return (
-    <div style={{minHeight:"100vh",background:C.bg,paddingBottom:88}}>
-      {/* Header — name + day/week + date + program-progress bar.
-          One united block at the top, replacing the previous header + the
-          standalone date/progress card. Log buttons moved into a new
-          "Отчёты" card on the today tab. */}
-      <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"48px 20px 16px"}}>
-        <div style={{display:"flex",alignItems:"center",gap:12}}>
-          {onBack&&<button onClick={onBack} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20,padding:0,marginRight:2}}>←</button>}
-          <div style={{width:44,height:44,borderRadius:14,background:C.accentDim,border:`1.5px solid ${C.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{profile.avatar}</div>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontWeight:700,fontSize:15,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{profile.name}</div>
-            {!isDay0 && (
-              <div style={{fontSize:11,color:C.muted,marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-                <span style={{color:C.accent,fontWeight:700}}>День {userGlobalDay}</span>
-                <span style={{margin:"0 6px",color:C.dim}}>·</span>
-                Неделя {currentWeekNum} — {currentWeekData.theme}
-              </div>
-            )}
-          </div>
-          <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
-            <div style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.orange}}>🔥{profile.streak}</div><div style={{fontSize:10,color:C.muted}}>{t("header.streak")}</div></div>
-            {onSignOut&&<button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:10,padding:"5px 10px",color:C.muted,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{t("header.signout")}</button>}
-          </div>
+    <div style={{minHeight:"100vh",background:C.bg,paddingBottom:96,fontFamily:F.sans}}>
+      {/* Header */}
+      <div style={{background:C.bg,padding:"56px 22px 14px",display:"flex",alignItems:"center",gap:12}}>
+        {onBack&&<button onClick={onBack} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:18,padding:0,marginRight:2}}>←</button>}
+        <div style={{width:38,height:38,borderRadius:10,background:C.accentDim,color:C.accent,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><Avatar value={profile.avatar} size={22} /></div>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:11,color:C.muted,letterSpacing:"0.02em"}}>{t("header.welcome")}</div>
+          <div style={{fontFamily:F.serif,fontWeight:500,fontSize:18,letterSpacing:"-0.015em",lineHeight:1.1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{profile.name}</div>
         </div>
-
-        {/* Date + program-progress (same surface block as the header above) */}
-        {!isDay0 && (
-          <div style={{marginTop:14}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-              <div style={{fontSize:12,color:C.muted,textTransform:"capitalize"}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"})}</div>
-              <div style={{fontSize:10,color:C.muted}}>{userGlobalDay} / 112</div>
-            </div>
-            <div style={{height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${Math.min(100,(userGlobalDay/112)*100)}%`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
-            </div>
-          </div>
-        )}
+        <div style={{display:"flex",alignItems:"center",gap:6,fontFamily:F.mono,fontSize:12,fontWeight:500,color:C.text,padding:"6px 12px",border:`1px solid ${C.dim}`,borderRadius:999,letterSpacing:"0.02em"}}>
+          <Icon name="flame" size={13} />
+          {profile.streak}<span style={{color:C.muted,fontWeight:500,marginLeft:2}}>· серия</span>
+        </div>
+        {onSignOut&&<button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:10,padding:"6px 10px",color:C.muted,cursor:"pointer",fontSize:11,fontFamily:F.sans}}>{t("header.signout")}</button>}
       </div>
 
 
       {/* ── TODAY ── */}
       {tab==="today"&&(
-        <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
+        <div style={{animation:"slideUp 0.28s both"}}>
 
-          {/* ── ОТЧЁТЫ ── morning + evening log buttons in their own card ── */}
-          {!isDay0 && (
-            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 16px",marginBottom:14}}>
-              <div style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",marginBottom:10}}>Отчёты</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                <button onClick={()=>setShowMorningLog(true)} style={{
-                  background: todayLog?.weight ? C.accentDim : C.accent,
-                  color: todayLog?.weight ? C.accent : C.bg,
-                  border: todayLog?.weight ? `1.5px solid ${C.accent}55` : "none",
-                  borderRadius:14, padding:"14px 12px",
-                  fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
-                  cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-                }}>
-                  <span style={{fontSize:18}}>⚖️</span>
-                  <span>Утренний</span>
-                  {todayLog?.weight && <span style={{fontWeight:800}}>✓</span>}
-                </button>
-                <button onClick={()=>setShowEveningLog(true)} style={{
-                  background: todayLog?.calories ? C.blueDim : C.blue,
-                  color: todayLog?.calories ? C.blue : C.bg,
-                  border: todayLog?.calories ? `1.5px solid ${C.blue}55` : "none",
-                  borderRadius:14, padding:"14px 12px",
-                  fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
-                  cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-                }}>
-                  <span style={{fontSize:18}}>🌙</span>
-                  <span>Вечерний</span>
-                  {todayLog?.calories && <span style={{fontWeight:800}}>✓</span>}
-                </button>
+          {/* Day strap — large serif day number on a hairline */}
+          <section style={{padding:"4px 22px 22px",borderBottom:`1px solid ${C.border}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+              <div style={{fontFamily:F.serif,fontSize:60,fontWeight:400,letterSpacing:"-0.035em",lineHeight:0.95,color:C.text}}>
+                {userGlobalDay} <span style={{color:C.muted,fontSize:20,fontWeight:400}}>/ 112</span>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontSize:11,color:C.text,fontWeight:600,letterSpacing:"0.06em",textTransform:"uppercase"}}>Неделя {currentWeekNum}</div>
+                <div style={{fontSize:10,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:4}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"})}</div>
               </div>
             </div>
-          )}
+            <div style={{height:1,background:C.dim,position:"relative",marginTop:22}}>
+              <div style={{position:"absolute",left:0,top:0,height:1,background:C.text,width:`${dayProgressPct}%`,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
+              <div style={{position:"absolute",left:`${dayProgressPct}%`,top:-3,width:7,height:7,borderRadius:"50%",background:C.text,transform:"translateX(-50%)"}}/>
+            </div>
+            <div style={{fontSize:11,color:C.muted,marginTop:12,letterSpacing:"0.02em"}}>{currentWeekData.theme}</div>
+          </section>
 
+          {/* Log buttons */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,padding:"18px 22px 0"}}>
+            <button onClick={()=>setShowMorningLog(true)} style={{background:todayLog?.weight?C.accentDim:C.surface,border:`1px solid ${todayLog?.weight?C.accent:C.border}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",textAlign:"left",fontFamily:F.sans,color:todayLog?.weight?C.accent:C.text}}>
+              <Icon name={todayLog?.weight?"check":"sun"} size={22} strokeWidth={todayLog?.weight?1.75:1.5} />
+              <div style={{flex:1}}>
+                <div style={{fontSize:10,color:todayLog?.weight?C.accent:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>Утро{todayLog?.weight?" · готово":""}</div>
+                <div style={{fontFamily:F.mono,fontSize:13,fontWeight:500,color:todayLog?.weight?C.accent:C.text,marginTop:3}}>{todayLog?.weight?`${todayLog.weight} кг`:"Записать →"}</div>
+              </div>
+            </button>
+            <button onClick={()=>setShowEveningLog(true)} style={{background:todayLog?.calories?C.accentDim:C.surface,border:`1px solid ${todayLog?.calories?C.accent:C.border}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",textAlign:"left",fontFamily:F.sans,color:todayLog?.calories?C.accent:C.text}}>
+              <Icon name={todayLog?.calories?"check":"moon"} size={22} strokeWidth={todayLog?.calories?1.75:1.5} />
+              <div style={{flex:1}}>
+                <div style={{fontSize:10,color:todayLog?.calories?C.accent:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>Вечер{todayLog?.calories?" · готово":""}</div>
+                <div style={{fontFamily:F.mono,fontSize:13,fontWeight:500,color:todayLog?.calories?C.accent:C.text,marginTop:3}}>{todayLog?.calories?`${todayLog.calories} ккал`:"Записать →"}</div>
+              </div>
+            </button>
+          </div>
+
+          <div style={{padding:"24px 22px 0"}}>
           {/* ── DAY 0 FULL TAKEOVER ── */}
           {isDay0 ? (
             <div style={{animation:"fadeIn 0.3s both"}}>
@@ -151,8 +138,8 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
               {/* Setup checklist — carried from Day 0 screen */}
               <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,marginBottom:14,overflow:"hidden"}}>
                 <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{fontSize:13,fontWeight:700}}>Настройка</div>
-                  <div style={{fontSize:11,color:C.accent,fontWeight:700}}>
+                  <div style={{fontSize:13,fontWeight:500}}>Настройка</div>
+                  <div style={{fontSize:11,color:C.accent,fontWeight:500}}>
                     {[
                       true, // profile always done
                       "Notification" in window && Notification.permission==="granted",
@@ -177,11 +164,11 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
 
               {/* Day 0 single task */}
               <div style={{background:C.blueDim,border:`1.5px solid ${C.blue}44`,borderRadius:18,padding:"16px 18px",marginBottom:14}}>
-                <div style={{fontSize:11,color:C.blue,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:12}}>Задача дня 0</div>
+                <div style={{fontSize:11,color:C.blue,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:12}}>Задача дня 0</div>
                 <div style={{display:"flex",gap:14,alignItems:"center"}}>
                   <div style={{width:48,height:48,borderRadius:15,background:`${C.blue}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🍽️</div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:700,marginBottom:4}}>Запиши первый приём пищи</div>
+                    <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>Запиши первый приём пищи</div>
                     <div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>Даже один перекус считается. Нажми «+ Записать день» выше и добавь калории.</div>
                   </div>
                   {todayLog&&<div style={{fontSize:20,flexShrink:0}}>✅</div>}
@@ -193,12 +180,12 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                 <div style={{padding:"12px 14px",borderBottom:`1px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
                     <div style={{width:28,height:28,borderRadius:8,background:C.accentDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🏋️</div>
-                    <div><div style={{fontSize:12,fontWeight:700}}>Персональный тренер</div><div style={{fontSize:10,color:C.accent}}>ИИ · отвечает мгновенно</div></div>
+                    <div><div style={{fontSize:12,fontWeight:500}}>Персональный тренер</div><div style={{fontSize:10,color:C.accent}}>ИИ · отвечает мгновенно</div></div>
                   </div>
-                  <button onClick={()=>setShowChat(true)} style={{fontSize:11,color:C.accent,background:C.accentDim,border:"none",borderRadius:14,padding:"4px 10px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Открыть →</button>
+                  <button onClick={()=>setShowChat(true)} style={{fontSize:11,color:C.accent,background:C.accentDim,border:"none",borderRadius:14,padding:"4px 10px",cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",fontWeight:500}}>Открыть →</button>
                 </div>
                 <div style={{padding:"10px 12px",display:"flex",gap:8,alignItems:"center"}}>
-                  <input placeholder="Спроси тренера…" onFocus={()=>setShowChat(true)} readOnly style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"8px 12px",color:C.muted,fontSize:13,fontFamily:"'DM Sans',sans-serif",outline:"none",cursor:"pointer"}}/>
+                  <input placeholder="Спроси тренера…" onFocus={()=>setShowChat(true)} readOnly style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:12,padding:"8px 12px",color:C.muted,fontSize:13,fontFamily:"'Inter',system-ui,sans-serif",outline:"none",cursor:"pointer"}}/>
                   <div style={{width:34,height:34,borderRadius:"50%",background:C.dim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:C.bg,flexShrink:0}}>↑</div>
                 </div>
               </div>
@@ -206,7 +193,7 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
               {/* Tomorrow preview */}
               <div style={{background:C.card,border:`1.5px solid ${C.accent}44`,borderRadius:18,overflow:"hidden"}}>
                 <div style={{padding:"12px 18px",borderBottom:`1px solid ${C.border}`}}>
-                  <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Завтра — День 1</div>
+                  <div style={{fontSize:11,color:C.accent,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Завтра — День 1</div>
                   <div style={{fontSize:12,color:C.muted}}>Вот что тебя ждёт</div>
                 </div>
                 {[
@@ -216,7 +203,7 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                 ].map((item,i,arr)=>(
                   <div key={item.time} style={{display:"flex",gap:14,padding:"12px 18px",borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none",alignItems:"center"}}>
                     <div style={{width:38,textAlign:"center",flexShrink:0}}>
-                      <div style={{fontSize:10,color:item.col,fontWeight:700,marginBottom:5}}>{item.time}</div>
+                      <div style={{fontSize:10,color:item.col,fontWeight:500,marginBottom:5}}>{item.time}</div>
                       <div style={{width:34,height:34,borderRadius:10,background:`${item.col}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,margin:"0 auto"}}>{item.icon}</div>
                     </div>
                     <div>
@@ -232,250 +219,438 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
             /* ── NORMAL DAY 1+ CONTENT ── */
             <>
 
-              {/* ── MISSION STRIP ── one-line week view; tap a circle opens that day's detail modal ── */}
-              {todayDayData && (
-                <MissionStrip
-                  profile={profile}
-                  userGlobalDay={userGlobalDay}
-                  currentWeekNum={currentWeekNum}
-                  currentWeekData={currentWeekData}
-                  onDaySelected={(weekData, dayData) => setSelectedDay({weekData, day: dayData})}
-                />
-              )}
+              {/* ── HABIT TRACKER GRID ── */}
+              {(()=>{
+                const habits = [
+                  {id:"weight",  label:"Вес",     unlocksWeek:1, check:(log)=>log?.weight>0},
+                  {id:"meals",   label:"Питание", unlocksWeek:1, check:(log)=>log?.calories>0},
+                  {id:"steps",   label:"Шаги",    unlocksWeek:2, check:(log)=>log?.steps>0},
+                  {id:"protein", label:"Белок",   unlocksWeek:3, check:(log)=>log?.protein>0},
+                ].filter(h=>currentWeekNum>=h.unlocksWeek);
 
-              {/* ── TODAY'S TASK CAROUSEL ── separate from the mission strip ── */}
-              {todayDayData && (
-                <DailyTaskCarousel
-                  todayDayData={todayDayData}
-                  currentWeekData={currentWeekData}
-                  profile={profile}
-                  onOpenDetails={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})}
-                />
-              )}
+                const weekStartGlobalDay = (currentWeekNum-1)*7+1;
+                const weekDays = Array.from({length:7},(_,i)=>{
+                  const gd = weekStartGlobalDay+i;
+                  const date = new Date(profile.joinedAt);
+                  date.setDate(date.getDate()+gd);
+                  const dateStr = date.toISOString().split("T")[0];
+                  const log = profile.logs.find(l=>l.date===dateStr);
+                  return {gd,dateStr,log,isToday:gd===userGlobalDay,isPast:gd<userGlobalDay,isFuture:gd>userGlobalDay,dayNum:i+1};
+                });
 
-              {/* ── MEASUREMENT REMINDER ── persistent until logged ── */}
+                const dayLabels=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+                const todayDoneCount = habits.filter(h=>h.check(weekDays.find(d=>d.isToday)?.log)).length;
+
+                return (
+                  <>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",margin:"4px 0 12px"}}>
+                      <div style={{fontSize:10,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.12em"}}>Привычки недели</div>
+                      <div style={{fontFamily:F.mono,fontSize:11,color:C.text,fontWeight:500}}>{todayDoneCount} / {habits.length}</div>
+                    </div>
+                    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px 16px",marginBottom:22,overflowX:"auto"}}>
+                      <table style={{width:"100%",borderCollapse:"collapse"}}>
+                        <thead>
+                          <tr>
+                            <td style={{width:72,paddingBottom:10}}/>
+                            {weekDays.map(d=>(
+                              <td key={d.gd} style={{textAlign:"center",paddingBottom:10,width:32}}>
+                                <div style={{fontSize:10,color:d.isToday?C.accent:C.muted,fontWeight:d.isToday?700:500,letterSpacing:"0.02em"}}>{dayLabels[d.dayNum-1]}</div>
+                              </td>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {habits.map((habit)=>(
+                            <tr key={habit.id}>
+                              <td style={{padding:"6px 0",fontSize:13,color:C.text,whiteSpace:"nowrap",fontWeight:500}}>{habit.label}</td>
+                              {weekDays.map(d=>{
+                                const done = habit.check(d.log);
+                                const missed = d.isPast && !done;
+                                return (
+                                  <td key={d.gd} style={{textAlign:"center",padding:"6px 2px"}}>
+                                    <div style={{
+                                      width:28,height:28,borderRadius:6,margin:"0 auto",
+                                      background:done?(d.isToday?C.accent:C.text):"transparent",
+                                      border:done?"1px solid "+(d.isToday?C.accent:C.text):missed?`1px dashed ${C.dim}`:`1px solid ${C.dim}`,
+                                      display:"flex",alignItems:"center",justifyContent:"center",
+                                      fontSize:12,color:done?C.bg:"transparent",fontWeight:500,
+                                      opacity:d.isFuture?0.45:1,
+                                    }}>{done?"✓":""}</div>
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* ── MEASUREMENT BANNER ── persistent until logged ── */}
               {missedMeasurement && (
-                <div style={{background:`${C.purple}14`,border:`1.5px solid ${C.purple}44`,borderRadius:18,padding:"14px 16px",marginBottom:14}}>
-                  <div style={{fontSize:11,color:C.purple,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>
-                    📏 {missedMeasurement.daysSince === 0
-                      ? `День замеров — Неделя ${missedMeasurement.weekNum}`
-                      : `Замеры за неделю ${missedMeasurement.weekNum} — пропущены ${missedMeasurement.daysSince} ${missedMeasurement.daysSince === 1 ? "день" : missedMeasurement.daysSince < 5 ? "дня" : "дней"} назад`}
+                <div style={{background:C.accentDim,border:`1px solid ${C.accent}`,borderRadius:14,padding:"14px 16px",marginBottom:18}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,fontSize:10,color:C.accent,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:8}}>
+                    <Icon name="ruler" size={13}/>
+                    {missedMeasurement.daysSince === 0
+                      ? `День замеров · Неделя ${missedMeasurement.weekNum}`
+                      : `Замеры за неделю ${missedMeasurement.weekNum} · просрочено ${missedMeasurement.daysSince} ${missedMeasurement.daysSince === 1 ? "день" : missedMeasurement.daysSince < 5 ? "дня" : "дней"}`}
                   </div>
-                  <div style={{fontSize:13,color:C.muted,lineHeight:1.65,marginBottom:12}}>
+                  <div style={{fontSize:13,color:C.text,lineHeight:1.6,marginBottom:12}}>
                     {missedMeasurement.daysSince === 0
                       ? "Раз в 7 дней замеряем тело — так мы рассчитываем % жира по методу ВМС США. Нужна сантиметровая лента."
-                      : "Внеси замеры сегодня, чтобы пересчитать % жира и не сбить тренд. Нужна сантиметровая лента."}
-                    {profile.gender==="male"
-                      ? " Замеряй: талию и шею."
-                      : " Замеряй: талию, бёдра и шею."}
+                      : "Внеси замеры сегодня, чтобы пересчитать % жира и не сбить тренд."}
+                    {profile.gender==="male" ? " Замеряй талию и шею." : " Замеряй талию, бёдра и шею."}
                   </div>
-                  <button onClick={()=>setShowMorningLog(true)} style={{background:C.purple,color:"#fff",border:"none",borderRadius:14,padding:"10px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>Внести замеры →</button>
+                  <button onClick={()=>setShowMorningLog(true)} style={{background:C.accent,color:C.bg,border:"none",borderRadius:999,padding:"9px 18px",fontSize:12,fontWeight:500,fontFamily:F.sans,cursor:"pointer",letterSpacing:"0.02em"}}>
+                    Внести замеры →
+                  </button>
                 </div>
               )}
 
               {/* ── INLINE CHAT BAR ── */}
               <InlineChatBar profile={profile} onOpen={()=>setShowChat(true)}/>
 
+              {/* Today's task card */}
+              {todayDayData && (
+                <>
+                  <div style={{fontSize:10,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.12em",margin:"6px 0 12px"}}>Задание дня</div>
+                  <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"22px",marginBottom:22}}>
+                    <div style={{fontSize:10,color:C.accent,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase"}}>{taskTypeLabel} · день {todayDayData.day}</div>
+                    <h2 style={{fontFamily:F.serif,fontSize:26,fontWeight:400,letterSpacing:"-0.015em",lineHeight:1.18,marginTop:12,color:C.text}}>{todayDayData.title}</h2>
+                    <p style={{fontSize:14,color:C.muted,lineHeight:1.7,marginTop:12}}>{todayDayData.task}</p>
+
+                    {/* Extended info blocks — collapsible details */}
+                    {todayDayData.info&&(
+                      <div style={{marginTop:18,paddingTop:14,borderTop:`1px solid ${C.border}`,display:"flex",flexDirection:"column",gap:6}}>
+                        {todayDayData.info.why&&(
+                          <details style={{padding:"6px 0",borderBottom:`1px solid ${C.border}`}}>
+                            <summary style={{cursor:"pointer",fontSize:11,color:C.accent,fontWeight:500,letterSpacing:"0.1em",textTransform:"uppercase",listStyle:"none"}}>Почему это важно →</summary>
+                            <div style={{fontSize:13,color:C.muted,lineHeight:1.75,marginTop:10,whiteSpace:"pre-line"}}>{todayDayData.info.why}</div>
+                          </details>
+                        )}
+                        {todayDayData.info.howTo&&(
+                          <details style={{padding:"6px 0",borderBottom:todayDayData.info.weekTarget?`1px solid ${C.border}`:"none"}}>
+                            <summary style={{cursor:"pointer",fontSize:11,color:C.accent,fontWeight:500,letterSpacing:"0.1em",textTransform:"uppercase",listStyle:"none"}}>Как это делать →</summary>
+                            <div style={{fontSize:13,color:C.muted,lineHeight:1.75,marginTop:10,whiteSpace:"pre-line"}}>{todayDayData.info.howTo}</div>
+                          </details>
+                        )}
+                        {todayDayData.info.weekTarget&&(
+                          <div style={{padding:"10px 0",fontSize:13,color:C.muted,lineHeight:1.65,whiteSpace:"pre-line"}}>
+                            <span style={{color:C.accent,fontWeight:500}}>Цель · </span>{todayDayData.info.weekTarget}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Weekly stats — Day 8 */}
+                    {todayDayData.isWeeklyStats&&profile.logs.length>0&&(()=>{
+                      const w7=profile.logs.slice(-7);
+                      const avgCal=w7.length?Math.round(w7.reduce((s,l)=>s+(l.calories||0),0)/w7.length):0;
+                      const avgProt=w7.length?Math.round(w7.reduce((s,l)=>s+(l.protein||0),0)/w7.length):0;
+                      const avgSteps=w7.length?Math.round(w7.reduce((s,l)=>s+(l.steps||0),0)/w7.length):0;
+                      const avgWeight=w7.length?+(w7.reduce((s,l)=>s+(l.weight||0),0)/w7.length).toFixed(1):profile.weight;
+                      const tdee=profile.tdee||2000; const protTarget=profile.dailyTargets?.protein||150; const calDiff=avgCal-tdee;
+                      return(<div style={{marginTop:16,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
+                        <div style={{fontSize:10,color:C.muted,fontWeight:500,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:12}}>Статистика за неделю</div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>{[{label:"Ср. вес",val:`${avgWeight}`,unit:"кг"},{label:"Ср. калории",val:`${avgCal}`,unit:"ккал"},{label:"Ср. белок",val:`${avgProt}`,unit:"г"},{label:"Ср. шаги",val:avgSteps.toLocaleString(),unit:""}].map(s=>(<div key={s.label}><div style={{fontSize:10,color:C.muted,letterSpacing:"0.04em"}}>{s.label}</div><div style={{fontFamily:F.serif,fontSize:22,fontWeight:400,color:C.text,letterSpacing:"-0.02em",marginTop:4}}>{s.val} <span style={{fontSize:11,color:C.muted,fontFamily:F.sans}}>{s.unit}</span></div></div>))}</div>
+                        <div style={{display:"flex",flexDirection:"column",gap:8,fontFamily:F.sans}}>
+                          {avgCal>0&&<div style={{fontSize:12,color:C.muted,lineHeight:1.6}}><b style={{color:C.text,fontWeight:600}}>{avgCal} ккал/день.</b> {calDiff>300?"Выше нормы — попробуй уменьшить порции.":calDiff<-500?"Ниже нормы — не голодай.":"Отлично — близко к норме."}</div>}
+                          {avgProt>0&&<div style={{fontSize:12,color:C.muted,lineHeight:1.6}}><b style={{color:C.text,fontWeight:600}}>{avgProt} г белка/день</b> из {protTarget} г. {avgProt<protTarget*0.7?"Добавь белок к каждому приёму пищи.":avgProt<protTarget*0.9?"Почти у цели.":"Отлично."}</div>}
+                          {avgSteps>0&&<div style={{fontSize:12,color:C.muted,lineHeight:1.6}}><b style={{color:C.text,fontWeight:600}}>{avgSteps.toLocaleString()} шагов/день.</b> {avgSteps<5000?"Добавь прогулку после обеда.":avgSteps<8000?"Цель — 8 000 шагов.":"Отличная активность."}</div>}
+                        </div>
+                      </div>);
+                    })()}
+
+                    <div style={{marginTop:18,paddingTop:14,borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{fontSize:12,color:C.muted,fontStyle:"italic",lineHeight:1.5,paddingRight:12,flex:1}}>
+                        <span style={{color:C.text,fontStyle:"normal",fontWeight:600}}>{todayDayData.tip.cat}.</span> {todayDayData.tip.text}
+                      </div>
+                      <button onClick={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})} style={{fontSize:11,color:C.accent,background:"none",border:"none",cursor:"pointer",fontFamily:F.sans,fontWeight:500,letterSpacing:"0.08em",textTransform:"uppercase",flexShrink:0}}>Детали →</button>
+                    </div>
+                  </div>
+                </>
+              )}
+
               {/* Weight + BFP */}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
-                <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"16px"}}>
-                  <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.weight")}</div>
-                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,lineHeight:1}}>{currentWeight}</div>
-                  <div style={{fontSize:11,color:C.muted,marginTop:2}}>кг</div>
-                  <div style={{fontSize:12,marginTop:8,color:weightDiff<=0?C.accent:C.orange,fontWeight:600}}>{weightDiff>0?"+":""}{weightDiff} кг с начала</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
+                <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}>
+                  <div style={{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>{t("today.weight")}</div>
+                  <div style={{fontFamily:F.serif,fontSize:40,fontWeight:400,lineHeight:1,letterSpacing:"-0.025em",marginTop:10,color:C.text}}>{currentWeight}</div>
+                  <div style={{fontSize:12,color:C.muted,marginTop:4}}>кг</div>
+                  <div style={{fontFamily:F.mono,fontSize:11,marginTop:12,color:C.accent,fontWeight:500,letterSpacing:"0.02em"}}>{weightDiff>0?"+":"−"}{Math.abs(weightDiff)} кг с начала</div>
                 </div>
-                <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:20,padding:"16px"}}>
-                  <div style={{fontSize:11,color:C.muted,marginBottom:5}}>{t("today.bodyfat")}</div>
-                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,lineHeight:1,color:C.purple}}>{currentBFP}</div>
-                  <div style={{fontSize:11,color:C.muted,marginTop:2}}>%</div>
-                  <div style={{fontSize:11,color:C.muted,marginTop:8}}>{t("today.navy")}</div>
+                <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px"}}>
+                  <div style={{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>{t("today.bodyfat")}</div>
+                  <div style={{fontFamily:F.serif,fontSize:40,fontWeight:400,lineHeight:1,letterSpacing:"-0.025em",marginTop:10,color:C.text}}>{currentBFP}</div>
+                  <div style={{fontSize:12,color:C.muted,marginTop:4}}>метод ВМС США</div>
                 </div>
               </div>
 
               {/* Weight trend */}
-              {profile.logs.length>1&&<div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"14px 16px",marginBottom:14}}><div style={{fontSize:12,color:C.muted,marginBottom:10}}>{t("today.trend")}</div><WeightChart logs={profile.logs} compact/></div>}
+              {profile.logs.length>1&&<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:14}}><div style={{fontSize:10,color:C.muted,marginBottom:10,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>{t("today.trend")}</div><WeightChart logs={profile.logs} compact/></div>}
 
               {/* Metrics */}
               {(todayLog||nutritionSource)?(
-                <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:22,padding:"18px 20px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><div style={{fontWeight:700}}>{t("today.metrics")}</div>{nutritionSource?.fromFatSecret&&<span style={{fontSize:11,color:C.accent,background:C.accentDim,padding:"3px 10px",borderRadius:20,fontWeight:700}}>⚡ FatSecret</span>}</div>
-                  <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="ккал" color={C.orange} icon="🔥"/>
-                  <MetricBar label={t("metric.protein")} value={nutritionSource?.protein||0} target={profile.dailyTargets?.protein||150} unit="г" color={C.purple} icon="🥩"/>
-                  <MetricBar label={t("metric.steps")} value={todayLog?.steps||0} target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.accent} icon="👟"/>
-                </div>
+                <>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",margin:"8px 0 12px"}}>
+                    <div style={{fontSize:10,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.12em"}}>{t("today.metrics")}</div>
+                    {nutritionSource?.fromFatSecret&&<span style={{fontSize:10,color:C.accent,fontWeight:500,letterSpacing:"0.06em",textTransform:"uppercase"}}>· FatSecret</span>}
+                  </div>
+                  <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"4px 20px",marginBottom:14}}>
+                  <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="ккал" color={C.text} icon=""/>
+                  <MetricBar label={t("metric.protein")} value={nutritionSource?.protein||0} target={profile.dailyTargets?.protein||150} unit="г" color={C.text} icon=""/>
+                  <MetricBar label={t("metric.steps")} value={todayLog?.steps||0} target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.text} icon=""/>
+                  </div>
+                </>
               ):(
-                <div style={{background:C.card,border:`1px dashed ${C.border}`,borderRadius:22,padding:"24px",textAlign:"center"}}><div style={{fontSize:32,marginBottom:8}}>📋</div><div style={{color:C.muted,fontSize:14}}>{t("today.no_log")}</div></div>
+                <div style={{border:`1px dashed ${C.dim}`,borderRadius:14,padding:"28px 24px",textAlign:"center",marginBottom:14}}>
+                  <div style={{fontSize:13,color:C.muted}}>{t("today.no_log")}</div>
+                </div>
               )}
             </>
           )}
+          </div>
         </div>
       )}
 
-      {/* ── PROGRAM — 112 daily cards ── */}
+      {/* ── PROGRAM — mountain-climb timeline ── */}
       {tab==="program"&&(
-        <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:4}}>{t("program.title")}</div>
-          <div style={{fontSize:13,color:C.muted,marginBottom:18}}>{t("program.tap")}</div>
-          {PROGRAM.map(wk=>{
-            const weekUnlocked = wk.week <= profile.currentWeek;
-            const weekActive = wk.week === profile.currentWeek;
-            // Global day number: week 1 day 1 = day 1, week 2 day 1 = day 8, etc.
-            return (
-              <div key={wk.week} style={{marginBottom:8}}>
-                {/* Week header */}
-                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8,marginTop:wk.week>1?16:0}}>
-                  <div style={{width:28,height:28,borderRadius:8,background:`${wk.color}22`,border:`1.5px solid ${wk.color}${weekUnlocked?"88":"33"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:weekUnlocked?wk.color:C.dim,flexShrink:0}}>
-                    {wk.week}
-                  </div>
-                  <div style={{flex:1}}>
-                    <span style={{fontSize:13,fontWeight:700,color:weekUnlocked?C.text:C.dim}}>{t(`week.${wk.week}.theme`)}</span>
-                    {weekActive&&<span style={{marginLeft:8,fontSize:10,color:wk.color,background:`${wk.color}22`,padding:"2px 8px",borderRadius:20,fontWeight:700}}>{t("program.active")}</span>}
-                  </div>
-                  {!weekUnlocked&&<span style={{fontSize:14}}>🔒</span>}
-                </div>
-
-                {/* Day cards */}
-                {wk.days.map(day=>{
-                  const globalDay = (wk.week-1)*7 + day.day;
-                  const userGlobalDay = getUserGlobalDay(profile);
-                  const dayDone = globalDay < userGlobalDay;
-                  const dayActive = globalDay === userGlobalDay && userGlobalDay > 0;
-                  const dayUnlocked = globalDay <= Math.max(1, userGlobalDay) && wk.week <= profile.currentWeek;
-                  const typeColor = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted,active_recovery:C.blue}[day.type]||C.muted;
-                  return (
-                    <div key={day.day}
-                      onClick={()=>dayUnlocked&&setSelectedDay({weekData:wk,day})}
-                      style={{background:dayActive?`${typeColor}14`:dayDone?C.surface:C.card,border:`1px solid ${dayActive?typeColor+"66":dayDone?C.dim:C.border}`,borderRadius:16,padding:"12px 14px",marginBottom:6,opacity:dayUnlocked?1:0.3,cursor:dayUnlocked?"pointer":"default",display:"flex",alignItems:"center",gap:12,transition:"all 0.15s"}}
-                    >
-                      {/* Day number */}
-                      <div style={{width:36,height:36,borderRadius:10,background:dayDone?C.accent+"33":dayActive?`${typeColor}22`:C.dim,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:dayDone?16:13,fontWeight:800,color:dayDone?C.accent:dayActive?typeColor:C.muted}}>
-                        {dayDone?"✓":day.icon}
-                      </div>
-                      {/* Content */}
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                          <div style={{fontSize:13,fontWeight:700,color:dayActive?typeColor:dayDone?C.muted:C.text,flex:1}}>{day.title}</div>
-                        </div>
-                        <div style={{fontSize:11,color:C.muted,marginTop:2,lineHeight:1.5,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{day.task}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
+        <ProgramView
+          profile={profile}
+          onDaySelect={(weekData, day) => setSelectedDay({weekData, day})}
+          onUpgrade={() => setShowUpgrade(true)}
+        />
       )}
 
-      {/* ── ACCOUNT (Progress + Profile combined) ── */}
+      {/* ── ACCOUNT — identity, body, lifestyle, targets, progress, settings ── */}
       {tab==="account"&&(
-        <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
-          <div style={{fontSize:11,fontWeight:700,color:C.muted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>Прогресс</div>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800,marginBottom:18}}>{t("progress.title")}</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-            {[{label:t("progress.start"),val:`${profile.weight} kg`,color:C.muted,icon:"📍"},{label:t("progress.current"),val:`${currentWeight} kg`,color:C.blue,icon:"⚖️"},{label:weightDiff<=0?t("progress.lost"):t("progress.gained"),val:`${Math.abs(weightDiff)} kg`,color:weightDiff<=0?C.accent:C.orange,icon:weightDiff<=0?"📉":"📈"},{label:t("progress.bodyfat"),val:`${currentBFP}%`,color:C.purple,icon:"📊"},{label:t("progress.bmi"),val:String(profile.bmi||calcBMI(currentWeight,profile.height)),color:C.blue,icon:"🩺"}].map(s=>(
-              <div key={s.label} style={{background:C.card,borderRadius:18,padding:"14px 16px",border:`1px solid ${C.border}`}}>
-                <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:5}}><span style={{fontSize:15}}>{s.icon}</span><span style={{fontSize:11,color:C.muted}}>{s.label}</span></div>
-                <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,color:s.color}}>{s.val}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{background:C.card,borderRadius:22,padding:"18px",marginBottom:14,border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:3}}>{t("progress.trend")}</div>
-            <div style={{fontSize:12,color:C.muted,marginBottom:14}}>{t("progress.tracked",{n:profile.logs.length})}</div>
-            <WeightChart logs={profile.logs}/>
-          </div>
-          {weekLogs.length>0&&(
-            <div style={{background:C.card,borderRadius:22,padding:"18px",marginBottom:14,border:`1px solid ${C.border}`}}>
-              <div style={{fontWeight:700,marginBottom:14}}>{t("progress.averages")}</div>
-              <MetricBar label={t("metric.calories")} value={Math.round(weekLogs.reduce((s,l)=>s+(l.calories||0),0)/weekLogs.length)} target={profile.dailyTargets?.calories||2000} unit="kcal" color={C.orange} icon="🔥"/>
-              <MetricBar label={t("metric.protein")} value={Math.round(weekLogs.reduce((s,l)=>s+(l.protein||0),0)/weekLogs.length)} target={profile.dailyTargets?.protein||150} unit="g" color={C.purple} icon="🥩"/>
-              <MetricBar label={t("metric.steps")} value={Math.round(weekLogs.reduce((s,l)=>s+(l.steps||0),0)/weekLogs.length)} target={profile.dailyTargets?.steps||10000} unit={t("unit.steps")} color={C.accent} icon="👟"/>
-            </div>
-          )}
-          {profile.logs.length>0&&(
-            <div style={{background:C.card,borderRadius:22,padding:"18px",border:`1px solid ${C.border}`}}>
-              <div style={{fontWeight:700,marginBottom:14}}>{t("progress.log")}</div>
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-                  <thead><tr>{["Date","⚖️","🔥","🥩","👟"].map(h=><th key={h} style={{textAlign:"right",padding:"5px 7px",color:C.muted,fontWeight:600,fontSize:11}}>{h}</th>)}</tr></thead>
-                  <tbody>{[...profile.logs].reverse().slice(0,14).map(l=>(
-                    <tr key={l.date} style={{borderTop:`1px solid ${C.dim}`}}>
-                      <td style={{padding:"7px 7px",color:C.muted,whiteSpace:"nowrap"}}>{fmtDate(l.date)}</td>
-                      <td style={{padding:"7px 7px",textAlign:"right",fontWeight:600,color:C.blue}}>{l.weight}</td>
-                      <td style={{padding:"7px 7px",textAlign:"right",color:C.orange}}>{l.calories}</td>
-                      <td style={{padding:"7px 7px",textAlign:"right",color:C.purple}}>{l.protein}g</td>
-                      <td style={{padding:"7px 7px",textAlign:"right",color:C.accent}}>{((l.steps||0)/1000).toFixed(1)}k</td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        <div style={{padding:"18px",animation:"slideUp 0.28s both",fontFamily:F.sans}}>
 
-      {tab==="account"&&(
-        <div style={{padding:"18px",paddingTop:4,animation:"slideUp 0.28s both"}}>
-          <div style={{fontWeight:800,marginBottom:14,color:C.muted,textTransform:"uppercase",letterSpacing:0.8,fontSize:11}}>Профиль</div>
-          <div style={{textAlign:"center",marginBottom:22}}>
-            <div style={{width:76,height:76,borderRadius:"50%",fontSize:36,background:C.accentDim,border:`3px solid ${C.accent}55`,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>{profile.avatar}</div>
-            <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800}}>{profile.name}</div>
-            <div style={{color:C.muted,fontSize:13,marginTop:3,textTransform:"capitalize"}}>{(profile.goal||"").replace("_"," ")} · Week {profile.currentWeek} — {currentWeekData.theme}</div>
-            <div style={{display:"flex",justifyContent:"center",gap:10,marginTop:10}}>
-              <span style={{fontSize:12,color:C.orange,background:C.orangeDim,padding:"4px 12px",borderRadius:20,fontWeight:700}}>🔥 {profile.streak} дней подряд</span>
+          {/* Identity hero */}
+          <div style={{textAlign:"center",marginBottom:26,paddingTop:6}}>
+            <button onClick={()=>setShowAvatarPicker(true)} title="Сменить аватар" style={{
+              width:76,height:76,borderRadius:"50%",background:C.accentDim,color:C.accent,
+              border:`1.5px solid ${C.accent}`,display:"flex",alignItems:"center",justifyContent:"center",
+              margin:"0 auto 12px",cursor:"pointer",padding:0,fontFamily:F.sans,transition:"transform 0.15s",
+            }} onMouseEnter={e=>e.currentTarget.style.transform="scale(1.04)"} onMouseLeave={e=>e.currentTarget.style.transform="none"}>
+              <Avatar value={profile.avatar} size={42} strokeWidth={1.5}/>
+            </button>
+            <div style={{fontFamily:F.serif,fontSize:24,fontWeight:500,letterSpacing:"-0.015em",lineHeight:1.2}}>
+              {profile.name}
+            </div>
+            <div style={{color:C.muted,fontSize:13,marginTop:6}}>
+              {goalLabel(profile.goal)} · Неделя {profile.currentWeek} · {currentWeekData.theme}
+            </div>
+            <div style={{
+              display:"inline-flex",alignItems:"center",gap:6,marginTop:14,padding:"6px 12px",
+              background:C.accentDim,borderRadius:999,color:C.accent,
+              fontFamily:F.mono,fontSize:12,fontWeight:600,letterSpacing:"0.02em",
+            }}>
+              <Icon name="flame" size={13}/>
+              <span>{profile.streak}</span>
+              <span style={{color:C.muted,fontWeight:500,marginLeft:2}}>· серия</span>
             </div>
           </div>
-          <div style={{background:C.card,borderRadius:20,padding:"16px 18px",marginBottom:12,border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:12}}>{t("profile.body_stats")}</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-              {[["Age",`${profile.age}y`],["Height",`${profile.height}cm`],["Weight",`${profile.weight}kg`],["BMI",profile.bmi||"—"],["Body Fat",profile.bfp?`${profile.bfp}%`:"—"]].map(([k,v])=>(
-                <div key={k} style={{background:C.surface,borderRadius:12,padding:"10px 9px",textAlign:"center"}}>
-                  <div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800}}>{v}</div>
-                  <div style={{fontSize:10,color:C.muted,marginTop:2}}>{k}</div>
+
+          {/* Subscription */}
+          <SectionTitle title="Подписка"/>
+          <div style={{
+            background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,
+            padding:"16px 18px",marginBottom:26,display:"flex",alignItems:"center",gap:14,
+          }}>
+            <div style={{
+              width:42,height:42,borderRadius:12,
+              background:profile.is_subscribed?C.accentDim:"transparent",
+              color:profile.is_subscribed?C.accent:C.muted,
+              border:profile.is_subscribed?"none":`1px solid ${C.border}`,
+              display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,
+            }}>
+              <Icon name={profile.is_subscribed?"check":"lock"} size={20} strokeWidth={profile.is_subscribed?2:1.5}/>
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{
+                fontSize:10,color:profile.is_subscribed?C.accent:C.muted,
+                letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:600,
+              }}>{profile.is_subscribed?"Премиум":"Бесплатно"}</div>
+              <div style={{fontSize:14,fontWeight:500,marginTop:2,color:C.text,lineHeight:1.4}}>
+                {profile.is_subscribed
+                  ? "Все недели открыты"
+                  : (userGlobalDay<=14
+                    ? `Осталось ${Math.max(0,15-userGlobalDay)} ${plural(15-userGlobalDay,"день","дня","дней")}`
+                    : "Пробный период закончился")}
+              </div>
+            </div>
+            <button onClick={()=>profile.is_subscribed?null:setShowUpgrade(true)} disabled={profile.is_subscribed} style={{
+              background:profile.is_subscribed?"transparent":C.text,
+              color:profile.is_subscribed?C.muted:C.bg,
+              border:profile.is_subscribed?`1px solid ${C.border}`:"none",
+              borderRadius:999,padding:"8px 14px",
+              fontSize:12,fontWeight:500,fontFamily:F.sans,
+              cursor:profile.is_subscribed?"default":"pointer",
+              whiteSpace:"nowrap",flexShrink:0,letterSpacing:"0.01em",
+            }}>
+              {profile.is_subscribed?"Активна":"Открыть →"}
+            </button>
+          </div>
+
+          {/* Body */}
+          <SectionTitle title="Тело" action="Обновить" onAction={()=>setShowLog(true)}/>
+          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"18px 20px",marginBottom:26}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18}}>
+              {[
+                {l:"Возраст",v:profile.age,u:"лет"},
+                {l:"Рост",v:profile.height,u:"см"},
+                {l:"Стартовый вес",v:profile.weight,u:"кг"},
+                {l:"Текущий вес",v:currentWeight,u:"кг"},
+                {l:"ИМТ",v:profile.bmi||calcBMI(currentWeight,profile.height)||"—",u:""},
+                {l:"% жира",v:profile.bfp||"—",u:profile.bfp?"%":""},
+              ].map(s=>(
+                <div key={s.l}>
+                  <div style={{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.08em",fontWeight:500}}>{s.l}</div>
+                  <div style={{
+                    fontFamily:F.serif,fontSize:22,fontWeight:500,marginTop:4,
+                    color:C.text,letterSpacing:"-0.02em",lineHeight:1.1,
+                  }}>
+                    {s.v}{s.u && <span style={{fontFamily:F.sans,fontSize:11,color:C.muted,fontWeight:500,marginLeft:4}}>{s.u}</span>}
+                  </div>
                 </div>
               ))}
             </div>
+            {(profile.waist||profile.neck)&&(
+              <div style={{borderTop:`1px solid ${C.border}`,marginTop:18,paddingTop:14}}>
+                <div style={{fontSize:10,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Замеры</div>
+                {[["Талия",profile.waist],["Шея",profile.neck],...(profile.gender==="female"&&profile.thigh?[["Бёдра",profile.thigh]]:[])].filter(([,v])=>v).map(([k,v])=>(
+                  <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",fontSize:13}}>
+                    <span style={{color:C.muted}}>{k}</span>
+                    <span style={{fontFamily:F.mono,fontWeight:500}}>{v} см</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div style={{background:C.card,borderRadius:20,padding:"16px 18px",marginBottom:12,border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:12}}>{t("profile.measurements")}</div>
-            {[["Waist",profile.waist,"cm"],["Neck",profile.neck,"cm"],...(profile.gender==="female"&&profile.thigh?[["Thigh",profile.thigh,"cm"]]:[])].filter(([,v])=>v).map(([k,v,u])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{k}</span><span style={{fontWeight:700,fontSize:13}}>{v} {u}</span></div>
-            ))}
-          </div>
-          <div style={{background:C.card,borderRadius:20,padding:"16px 18px",marginBottom:12,border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:12}}>{t("profile.lifestyle")}</div>
+
+          {/* Lifestyle */}
+          <SectionTitle title="Образ жизни"/>
+          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"4px 20px",marginBottom:26}}>
             {[
-              [t("profile.stress"),["😌","🙂","😐","😤","😰"][(profile.stress||3)-1]+" "+[t("stress.1"),t("stress.2"),t("stress.3"),t("stress.4"),t("stress.5")][(profile.stress||3)-1]],
-              [t("profile.sleep"),["😴","🛌","😑","😟","😵"][(profile.sleep||3)-1]+" "+[t("sleep.1"),t("sleep.2"),t("sleep.3"),t("sleep.4"),t("sleep.5")][(profile.sleep||3)-1]],
-              [t("profile.diet"),["🥗","🍱","🍜","🍔","🍕"][(profile.dietQuality||3)-1]+" "+[t("diet.1"),t("diet.2"),t("diet.3"),t("diet.4"),t("diet.5")][(profile.dietQuality||3)-1]],
-              [t("profile.training"),profile.training==="none"?t("training.display.none"):profile.training==="1_2x_week"?t("training.display.1_2x"):t("training.display.3plus")],
-              ...(profile.trainingExp?[[t("profile.experience"),profile.trainingExp]]:[]),
-              [t("profile.activity"),(profile.activity||"moderate")],
-            ].map(([k,v])=>(
-              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{k}</span><span style={{fontWeight:600,fontSize:13,textTransform:"capitalize"}}>{v}</span></div>
+              ["Стресс",scaleLabel(profile.stress,"stress")],
+              ["Сон",scaleLabel(profile.sleep,"sleep")],
+              ["Питание",scaleLabel(profile.dietQuality,"diet")],
+              ["Тренировки",trainingLabel(profile.training)],
+              ...(profile.trainingExp?[["Опыт",expLabel(profile.trainingExp)]]:[]),
+              ["Активность",activityLabel(profile.activity||"moderate")],
+            ].map(([k,v],i)=>(
+              <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"12px 0",borderTop:i===0?"none":`1px solid ${C.border}`,fontSize:13}}>
+                <span style={{color:C.muted}}>{k}</span>
+                <span style={{fontWeight:500,textAlign:"right",maxWidth:"60%"}}>{v}</span>
+              </div>
             ))}
           </div>
-          {/* Current week mindset */}
-          <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:20,padding:"16px 18px",marginBottom:12}}>
-            <div style={{fontWeight:700,marginBottom:8}}>🧠 {t("profile.mindset",{w:profile.currentWeek})}</div>
-            <div style={{fontSize:14,fontWeight:700,color:C.text,marginBottom:6}}>{currentWeekData.mindset.title}</div>
-            <div style={{fontSize:12,color:C.muted,lineHeight:1.7,fontStyle:"italic",borderLeft:`3px solid ${C.purple}`,paddingLeft:12}}>"{currentWeekData.mindset.quote}"</div>
+
+          {/* Daily targets */}
+          <SectionTitle title="Дневные цели" action="Изменить" onAction={()=>setShowTargetsEdit(true)}/>
+          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"4px 20px",marginBottom:26}}>
+            {[
+              {l:"Калории",v:profile.dailyTargets?.calories||2000,u:"ккал"},
+              {l:"Белок",v:profile.dailyTargets?.protein||150,u:"г"},
+              {l:"Шаги",v:profile.dailyTargets?.steps||10000,u:""},
+            ].map((tgt,i)=>(
+              <div key={tgt.l} style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",padding:"13px 0",borderTop:i===0?"none":`1px solid ${C.border}`,fontSize:13}}>
+                <span style={{color:C.muted}}>{tgt.l}</span>
+                <span style={{fontFamily:F.mono,fontWeight:600,color:C.text}}>
+                  {tgt.v.toLocaleString("ru-RU")} {tgt.u && <span style={{color:C.muted,fontWeight:500}}>{tgt.u}</span>}
+                </span>
+              </div>
+            ))}
           </div>
-          {/* FatSecret connection */}
+
+          {/* Mindset of current week */}
+          <SectionTitle title={`Мышление недели ${profile.currentWeek}`}/>
+          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"18px 20px",marginBottom:26}}>
+            <div style={{fontFamily:F.serif,fontSize:18,fontWeight:500,letterSpacing:"-0.015em",lineHeight:1.3,marginBottom:12,color:C.text}}>
+              {currentWeekData.mindset.title}
+            </div>
+            <div style={{fontSize:13,color:C.muted,lineHeight:1.7,fontStyle:"italic",borderLeft:`2px solid ${C.accent}`,paddingLeft:14}}>
+              «{currentWeekData.mindset.quote}»
+            </div>
+          </div>
+
+          {/* FatSecret */}
+          <SectionTitle title="Питание"/>
           <FatSecretConnect profile={profile} setProfile={setProfile} userId={profile.id}/>
-          <div style={{background:C.card,borderRadius:20,padding:"16px 18px",border:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,marginBottom:12}}>{t("profile.targets")}</div>
-            {[{l:t("profile.calories"),v:`${profile.dailyTargets?.calories||2000} kcал`,c:C.orange},{l:t("profile.protein"),v:`${profile.dailyTargets?.protein||150} г`,c:C.purple},{l:t("profile.steps"),v:(profile.dailyTargets?.steps||10000).toLocaleString(),c:C.accent}].map(tgt=>(
-              <div key={tgt.l} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:`1px solid ${C.border}`}}><span style={{color:C.muted,fontSize:13}}>{tgt.l}</span><span style={{fontWeight:700,color:tgt.c,fontSize:13}}>{tgt.v}</span></div>
-            ))}
+
+          {/* Progress */}
+          <div style={{height:8}}/>
+          <SectionTitle title="Прогресс"/>
+          {profile.logs.length>1&&(
+            <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 20px",marginBottom:12}}>
+              <div style={{fontSize:10,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:500,marginBottom:6}}>Динамика веса</div>
+              <div style={{fontSize:12,color:C.muted,marginBottom:14}}>
+                {profile.logs.length} {plural(profile.logs.length,"запись","записи","записей")}
+              </div>
+              <WeightChart logs={profile.logs}/>
+            </div>
+          )}
+          {weekLogs.length>0&&(
+            <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"4px 20px",marginBottom:12}}>
+              <div style={{fontSize:10,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:500,padding:"14px 0 4px"}}>Средние за неделю</div>
+              <MetricBar label="Калории" value={Math.round(weekLogs.reduce((s,l)=>s+(l.calories||0),0)/weekLogs.length)} target={profile.dailyTargets?.calories||2000} unit="ккал" color={C.text} icon=""/>
+              <MetricBar label="Белок" value={Math.round(weekLogs.reduce((s,l)=>s+(l.protein||0),0)/weekLogs.length)} target={profile.dailyTargets?.protein||150} unit="г" color={C.text} icon=""/>
+              <MetricBar label="Шаги" value={Math.round(weekLogs.reduce((s,l)=>s+(l.steps||0),0)/weekLogs.length)} target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.text} icon=""/>
+            </div>
+          )}
+          {profile.logs.length>0&&(
+            <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"18px 20px",marginBottom:26,overflowX:"auto"}}>
+              <div style={{fontSize:10,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:500,marginBottom:14}}>Журнал · 14 дней</div>
+              <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                <thead><tr>
+                  <th style={{textAlign:"left",padding:"6px 0",color:C.muted,fontWeight:500,fontSize:10,letterSpacing:"0.06em",textTransform:"uppercase",fontFamily:F.sans}}>Дата</th>
+                  <th style={{textAlign:"right",padding:"6px 6px",color:C.muted,fontWeight:500,fontSize:10,letterSpacing:"0.04em",textTransform:"uppercase",fontFamily:F.sans}}>Вес</th>
+                  <th style={{textAlign:"right",padding:"6px 6px",color:C.muted,fontWeight:500,fontSize:10,letterSpacing:"0.04em",textTransform:"uppercase",fontFamily:F.sans}}>Ккал</th>
+                  <th style={{textAlign:"right",padding:"6px 6px",color:C.muted,fontWeight:500,fontSize:10,letterSpacing:"0.04em",textTransform:"uppercase",fontFamily:F.sans}}>Белок</th>
+                  <th style={{textAlign:"right",padding:"6px 0",color:C.muted,fontWeight:500,fontSize:10,letterSpacing:"0.04em",textTransform:"uppercase",fontFamily:F.sans}}>Шаги</th>
+                </tr></thead>
+                <tbody>{[...profile.logs].reverse().slice(0,14).map(l=>(
+                  <tr key={l.date} style={{borderTop:`1px solid ${C.border}`}}>
+                    <td style={{padding:"9px 0",color:C.muted,whiteSpace:"nowrap",fontFamily:F.sans}}>{fmtDate(l.date)}</td>
+                    <td style={{padding:"9px 6px",textAlign:"right",fontFamily:F.mono,fontWeight:600,color:C.text}}>{l.weight||"—"}</td>
+                    <td style={{padding:"9px 6px",textAlign:"right",fontFamily:F.mono,color:l.calories?C.text:C.muted,fontWeight:500}}>{l.calories||"—"}</td>
+                    <td style={{padding:"9px 6px",textAlign:"right",fontFamily:F.mono,color:l.protein?C.text:C.muted,fontWeight:500}}>{l.protein||"—"}</td>
+                    <td style={{padding:"9px 0",textAlign:"right",fontFamily:F.mono,color:l.steps?C.text:C.muted,fontWeight:500}}>{l.steps?(l.steps/1000).toFixed(1)+"к":"—"}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Settings */}
+          <SectionTitle title="Настройки"/>
+          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,marginBottom:14,overflow:"hidden"}}>
+            <SettingRow icon="globe" title="Язык" value={lang==="ru"?"Русский":"English"} onClick={()=>setShowLangSheet(true)}/>
+            <SettingRow icon="bell"  title="Уведомления" value={notifLabel()} onClick={requestNotifPerm}/>
+            <SettingRow icon="heart" title="О программе" onClick={()=>window.open("https://sciencebody.app","_blank","noopener")}/>
+            <SettingRow icon="logout" title="Выйти из аккаунта" onClick={onSignOut} last/>
           </div>
+          <button onClick={()=>{if(window.confirm("Удалить аккаунт? Это действие нельзя отменить."))onSignOut&&onSignOut();}} style={{
+            width:"100%",background:"none",border:"none",
+            color:C.red,fontSize:13,padding:"14px 0",marginBottom:8,
+            cursor:"pointer",fontFamily:F.sans,fontWeight:500,letterSpacing:"0.02em",
+          }}>
+            Удалить аккаунт
+          </button>
         </div>
       )}
 
       {/* Tab bar */}
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.surface,borderTop:`1px solid ${C.border}`,display:"flex",padding:"10px 16px 22px"}}>
-        {TABS.map(tb=><button key={tb.id} onClick={()=>setTab(tb.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,color:tab===tb.id?C.accent:C.dim,fontSize:10,fontFamily:"'DM Sans',sans-serif",fontWeight:700,textTransform:"uppercase",letterSpacing:0.3,padding:"5px 0",transition:"color 0.18s"}}><span style={{fontSize:20}}>{tb.icon}</span>{tb.label}</button>)}
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:"rgba(250,250,247,0.92)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:`1px solid ${C.border}`,display:"flex",padding:"10px 14px calc(10px + env(safe-area-inset-bottom))"}}>
+        {TABS.map(tb=>(
+          <button key={tb.id} onClick={()=>setTab(tb.id)} style={{flex:1,background:"none",border:"none",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4,color:tab===tb.id?C.text:C.muted,fontSize:11,fontFamily:F.sans,fontWeight:tab===tb.id?700:500,letterSpacing:"0.02em",padding:"4px 0",transition:"color 0.18s"}}>
+            <Icon name={tb.icon} size={22} strokeWidth={tab===tb.id?1.75:1.5} />
+            {tb.label}
+          </button>
+        ))}
       </div>
 
       {showLog&&<LogModal profile={profile} onSave={log=>{handleSaveLog(log);setShowLog(false);}} onClose={()=>setShowLog(false)}/>}
@@ -483,6 +658,314 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
       {showEveningLog&&<EveningLogModal profile={profile} userGlobalDay={userGlobalDay} currentWeekNum={currentWeekNum} onSave={log=>{handleSaveLog(log);setShowEveningLog(false);}} onClose={()=>setShowEveningLog(false)}/>}
       {selectedDay&&<DayDetailModal weekData={selectedDay.weekData} day={selectedDay.day} onClose={()=>setSelectedDay(null)}/>}
       {showChat&&<ChatModal profile={profile} onClose={()=>{setShowChat(false);setUnreadCount(0);}}/>}
+      {showAvatarPicker&&<AvatarPickerModal current={profile.avatar} onSelect={a=>setProfile({...profile,avatar:a})} onClose={()=>setShowAvatarPicker(false)}/>}
+      {showUpgrade&&<UpgradeModal onSubscribe={()=>{setProfile({...profile,is_subscribed:true,subscribed_at:new Date().toISOString()});setShowUpgrade(false);}} onClose={()=>setShowUpgrade(false)}/>}
+      {showTargetsEdit&&<TargetsEditModal
+        current={profile.dailyTargets}
+        onSave={(t)=>{setProfile({...profile,dailyTargets:t});setShowTargetsEdit(false);}}
+        onClose={()=>setShowTargetsEdit(false)}
+      />}
+      {showLangSheet&&<LangSheet
+        current={lang}
+        onSelect={(code)=>{setLang&&setLang(code);setShowLangSheet(false);}}
+        onClose={()=>setShowLangSheet(false)}
+      />}
+    </div>
+  );
+}
+
+// ─── Account-tab helpers (labels, formatting, notifications) ────────────
+function goalLabel(g) {
+  return {fat_loss:"Снижение жира",recomp:"Рекомпозиция",health:"Здоровье"}[g]||g||"";
+}
+function activityLabel(a) {
+  return {sedentary:"Сидячий",light:"Лёгкий",moderate:"Умеренный",active:"Активный",veryActive:"Очень активный"}[a]||a;
+}
+function trainingLabel(t) {
+  return {none:"Нет",["1_2x_week"]:"1–2 раза в неделю",["3plus_week"]:"3+ раз в неделю"}[t]||t||"—";
+}
+function expLabel(e) {
+  return {beginner:"Начинающий",intermediate:"Средний",advanced:"Продвинутый"}[e]||e||"—";
+}
+function scaleLabel(level, kind) {
+  const i = (level||3)-1;
+  const labels = {
+    stress: ["Низкий","Спокойно","Средний","Напряжённо","Высокий"],
+    sleep:  ["Глубокий","Хороший","Средний","Беспокойный","Плохой"],
+    diet:   ["Чисто","В основном чисто","Смешанно","Часто фастфуд","Только фастфуд"],
+  }[kind] || [];
+  return labels[i] || "—";
+}
+function plural(n, one, few, many) {
+  const m = Math.abs(n) % 100, m10 = m % 10;
+  if (m > 10 && m < 20) return many;
+  if (m10 > 1 && m10 < 5) return few;
+  if (m10 === 1) return one;
+  return many;
+}
+function notifLabel() {
+  if (typeof Notification === "undefined") return "Недоступно";
+  if (Notification.permission === "granted") return "Включены";
+  if (Notification.permission === "denied") return "Отключены";
+  return "Не настроены";
+}
+function requestNotifPerm() {
+  if (typeof Notification === "undefined") return;
+  if (Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+
+// ─── Section title ─────────────────────────────────────────────────────
+function SectionTitle({ title, action, onAction }) {
+  return (
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",margin:"4px 2px 10px"}}>
+      <div style={{fontSize:10,color:C.muted,letterSpacing:"0.14em",textTransform:"uppercase",fontWeight:600,fontFamily:F.sans}}>
+        {title}
+      </div>
+      {action && (
+        <button onClick={onAction} style={{
+          background:"none",border:"none",cursor:"pointer",
+          color:C.accent,fontSize:11,fontWeight:600,
+          letterSpacing:"0.06em",textTransform:"uppercase",
+          fontFamily:F.sans,padding:0,
+        }}>
+          {action} →
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Setting row ───────────────────────────────────────────────────────
+function SettingRow({ icon, title, value, onClick, last }) {
+  return (
+    <button onClick={onClick} style={{
+      display:"flex",alignItems:"center",gap:14,
+      width:"100%",padding:"14px 18px",
+      background:"transparent",border:"none",
+      borderBottom:last?"none":`1px solid ${C.border}`,
+      cursor:"pointer",fontFamily:F.sans,textAlign:"left",
+    }}>
+      {icon && (
+        <div style={{
+          width:32,height:32,borderRadius:8,background:C.bg,
+          color:C.muted,display:"flex",alignItems:"center",justifyContent:"center",
+          flexShrink:0,border:`1px solid ${C.border}`,
+        }}>
+          <Icon name={icon} size={15} strokeWidth={1.6}/>
+        </div>
+      )}
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontSize:14,fontWeight:500,color:C.text}}>{title}</div>
+      </div>
+      {value && <div style={{fontSize:12,color:C.muted}}>{value}</div>}
+      <div style={{color:C.muted,marginLeft:4,display:"flex"}}>
+        <Icon name="chevronRight" size={14} strokeWidth={1.5}/>
+      </div>
+    </button>
+  );
+}
+
+// ─── Daily-targets edit sheet ──────────────────────────────────────────
+function TargetsEditModal({ current, onSave, onClose }) {
+  const [cal, setCal] = useState(String(current?.calories||2000));
+  const [pro, setPro] = useState(String(current?.protein||150));
+  const [stp, setStp] = useState(String(current?.steps||10000));
+  function save() {
+    onSave({
+      calories: parseInt(cal,10)||2000,
+      protein:  parseInt(pro,10)||150,
+      steps:    parseInt(stp,10)||10000,
+    });
+  }
+  const field = (label, val, set, unit) => (
+    <div style={{marginBottom:14}}>
+      <div style={{fontSize:10,color:C.muted,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:500,marginBottom:8}}>{label}</div>
+      <div style={{display:"flex",alignItems:"center",background:C.bg,border:`1px solid ${C.border}`,borderRadius:12,overflow:"hidden"}}>
+        <input type="number" inputMode="numeric" value={val} onChange={e=>set(e.target.value)} style={{
+          flex:1,background:"none",border:"none",outline:"none",padding:"13px 16px",
+          color:C.text,fontSize:18,fontFamily:F.mono,fontWeight:600,
+        }}/>
+        {unit && <span style={{padding:"0 14px",color:C.muted,fontSize:12,fontWeight:500,fontFamily:F.sans}}>{unit}</span>}
+      </div>
+    </div>
+  );
+  return (
+    <div
+      onClick={e=>e.target===e.currentTarget&&onClose()}
+      style={{position:"fixed",inset:0,background:"rgba(14,17,23,0.35)",zIndex:600,display:"flex",flexDirection:"column",justifyContent:"flex-end",animation:"fadeIn 0.2s both"}}
+    >
+      <div style={{background:C.surface,borderTop:`1px solid ${C.border}`,borderRadius:"22px 22px 0 0",padding:"18px 22px calc(28px + env(safe-area-inset-bottom))",maxWidth:430,width:"100%",margin:"0 auto",animation:"slideUp 0.32s cubic-bezier(.16,1,.3,1) both",maxHeight:"82vh",overflowY:"auto",fontFamily:F.sans}}>
+        <div style={{width:40,height:4,background:C.dim,borderRadius:2,margin:"0 auto 18px"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}}>
+          <div style={{fontSize:10,color:C.accent,fontWeight:600,letterSpacing:"0.14em",textTransform:"uppercase"}}>Цели</div>
+          <button onClick={onClose} aria-label="Закрыть" style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:24,padding:0,lineHeight:1,fontFamily:F.sans}}>×</button>
+        </div>
+        <h3 style={{fontFamily:F.serif,fontSize:22,fontWeight:500,letterSpacing:"-0.015em",lineHeight:1.2,marginBottom:8}}>Дневные цели</h3>
+        <p style={{fontSize:13,color:C.muted,lineHeight:1.55,marginBottom:18}}>Установи цели вручную. Калории и белок считай в день, шаги — суммарно.</p>
+        {field("Калории", cal, setCal, "ккал")}
+        {field("Белок", pro, setPro, "г")}
+        {field("Шаги", stp, setStp, "")}
+        <button onClick={save} style={{
+          width:"100%",background:C.text,color:C.bg,border:"none",borderRadius:14,
+          padding:"14px",fontSize:15,fontWeight:500,fontFamily:F.sans,cursor:"pointer",
+          marginTop:6,letterSpacing:"0.01em",
+        }}>Сохранить</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Language sheet ────────────────────────────────────────────────────
+function LangSheet({ current, onSelect, onClose }) {
+  const options = [
+    { code:"ru", label:"Русский", sub:"Russian" },
+    { code:"en", label:"English", sub:"English" },
+  ];
+  return (
+    <div
+      onClick={e=>e.target===e.currentTarget&&onClose()}
+      style={{position:"fixed",inset:0,background:"rgba(14,17,23,0.35)",zIndex:600,display:"flex",flexDirection:"column",justifyContent:"flex-end",animation:"fadeIn 0.2s both"}}
+    >
+      <div style={{background:C.surface,borderTop:`1px solid ${C.border}`,borderRadius:"22px 22px 0 0",padding:"18px 22px calc(28px + env(safe-area-inset-bottom))",maxWidth:430,width:"100%",margin:"0 auto",animation:"slideUp 0.32s cubic-bezier(.16,1,.3,1) both",fontFamily:F.sans}}>
+        <div style={{width:40,height:4,background:C.dim,borderRadius:2,margin:"0 auto 18px"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:4}}>
+          <div style={{fontSize:10,color:C.accent,fontWeight:600,letterSpacing:"0.14em",textTransform:"uppercase"}}>Настройки</div>
+          <button onClick={onClose} aria-label="Закрыть" style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:24,padding:0,lineHeight:1,fontFamily:F.sans}}>×</button>
+        </div>
+        <h3 style={{fontFamily:F.serif,fontSize:22,fontWeight:500,letterSpacing:"-0.015em",lineHeight:1.2,marginBottom:14}}>Язык приложения</h3>
+        {options.map(o=>{
+          const selected = current === o.code;
+          return (
+            <button key={o.code} onClick={()=>onSelect(o.code)} style={{
+              width:"100%",display:"flex",alignItems:"center",gap:12,
+              padding:"14px 16px",marginBottom:8,
+              background:selected?C.accentDim:C.bg,
+              border:`1.5px solid ${selected?C.accent:C.border}`,
+              borderRadius:14,cursor:"pointer",fontFamily:F.sans,textAlign:"left",
+              color:selected?C.accent:C.text,
+            }}>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:500}}>{o.label}</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:2}}>{o.sub}</div>
+              </div>
+              {selected && <div style={{width:22,height:22,borderRadius:"50%",background:C.accent,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center"}}><Icon name="check" size={12} strokeWidth={2.5}/></div>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Avatar picker bottom-sheet ──────────────────────────────────────
+function AvatarPickerModal({ current, onSelect, onClose }) {
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{position:"fixed",inset:0,background:"rgba(14,17,23,0.35)",zIndex:600,display:"flex",flexDirection:"column",justifyContent:"flex-end",animation:"fadeIn 0.2s both"}}
+    >
+      <div style={{background:C.surface,borderTop:`1px solid ${C.border}`,borderRadius:"22px 22px 0 0",padding:"18px 22px calc(32px + env(safe-area-inset-bottom))",maxWidth:430,width:"100%",margin:"0 auto",animation:"slideUp 0.32s cubic-bezier(.16,1,.3,1) both",maxHeight:"82vh",overflowY:"auto",fontFamily:F.sans}}>
+        <div style={{width:40,height:4,background:C.dim,borderRadius:2,margin:"0 auto 18px"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+          <div style={{fontSize:10,color:C.accent,fontWeight:500,letterSpacing:"0.14em",textTransform:"uppercase"}}>Профиль</div>
+          <button onClick={onClose} aria-label="Закрыть" style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:24,padding:0,lineHeight:1,fontFamily:F.sans}}>×</button>
+        </div>
+        <h3 style={{fontFamily:F.serif,fontSize:22,fontWeight:500,letterSpacing:"-0.015em",lineHeight:1.2,marginBottom:6}}>Сменить аватар</h3>
+        <p style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:18}}>Выбери животное — оно появится в шапке и в профиле.</p>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+          {AVATAR_OPTIONS.map(a => {
+            const selected = current === a;
+            return (
+              <button
+                key={a}
+                onClick={() => { onSelect(a); onClose(); }}
+                style={{
+                  aspectRatio:"1",
+                  borderRadius:14,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  background:selected?C.accentDim:C.bg,
+                  border:`1.5px solid ${selected?C.accent:C.border}`,
+                  color:selected?C.accent:C.text,
+                  cursor:"pointer",padding:0,
+                  transition:"all 0.15s",
+                  fontFamily:F.sans,
+                }}
+              >
+                <Avatar value={a} size={34} strokeWidth={selected?1.75:1.5} />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Upgrade bottom-sheet ────────────────────────────────────────────
+function UpgradeModal({ onSubscribe, onClose }) {
+  const benefits = [
+    { title: "Все 112 заданий программы",        sub: "16 недель структурированного пути по составу тела" },
+    { title: "ИИ-тренер · 10 сообщений в день",  sub: "Ответы по питанию, тренировкам и мотивации" },
+    { title: "Замеры и расчёт % жира",            sub: "Метод ВМС США раз в 7 дней — динамика по составу" },
+    { title: "Синхронизация с FatSecret",         sub: "Автоматический подсчёт калорий и белка" },
+  ];
+  return (
+    <div
+      onClick={e => e.target === e.currentTarget && onClose()}
+      style={{position:"fixed",inset:0,background:"rgba(14,17,23,0.45)",zIndex:600,display:"flex",flexDirection:"column",justifyContent:"flex-end",animation:"fadeIn 0.2s both"}}
+    >
+      <div style={{background:C.surface,borderTop:`1px solid ${C.border}`,borderRadius:"22px 22px 0 0",padding:"18px 22px calc(28px + env(safe-area-inset-bottom))",maxWidth:430,width:"100%",margin:"0 auto",animation:"slideUp 0.32s cubic-bezier(.16,1,.3,1) both",maxHeight:"90vh",overflowY:"auto",fontFamily:F.sans}}>
+        <div style={{width:40,height:4,background:C.dim,borderRadius:2,margin:"0 auto 18px"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,fontSize:10,color:C.accent,fontWeight:500,letterSpacing:"0.18em",textTransform:"uppercase"}}>
+            <Icon name="lock" size={12}/> Премиум
+          </div>
+          <button onClick={onClose} aria-label="Закрыть" style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:24,padding:0,lineHeight:1,fontFamily:F.sans}}>×</button>
+        </div>
+        <h3 style={{fontFamily:F.serif,fontSize:26,fontWeight:500,letterSpacing:"-0.02em",lineHeight:1.15,marginTop:2,marginBottom:8}}>
+          Открой полный путь<br/><span style={{color:C.muted}}>16 недель.</span>
+        </h3>
+        <p style={{fontSize:13,color:C.muted,lineHeight:1.6,marginBottom:20}}>
+          Программа основана на методиках по составу тела. Бесплатно — первые 2 недели. Дальше открывается всё, что внутри.
+        </p>
+
+        {/* Benefits list */}
+        <div style={{borderTop:`1px solid ${C.border}`,marginBottom:20}}>
+          {benefits.map((b,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"14px 0",borderBottom:`1px solid ${C.border}`}}>
+              <div style={{width:18,height:18,borderRadius:"50%",border:`1.5px solid ${C.accent}`,color:C.accent,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>
+                <Icon name="check" size={11} strokeWidth={2.4}/>
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:14,color:C.text,fontWeight:500,lineHeight:1.35}}>{b.title}</div>
+                <div style={{fontSize:12,color:C.muted,lineHeight:1.5,marginTop:2}}>{b.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Price block */}
+        <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px 16px",marginBottom:14,display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:12}}>
+          <div>
+            <div style={{fontSize:10,color:C.muted,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:500}}>Подписка</div>
+            <div style={{fontFamily:F.serif,fontSize:26,fontWeight:500,letterSpacing:"-0.02em",marginTop:2,color:C.text}}>
+              590 ₽ <span style={{fontSize:13,color:C.muted}}>/ мес</span>
+            </div>
+          </div>
+          <div style={{fontSize:11,color:C.muted,textAlign:"right",lineHeight:1.5}}>
+            Отмена<br/>в любой момент
+          </div>
+        </div>
+
+        <button onClick={onSubscribe} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:14,padding:"15px",fontSize:15,fontWeight:500,fontFamily:F.sans,cursor:"pointer",letterSpacing:"0.01em"}}>
+          Подписаться
+        </button>
+        <button onClick={onClose} style={{width:"100%",background:"none",border:"none",color:C.muted,fontSize:13,padding:"14px 0 0",cursor:"pointer",fontFamily:F.sans}}>
+          Не сейчас
+        </button>
+      </div>
     </div>
   );
 }

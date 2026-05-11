@@ -101,7 +101,7 @@ export function Day0Screen({ profile, onDone, userId }) {
       {/* Header */}
       <div style={{padding:"52px 24px 24px",textAlign:"center",animation:"slideUp 0.4s both"}}>
         <div style={{width:64,height:64,borderRadius:20,background:C.accentDim,border:`2px solid ${C.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 20px"}}>🎉</div>
-        <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,marginBottom:8}}>
+        <div style={{fontFamily:"'Fraunces',Georgia,serif",fontSize:28,fontWeight:600,marginBottom:8}}>
           Ты в программе,<br/><span style={{color:C.accent}}>{profile.name?.split(" ")[0]}!</span>
         </div>
         <div style={{fontSize:14,color:C.muted,lineHeight:1.7}}>
@@ -114,12 +114,12 @@ export function Day0Screen({ profile, onDone, userId }) {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"16px"}}>
             <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Текущий вес</div>
-            <div style={{fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800,color:C.text,lineHeight:1}}>{profile.weight}</div>
+            <div style={{fontFamily:"'Fraunces',Georgia,serif",fontSize:32,fontWeight:600,color:C.text,lineHeight:1}}>{profile.weight}</div>
             <div style={{fontSize:12,color:C.muted,marginTop:4}}>кг · точка отсчёта</div>
           </div>
           <div style={{background:C.card,border:`1px solid ${bmiColor}44`,borderRadius:20,padding:"16px"}}>
             <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Индекс массы тела</div>
-            <div style={{fontFamily:"'Syne',sans-serif",fontSize:32,fontWeight:800,color:bmiColor,lineHeight:1}}>{profile.bmi||"—"}</div>
+            <div style={{fontFamily:"'Fraunces',Georgia,serif",fontSize:32,fontWeight:600,color:bmiColor,lineHeight:1}}>{profile.bmi||"—"}</div>
             <div style={{fontSize:12,color:bmiColor,marginTop:4}}>{bmiLabel}</div>
           </div>
         </div>
@@ -129,8 +129,8 @@ export function Day0Screen({ profile, onDone, userId }) {
       <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.14s both"}}>
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:22,overflow:"hidden"}}>
           <div style={{padding:"16px 18px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:700,fontSize:14}}>Сделай сегодня</div>
-            <div style={{fontSize:12,color:C.accent,fontWeight:700}}>{doneCount} / {tasks.length}</div>
+            <div style={{fontWeight:500,fontSize:14}}>Сделай сегодня</div>
+            <div style={{fontSize:12,color:C.accent,fontWeight:500}}>{doneCount} / {tasks.length}</div>
           </div>
           {tasks.map((task,i)=>(
             <div key={task.id}>
@@ -166,7 +166,7 @@ export function Day0Screen({ profile, onDone, userId }) {
                   </div>
                   <button
                     onClick={()=>{setHomeDone(true);setShowIOSInstructions(false);}}
-                    style={{marginTop:10,background:C.accent,color:C.bg,border:"none",borderRadius:12,padding:"8px 16px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}
+                    style={{marginTop:10,background:C.accent,color:C.bg,border:"none",borderRadius:12,padding:"8px 16px",fontSize:12,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",cursor:"pointer"}}
                   >
                     Готово ✓
                   </button>
@@ -181,7 +181,7 @@ export function Day0Screen({ profile, onDone, userId }) {
       <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.2s both"}}>
         <div style={{background:C.card,border:`1.5px solid ${C.accent}44`,borderRadius:22,overflow:"hidden"}}>
           <div style={{padding:"14px 18px 12px",borderBottom:`1px solid ${C.border}`}}>
-            <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Завтра — День 1</div>
+            <div style={{fontSize:11,color:C.accent,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Завтра — День 1</div>
             <div style={{fontSize:13,color:C.muted}}>Вот что тебя ждёт</div>
           </div>
           {[
@@ -191,7 +191,7 @@ export function Day0Screen({ profile, onDone, userId }) {
           ].map((item,i,arr)=>(
             <div key={item.time} style={{display:"flex",gap:14,padding:"13px 18px",borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none",alignItems:"flex-start"}}>
               <div style={{width:42,textAlign:"center",flexShrink:0}}>
-                <div style={{fontSize:10,color:item.col,fontWeight:700,marginBottom:6,lineHeight:1}}>{item.time}</div>
+                <div style={{fontSize:10,color:item.col,fontWeight:500,marginBottom:6,lineHeight:1}}>{item.time}</div>
                 <div style={{width:36,height:36,borderRadius:11,background:`${item.col}18`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,margin:"0 auto"}}>{item.icon}</div>
               </div>
               <div style={{paddingTop:2}}>
@@ -205,7 +205,7 @@ export function Day0Screen({ profile, onDone, userId }) {
 
       {/* CTA */}
       <div style={{padding:"0 24px 48px",animation:"slideUp 0.4s 0.26s both"}}>
-        <button onClick={onDone} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:18,padding:"17px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>
+        <button onClick={onDone} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:18,padding:"17px",fontSize:16,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",cursor:"pointer"}}>
           Открыть приложение →
         </button>
         <div style={{textAlign:"center",marginTop:12,fontSize:12,color:C.muted}}>

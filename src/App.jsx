@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase.js";
 import { LANGUAGES } from "./lang.js";
-import { C } from "./theme.js";
+import { C, F, BRAND } from "./theme.js";
 import { todayStr } from "./utils.js";
 import { MOCK_ATHLETES } from "./program.js";
 import { AuthScreen } from "./screens/AuthScreen.jsx";
@@ -19,38 +19,38 @@ if ("serviceWorker" in navigator) {
 }
 
 // ─── INLINE LANGUAGE PICKER ───────────────────────────────────────────────────
-const CL = { bg:"#07090F",card:"#111520",border:"#1C2333",accent:"#C8F135",text:"#EEF2F7",muted:"#6B7A99" };
-
 function LanguagePicker({ onPick }) {
   const [selected, setSelected] = useState("ru");
   return (
-    <div style={{position:"fixed",inset:0,background:CL.bg,display:"flex",flexDirection:"column",justifyContent:"center",padding:"32px 28px",fontFamily:"'DM Sans',sans-serif",zIndex:9999}}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Syne:wght@700;800&display=swap');`}</style>
-      <div style={{textAlign:"center",marginBottom:48}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:10,background:CL.card,border:`1px solid ${CL.border}`,borderRadius:14,padding:"10px 18px",marginBottom:28}}>
-          <div style={{width:28,height:28,borderRadius:8,background:CL.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⚡</div>
-          <span style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:CL.text,letterSpacing:1}}>FORM16</span>
+    <div style={{position:"fixed",inset:0,background:C.bg,display:"flex",flexDirection:"column",justifyContent:"center",padding:"32px 28px",fontFamily:F.sans,zIndex:9999}}>
+      <div style={{textAlign:"center",marginBottom:44}}>
+        <div style={{display:"inline-flex",alignItems:"center",gap:10,marginBottom:28}}>
+          <div style={{width:32,height:32,borderRadius:8,background:C.text,color:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:F.serif,fontWeight:600,fontSize:18,letterSpacing:"-0.02em"}}>S</div>
+          <div style={{textAlign:"left"}}>
+            <div style={{fontFamily:F.serif,fontSize:18,fontWeight:500,color:C.text,letterSpacing:"-0.015em",lineHeight:1}}>{BRAND.name}</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:3}}>{BRAND.tagline}</div>
+          </div>
         </div>
-        <div style={{fontFamily:"'Syne',sans-serif",fontSize:26,fontWeight:800,color:CL.text,marginBottom:10}}>
+        <div style={{fontFamily:F.serif,fontSize:30,fontWeight:400,color:C.text,marginBottom:8,letterSpacing:"-0.02em",lineHeight:1.15}}>
           {selected==="ru"?"Выберите язык":"Choose your language"}
         </div>
-        <div style={{fontSize:14,color:CL.muted}}>
-          {selected==="ru"?"Вы можете изменить это в профиле":"You can change this later in your profile"}
+        <div style={{fontSize:14,color:C.muted}}>
+          {selected==="ru"?"Можно изменить позже в профиле":"You can change this later in your profile"}
         </div>
       </div>
-      <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:40}}>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:36}}>
         {LANGUAGES.map(l=>(
-          <div key={l.code} onClick={()=>setSelected(l.code)} style={{background:selected===l.code?`${CL.accent}18`:CL.card,border:`2px solid ${selected===l.code?CL.accent:CL.border}`,borderRadius:20,padding:"20px 22px",cursor:"pointer",display:"flex",alignItems:"center",gap:18,transition:"all 0.18s"}}>
-            <span style={{fontSize:36}}>{l.flag}</span>
+          <button key={l.code} onClick={()=>setSelected(l.code)} style={{background:selected===l.code?C.accentDim:C.surface,border:`1.5px solid ${selected===l.code?C.accent:C.border}`,borderRadius:14,padding:"16px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:16,transition:"all 0.18s",fontFamily:"inherit",textAlign:"left",width:"100%"}}>
+            <span style={{fontSize:30}}>{l.flag}</span>
             <div style={{flex:1}}>
-              <div style={{fontWeight:700,fontSize:18,color:selected===l.code?CL.accent:CL.text}}>{l.label}</div>
-              <div style={{fontSize:13,color:CL.muted,marginTop:3}}>{l.code==="en"?"English":"Русский язык"}</div>
+              <div style={{fontWeight:600,fontSize:16,color:selected===l.code?C.accent:C.text}}>{l.label}</div>
+              <div style={{fontSize:12,color:C.muted,marginTop:2}}>{l.code==="en"?"English":"Русский язык"}</div>
             </div>
-            {selected===l.code&&<div style={{width:28,height:28,borderRadius:"50%",background:CL.accent,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:14,color:CL.bg,fontWeight:800}}>✓</span></div>}
-          </div>
+            {selected===l.code&&<div style={{width:22,height:22,borderRadius:"50%",background:C.accent,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:12,color:"#fff",fontWeight:500}}>✓</span></div>}
+          </button>
         ))}
       </div>
-      <button onClick={()=>onPick(selected)} style={{width:"100%",background:CL.accent,color:CL.bg,border:"none",borderRadius:18,padding:"17px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>
+      <button onClick={()=>onPick(selected)} style={{width:"100%",background:C.text,color:C.bg,border:"none",borderRadius:14,padding:"16px",fontSize:15,fontWeight:600,fontFamily:F.sans,cursor:"pointer",letterSpacing:"0.01em"}}>
         {selected==="ru"?"Продолжить":"Continue"}
       </button>
     </div>
@@ -302,6 +302,7 @@ export default function App(){
     if (!userId) return;
     setProfile(p);
     await supabase.from("profiles").update({
+      avatar: p.avatar,
       current_week: p.currentWeek,
       streak: p.streak,
       total_xp: p.totalXP,
@@ -309,6 +310,8 @@ export default function App(){
       daily_calories: p.dailyTargets?.calories,
       daily_protein: p.dailyTargets?.protein,
       daily_steps: p.dailyTargets?.steps,
+      is_subscribed: p.is_subscribed,
+      subscribed_at: p.subscribed_at,
     }).eq("id", userId);
   }
 
@@ -363,11 +366,11 @@ export default function App(){
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Onest:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{background:${C.bg};}
+        html,body{background:${C.bg};color:${C.text};-webkit-font-smoothing:antialiased;font-family:${F.sans};}
         ::-webkit-scrollbar{width:0;}
-        input,button,textarea,select{font-family:'DM Sans',sans-serif;}
+        input,button,textarea,select{font-family:${F.sans};}
         input::placeholder,textarea::placeholder{color:${C.muted};opacity:1;}
         input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
         input[type=number]{-moz-appearance:textfield;}
@@ -375,6 +378,7 @@ export default function App(){
         @keyframes fadeIn{from{opacity:0}to{opacity:1}}
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes pop{0%{transform:scale(0.6);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+        @keyframes pulseRing{0%{transform:scale(1);opacity:0.5}100%{transform:scale(2.4);opacity:0}}
       `}</style>
       <div style={{maxWidth:430,margin:"0 auto",color:C.text,minHeight:"100vh",background:C.bg}}>
 
@@ -383,9 +387,9 @@ export default function App(){
 
         {/* All other screens — only shown after language is chosen */}
         {chosen && screen==="loading" && (
-          <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
-            <div style={{width:26,height:26,borderRadius:7,background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
-            <div style={{fontSize:14,color:C.muted}}>Loading…</div>
+          <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:14}}>
+            <div style={{width:32,height:32,borderRadius:8,background:C.text,color:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:F.serif,fontWeight:600,fontSize:18,letterSpacing:"-0.02em"}}>S</div>
+            <div style={{fontSize:12,color:C.muted,letterSpacing:"0.04em"}}>Loading…</div>
           </div>
         )}
 
@@ -417,6 +421,8 @@ export default function App(){
             onSignOut={signOut}
             openLogOnLoad={openLogOnLoad}
             onLogOpened={()=>setOpenLogOnLoad(false)}
+            lang={lang}
+            setLang={setLang}
           />
         )}
 

@@ -39,7 +39,7 @@ export function LanguagePicker({ onPick }) {
       position:"fixed", inset:0, background:C.bg,
       display:"flex", flexDirection:"column",
       justifyContent:"center", padding:"32px 28px",
-      fontFamily:"'DM Sans', sans-serif",
+      fontFamily:"'Inter',system-ui,sans-serif",
       zIndex: 9999,
     }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Syne:wght@700;800&display=swap');`}</style>
@@ -47,9 +47,9 @@ export function LanguagePicker({ onPick }) {
       <div style={{ textAlign:"center", marginBottom:48 }}>
         <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:C.card, border:`1px solid ${C.border}`, borderRadius:14, padding:"10px 18px", marginBottom:28 }}>
           <div style={{ width:28, height:28, borderRadius:8, background:C.accent, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>⚡</div>
-          <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:C.text, letterSpacing:1 }}>FORM16</span>
+          <span style={{ fontFamily:"'Fraunces',Georgia,serif", fontSize:16, fontWeight:800, color:C.text, letterSpacing:1 }}>FORM16</span>
         </div>
-        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:26, fontWeight:800, color:C.text, marginBottom:10 }}>
+        <div style={{ fontFamily:"'Fraunces',Georgia,serif", fontSize:26, fontWeight:800, color:C.text, marginBottom:10 }}>
           {selected === "ru" ? "Выберите язык" : "Choose your language"}
         </div>
         <div style={{ fontSize:14, color:C.muted }}>
@@ -93,7 +93,7 @@ export function LanguagePicker({ onPick }) {
         style={{
           width:"100%", background:C.accent, color:C.bg,
           border:"none", borderRadius:18, padding:"17px",
-          fontSize:16, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
+          fontSize:16, fontWeight:700, fontFamily:"'Inter',system-ui,sans-serif",
           cursor:"pointer",
         }}
       >
@@ -142,7 +142,7 @@ export function LanguagePicker({ onPick }) {
       minHeight:"100vh", background:C_LANG.bg,
       display:"flex", flexDirection:"column",
       justifyContent:"center", padding:"32px 28px",
-      fontFamily:"'DM Sans', sans-serif",
+      fontFamily:"'Inter',system-ui,sans-serif",
     }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Syne:wght@700;800&display=swap');`}</style>
 
@@ -150,9 +150,9 @@ export function LanguagePicker({ onPick }) {
       <div style={{ textAlign:"center", marginBottom:48 }}>
         <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:C_LANG.card, border:`1px solid ${C_LANG.border}`, borderRadius:14, padding:"10px 18px", marginBottom:28 }}>
           <div style={{ width:28, height:28, borderRadius:8, background:C_LANG.accent, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>⚡</div>
-          <span style={{ fontFamily:"'Syne',sans-serif", fontSize:16, fontWeight:800, color:C_LANG.text, letterSpacing:1 }}>FORM16</span>
+          <span style={{ fontFamily:"'Fraunces',Georgia,serif", fontSize:16, fontWeight:800, color:C_LANG.text, letterSpacing:1 }}>FORM16</span>
         </div>
-        <div style={{ fontFamily:"'Syne',sans-serif", fontSize:26, fontWeight:800, color:C_LANG.text, marginBottom:10 }}>
+        <div style={{ fontFamily:"'Fraunces',Georgia,serif", fontSize:26, fontWeight:800, color:C_LANG.text, marginBottom:10 }}>
           {selected === "ru" ? "Выберите язык" : "Choose your language"}
         </div>
         <div style={{ fontSize:14, color:C_LANG.muted }}>
@@ -198,7 +198,7 @@ export function LanguagePicker({ onPick }) {
         style={{
           width:"100%", background:C_LANG.accent, color:C_LANG.bg,
           border:"none", borderRadius:18, padding:"17px",
-          fontSize:16, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
+          fontSize:16, fontWeight:700, fontFamily:"'Inter',system-ui,sans-serif",
           cursor:"pointer",
         }}
       >

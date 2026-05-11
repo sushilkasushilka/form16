@@ -22,10 +22,10 @@ export function DayDetailModal({ weekData, day, onClose }) {
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{width:48,height:48,borderRadius:15,background:`${col}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>{day.icon}</div>
             <div>
-              <div style={{fontSize:10,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>
+              <div style={{fontSize:10,color:col,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>
                 Неделя {weekData.week} · День {day.day}
               </div>
-              <div style={{fontFamily:"'Syne',sans-serif",fontSize:17,fontWeight:800}}>{day.title}</div>
+              <div style={{fontFamily:"'Fraunces',Georgia,serif",fontSize:17,fontWeight:600}}>{day.title}</div>
             </div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -38,28 +38,28 @@ export function DayDetailModal({ weekData, day, onClose }) {
 
           {/* Task */}
           <div style={{background:`${col}14`,border:`1px solid ${col}33`,borderRadius:16,padding:"14px 16px",marginBottom:16}}>
-            <div style={{fontSize:11,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>🎯 Задание дня</div>
+            <div style={{fontSize:11,color:col,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>🎯 Задание дня</div>
             <div style={{fontSize:14,color:C.text,lineHeight:1.7}}>{day.task}</div>
           </div>
 
           {/* Extended info blocks */}
           {day.info?.why&&(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"16px 18px",marginBottom:12}}>
-              <div style={{fontSize:11,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>📖 Почему это важно</div>
+              <div style={{fontSize:11,color:col,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>📖 Почему это важно</div>
               <div style={{fontSize:13,color:C.muted,lineHeight:1.85,whiteSpace:"pre-line"}}>{day.info.why}</div>
             </div>
           )}
 
           {day.info?.howTo&&(
             <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:16,padding:"16px 18px",marginBottom:12}}>
-              <div style={{fontSize:11,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>✅ Как это делать</div>
+              <div style={{fontSize:11,color:col,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>✅ Как это делать</div>
               <div style={{fontSize:13,color:C.muted,lineHeight:1.85,whiteSpace:"pre-line"}}>{day.info.howTo}</div>
             </div>
           )}
 
           {day.info?.weekTarget&&(
             <div style={{background:`${col}10`,border:`1px solid ${col}33`,borderRadius:16,padding:"14px 16px",marginBottom:12}}>
-              <div style={{fontSize:11,color:col,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>🎯 Цель</div>
+              <div style={{fontSize:11,color:col,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>🎯 Цель</div>
               <div style={{fontSize:13,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{day.info.weekTarget}</div>
             </div>
           )}
@@ -105,14 +105,14 @@ export function MorningLogModal({ profile, userGlobalDay, isMeasureOverdue, onSa
     onSave(log);
   }
 
-  const inputStyle = {width:"100%",boxSizing:"border-box",background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px",color:C.text,fontSize:22,fontFamily:"'Syne',sans-serif",fontWeight:800,outline:"none",textAlign:"center",marginBottom:12};
+  const inputStyle = {width:"100%",boxSizing:"border-box",background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"14px 16px",color:C.text,fontSize:22,fontFamily:"'Fraunces',Georgia,serif",fontWeight:600,outline:"none",textAlign:"center",marginBottom:12};
 
   return (
     <div style={{position:"fixed",inset:0,background:"#000000EE",zIndex:600,display:"flex",flexDirection:"column",justifyContent:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{background:C.surface,borderRadius:"26px 26px 0 0",padding:"24px 24px 40px",animation:"slideUp 0.35s cubic-bezier(.16,1,.3,1) both",maxHeight:"90vh",overflowY:"auto"}}>
         <div style={{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}/>
-        <div style={{fontSize:11,color:C.accent,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>⚖️ Утренний замер</div>
-        <div style={{fontSize:18,fontWeight:800,marginBottom:20}}>{isMeasureDay?"Вес + замеры тела":"Утренний вес"}</div>
+        <div style={{fontSize:11,color:C.accent,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>⚖️ Утренний замер</div>
+        <div style={{fontSize:18,fontWeight:600,marginBottom:20}}>{isMeasureDay?"Вес + замеры тела":"Утренний вес"}</div>
 
         <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Вес (кг)</div>
         <input type="number" value={weight} onChange={e=>setWeight(e.target.value)} placeholder="0.0" style={inputStyle} autoFocus/>
@@ -137,7 +137,7 @@ export function MorningLogModal({ profile, userGlobalDay, isMeasureOverdue, onSa
           </>
         )}
 
-        <button onClick={handleSave} disabled={!weight} style={{width:"100%",background:weight?C.accent:C.dim,color:weight?C.bg:C.muted,border:"none",borderRadius:18,padding:"16px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:weight?"pointer":"default"}}>
+        <button onClick={handleSave} disabled={!weight} style={{width:"100%",background:weight?C.accent:C.dim,color:weight?C.bg:C.muted,border:"none",borderRadius:18,padding:"16px",fontSize:16,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",cursor:weight?"pointer":"default"}}>
           Сохранить
         </button>
       </div>
@@ -190,7 +190,7 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
     });
   }
 
-  const inputStyle = {width:"100%",boxSizing:"border-box",background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"13px 16px",color:C.text,fontSize:20,fontFamily:"'Syne',sans-serif",fontWeight:800,outline:"none",textAlign:"center",marginBottom:12};
+  const inputStyle = {width:"100%",boxSizing:"border-box",background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"13px 16px",color:C.text,fontSize:20,fontFamily:"'Fraunces',Georgia,serif",fontWeight:600,outline:"none",textAlign:"center",marginBottom:12};
 
   const fields=[
     {show:true,        label:"Калории (ккал)", val:calories, set:setCalories, target:profile.dailyTargets?.calories||2000, color:C.orange},
@@ -202,8 +202,8 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
     <div style={{position:"fixed",inset:0,background:"#000000EE",zIndex:600,display:"flex",flexDirection:"column",justifyContent:"flex-end"}} onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{background:C.surface,borderRadius:"26px 26px 0 0",padding:"24px 24px 40px",animation:"slideUp 0.35s cubic-bezier(.16,1,.3,1) both",maxHeight:"90vh",overflowY:"auto"}}>
         <div style={{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}/>
-        <div style={{fontSize:11,color:C.blue,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>🌙 Вечерний итог</div>
-        <div style={{fontSize:18,fontWeight:800,marginBottom:4}}>Итог дня</div>
+        <div style={{fontSize:11,color:C.blue,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>🌙 Вечерний итог</div>
+        <div style={{fontSize:18,fontWeight:600,marginBottom:4}}>Итог дня</div>
         <div style={{fontSize:12,color:C.muted,marginBottom:20}}>Неделя {currentWeekNum} — заполни то, что отслеживаешь</div>
 
         {fields.map(f=>(
@@ -222,7 +222,7 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
             <div style={{flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:6}}>
                 <div style={{fontSize:13,fontWeight:600}}>🥦 Съел овощи сегодня</div>
-                {greensAuto&&<span style={{fontSize:10,color:C.accent,background:C.accentDim,padding:"2px 8px",borderRadius:20,fontWeight:700}}>⚡ FatSecret</span>}
+                {greensAuto&&<span style={{fontSize:10,color:C.accent,background:C.accentDim,padding:"2px 8px",borderRadius:20,fontWeight:500}}>⚡ FatSecret</span>}
               </div>
               <div style={{fontSize:11,color:C.muted}}>
                 {greensAuto && greensDetected.length>0
@@ -233,7 +233,7 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
           </div>
         )}
 
-        <button onClick={handleSave} disabled={!calories} style={{width:"100%",background:calories?C.blue:C.dim,color:calories?C.bg:C.muted,border:"none",borderRadius:18,padding:"16px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:calories?"pointer":"default"}}>
+        <button onClick={handleSave} disabled={!calories} style={{width:"100%",background:calories?C.blue:C.dim,color:calories?C.bg:C.muted,border:"none",borderRadius:18,padding:"16px",fontSize:16,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",cursor:calories?"pointer":"default"}}>
           Сохранить итог дня
         </button>
       </div>
@@ -299,8 +299,8 @@ export function LogModal({profile,onSave,onClose}){
       <div style={{width:"100%",background:C.surface,borderRadius:"26px 26px 0 0",padding:"22px 22px 48px",maxHeight:"90vh",overflowY:"auto",animation:"slideUp 0.35s cubic-bezier(.16,1,.3,1) both"}}>
         <div style={{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{fontFamily:"'Syne',sans-serif",fontSize:22,fontWeight:800}}>{t("log.title")}</div>
-          {profile.fatsecretConnected&&<button onClick={syncFS} disabled={fsSyncing} style={{background:fsSynced?C.accentDim:C.accent,color:fsSynced?C.accent:C.bg,border:fsSynced?`1px solid ${C.accent}44`:"none",borderRadius:20,padding:"8px 16px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>{fsSyncing?t("log.syncing"):fsSynced?t("log.synced"):t("log.sync")}</button>}
+          <div style={{fontFamily:"'Fraunces',Georgia,serif",fontSize:22,fontWeight:600}}>{t("log.title")}</div>
+          {profile.fatsecretConnected&&<button onClick={syncFS} disabled={fsSyncing} style={{background:fsSynced?C.accentDim:C.accent,color:fsSynced?C.accent:C.bg,border:fsSynced?`1px solid ${C.accent}44`:"none",borderRadius:20,padding:"8px 16px",fontSize:12,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",cursor:"pointer"}}>{fsSyncing?t("log.syncing"):fsSynced?t("log.synced"):t("log.sync")}</button>}
         </div>
         {fsSynced&&<div style={{background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:12,padding:"9px 14px",marginBottom:16,fontSize:12,color:C.accent}}>{t("log.synced.note")}</div>}
 
@@ -311,9 +311,9 @@ export function LogModal({profile,onSave,onClose}){
 
         {fields.map(field=>(
           <div key={field.key} style={{marginBottom:14}}>
-            <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.9,marginBottom:7,display:"flex",gap:6,alignItems:"center"}}><span>{field.icon}</span>{field.label}</div>
+            <div style={{fontSize:11,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:0.9,marginBottom:7,display:"flex",gap:6,alignItems:"center"}}><span>{field.icon}</span>{field.label}</div>
             <div style={{display:"flex",alignItems:"center",background:C.card,borderRadius:13,border:`1.5px solid ${C.border}`,overflow:"hidden",transition:"border-color 0.2s"}} onFocusCapture={e=>e.currentTarget.style.borderColor=field.color} onBlurCapture={e=>e.currentTarget.style.borderColor=C.border}>
-              <input type="number" value={vals[field.key]} placeholder={field.ph} onChange={e=>set(field.key,e.target.value)} style={{flex:1,background:"none",border:"none",outline:"none",padding:"13px 15px",color:C.text,fontSize:16,fontFamily:"'DM Sans',sans-serif"}}/>
+              <input type="number" value={vals[field.key]} placeholder={field.ph} onChange={e=>set(field.key,e.target.value)} style={{flex:1,background:"none",border:"none",outline:"none",padding:"13px 15px",color:C.text,fontSize:16,fontFamily:"'Inter',system-ui,sans-serif"}}/>
               <span style={{padding:"0 13px 0 0",color:C.muted,fontSize:12,fontWeight:600}}>{field.unit}</span>
             </div>
           </div>
@@ -322,12 +322,12 @@ export function LogModal({profile,onSave,onClose}){
         {/* Measurement fields — shown on measurement days */}
         {isMeasureDay&&(
           <div style={{background:C.purpleDim,border:`1px solid ${C.purple}33`,borderRadius:16,padding:"14px 16px",marginBottom:14}}>
-            <div style={{fontSize:12,color:C.purple,fontWeight:700,marginBottom:12}}>📏 День замеров — внесите обмеры тела</div>
+            <div style={{fontSize:12,color:C.purple,fontWeight:500,marginBottom:12}}>📏 День замеров — внесите обмеры тела</div>
             {[{key:"waist",label:t("measure.waist"),ph:t("measure.waist.ph")},{key:"neck",label:t("measure.neck"),ph:t("measure.neck.ph")},{key:"hips",label:"Бёдра",ph:"напр. 96"}].map(mf=>(
               <div key={mf.key} style={{marginBottom:10}}>
-                <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.9,marginBottom:6}}>{mf.label}</div>
+                <div style={{fontSize:11,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:0.9,marginBottom:6}}>{mf.label}</div>
                 <div style={{display:"flex",alignItems:"center",background:C.card,borderRadius:12,border:`1.5px solid ${C.border}`,overflow:"hidden"}} onFocusCapture={e=>e.currentTarget.style.borderColor=C.purple} onBlurCapture={e=>e.currentTarget.style.borderColor=C.border}>
-                  <input type="number" value={vals[mf.key]} placeholder={mf.ph} onChange={e=>set(mf.key,e.target.value)} step="0.5" style={{flex:1,background:"none",border:"none",outline:"none",padding:"11px 14px",color:C.text,fontSize:15,fontFamily:"'DM Sans',sans-serif"}}/>
+                  <input type="number" value={vals[mf.key]} placeholder={mf.ph} onChange={e=>set(mf.key,e.target.value)} step="0.5" style={{flex:1,background:"none",border:"none",outline:"none",padding:"11px 14px",color:C.text,fontSize:15,fontFamily:"'Inter',system-ui,sans-serif"}}/>
                   <span style={{padding:"0 12px 0 0",color:C.muted,fontSize:12,fontWeight:600}}>см</span>
                 </div>
               </div>
@@ -335,7 +335,7 @@ export function LogModal({profile,onSave,onClose}){
           </div>
         )}
 
-        <button onClick={handleSave} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:15,padding:"15px",fontSize:15,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer",marginTop:10}}>{t("log.save")}</button>
+        <button onClick={handleSave} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:15,padding:"15px",fontSize:15,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",cursor:"pointer",marginTop:10}}>{t("log.save")}</button>
       </div>
     </div>
   );
