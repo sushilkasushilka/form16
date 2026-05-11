@@ -15,6 +15,27 @@ function pct(str) {
     .replace(/\(/g,"%28").replace(/\)/g,"%29").replace(/\*/g,"%2A");
 }
 
+/**
+ * POST /api/fs-verify-pin — exchange a PIN for a permanent FatSecret access token.
+ *
+ * Request body:
+ *   @param {{ userId: string, oauth_token: string, oauth_token_secret: string, pin: string }} body
+ *     - oauth_token / oauth_token_secret come from /api/fs-request-token.
+ *     - pin is the 6-digit code FatSecret showed the user after they approved access.
+ *
+ * Responses:
+ *   200 { ok: true }                           — token saved on the user's profile
+ *   400 { error: "Missing fields" | "Invalid PIN or expired token", raw? }
+ *   405                                        — non-POST method
+ *   500 { error: string }                      — DB or network failure
+ *
+ * Side effects:
+ *   On success, sets `profiles.fs_oauth_token`, `profiles.fs_oauth_secret`, and
+ *   `profiles.fatsecret_connected = true` for the given userId.
+ *
+ * @param {import('@vercel/node').VercelRequest} req
+ * @param {import('@vercel/node').VercelResponse} res
+ */
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 

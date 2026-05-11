@@ -19,6 +19,27 @@ function toFSDate(date = new Date()) {
   return Math.floor((date - new Date(1970,0,1)) / 86400000);
 }
 
+/**
+ * POST /api/fs-sync — pull today's diary totals from FatSecret for one user.
+ *
+ * Request body:
+ *   @param {{ userId: string }} body
+ *
+ * Responses:
+ *   200 { calories, protein, carbs, fat, entries, fromFatSecret? }
+ *       Numeric totals (rounded). When the user has no entries today, returns
+ *       all zeros without `fromFatSecret`. When entries exist, includes
+ *       `fromFatSecret: true` so the client can mark the log accordingly.
+ *   400 { error: "Missing userId" | "FatSecret not connected" }
+ *   405                                            — non-POST method
+ *   500 { error: string }                          — network failure
+ *
+ * No DB writes — just signs and proxies a `food_entries.get.v2` call to
+ * FatSecret using tokens stored on the user's profile.
+ *
+ * @param {import('@vercel/node').VercelRequest} req
+ * @param {import('@vercel/node').VercelResponse} res
+ */
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   const { userId } = req.body;

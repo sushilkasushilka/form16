@@ -9,6 +9,29 @@ const supabase = createClient(
 const DAILY_LIMIT_FREE = 3;
 const DAILY_LIMIT_PAID = 10;
 
+/**
+ * POST /api/chat — send a message to the AI coach.
+ *
+ * Request body:
+ *   @param {{ userId: string, message: string }} body
+ *
+ * Responses:
+ *   200 { reply: string, remaining: number, limit: number, isSubscribed: boolean }
+ *   400 { error: "Missing fields" }                — userId or message missing
+ *   404 { error: "Profile not found" }             — userId has no profiles row
+ *   405                                            — non-POST method
+ *   429 { error: "limit_reached", limit, isSubscribed }
+ *                                                  — daily message cap hit
+ *   500 { error: string | "No response from AI" }  — Claude or DB failure
+ *
+ * Side effects:
+ * - Inserts user message into `messages` (read_by_coach=false).
+ * - Inserts assistant reply into `messages` (read_by_coach=false).
+ * - Bumps profiles.daily_ai_count and resets profiles.daily_ai_date when a new day rolls over.
+ *
+ * @param {import('@vercel/node').VercelRequest} req
+ * @param {import('@vercel/node').VercelResponse} res
+ */
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 

@@ -10,6 +10,25 @@ function pct(str) {
     .replace(/\(/g,"%28").replace(/\)/g,"%29").replace(/\*/g,"%2A");
 }
 
+/**
+ * GET /api/fs-request-token — start the FatSecret OAuth 1.0a "out of band" flow.
+ *
+ * Query params:
+ *   @param {string} userId — Supabase profile id (passed back through the callback)
+ *
+ * Responses:
+ *   200 { oauth_token, oauth_token_secret, authorize_url }
+ *       The client opens authorize_url in a new tab; FatSecret then displays
+ *       a 6-digit PIN which the user pastes into /api/fs-verify-pin.
+ *   400 { error: "Missing userId" }
+ *   500 { error: "Missing env vars" | "No token" | string }
+ *
+ * Required env vars: FATSECRET_CLIENT_ID, FATSECRET_CLIENT_SECRET.
+ * No DB writes — the temporary token is held by the client.
+ *
+ * @param {import('@vercel/node').VercelRequest} req
+ * @param {import('@vercel/node').VercelResponse} res
+ */
 export default async function handler(req, res) {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ error: "Missing userId" });
