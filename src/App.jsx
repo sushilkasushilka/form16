@@ -240,6 +240,9 @@ export default function App(){
         neck: l.neck,
         hips: l.hips,
         bfp: l.bfp,
+        // Boolean checkbox — week 4+ evening log; consumed by the
+        // "Овощи" row in the MissionStrip expanded grid (week 5+).
+        greens: l.greens,
         fromFatSecret: l.from_fatsecret,
       })),
       dailyTargets: {
@@ -317,8 +320,9 @@ export default function App(){
     if (!userId) return;
 
     // Upsert — replaces existing log for same date.
-    // NOTE: requires `waist`, `neck`, `hips`, `bfp` columns (numeric, nullable)
-    // on `daily_logs`. Add them via Supabase Dashboard → Table Editor.
+    // NOTE: requires `waist`, `neck`, `hips`, `bfp` (numeric, nullable) and
+    // `greens` (boolean, nullable) columns on `daily_logs`. Add them via
+    // Supabase Dashboard → Table Editor.
     const { error } = await supabase.from("daily_logs").upsert({
       user_id: userId,
       date: log.date,
@@ -330,6 +334,10 @@ export default function App(){
       neck:  log.neck  ?? null,
       hips:  log.hips  ?? null,
       bfp:   log.bfp   ?? null,
+      // Treat `undefined` as "field not in this update" rather than
+      // overwriting a previously-saved true. Only `false` and `true`
+      // explicit values flow through.
+      ...(typeof log.greens === "boolean" ? { greens: log.greens } : {}),
       from_fatsecret: log.fromFatSecret || false,
     }, { onConflict: "user_id,date" });
     if (error) console.error("saveLog Supabase error:", error);
