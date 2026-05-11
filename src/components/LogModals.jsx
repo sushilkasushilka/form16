@@ -91,7 +91,15 @@ export function MorningLogModal({ profile, userGlobalDay, isMeasureOverdue, onSa
       log.waist = parseFloat(waist);
       log.neck  = parseFloat(neck);
       if(profile.gender==="female" && hips) log.hips = parseFloat(hips);
-      const bfp = calcBFP(log.waist,log.neck,profile.height,profile.gender,log.hips);
+      const bfp = calcBFP({
+        weight: log.weight,
+        height: profile.height,
+        age:    profile.age,
+        waist:  log.waist,
+        neck:   log.neck,
+        gender: profile.gender,
+        hip:    log.hips,
+      });
       if(bfp!=="—") log.bfp = parseFloat(bfp);
     }
     onSave(log);
@@ -271,7 +279,15 @@ export function LogModal({profile,onSave,onClose}){
     };
     // Recalculate BFP if measurements provided
     if(log.waist&&log.neck&&profile.height){
-      const bfp = calcBFP(log.waist,log.neck,profile.height,profile.gender,log.hips||profile.thigh);
+      const bfp = calcBFP({
+        weight: log.weight,
+        height: profile.height,
+        age:    profile.age,
+        waist:  log.waist,
+        neck:   log.neck,
+        gender: profile.gender,
+        hip:    log.hips,
+      });
       if(bfp!=="—") log.bfp = parseFloat(bfp);
     }
     onSave(log);

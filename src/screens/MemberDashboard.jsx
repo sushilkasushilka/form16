@@ -11,7 +11,7 @@ import { MetricBar, WeightChart } from "../components/ui.jsx";
 import { FatSecretConnect } from "../components/FatSecretConnect.jsx";
 import { InlineChatBar, ChatModal } from "../components/Chat.jsx";
 import { DayDetailModal, MorningLogModal, EveningLogModal, LogModal } from "../components/LogModals.jsx";
-import { DailyTaskCarousel } from "../components/DailyTaskCarousel.jsx";
+import { MissionStrip } from "../components/MissionStrip.jsx";
 
 export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened}){
   const [tab,setTab]=useState("today");
@@ -67,13 +67,24 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
 
   return (
     <div style={{minHeight:"100vh",background:C.bg,paddingBottom:88}}>
-      {/* Header */}
+      {/* Header — name + day/week hero + streak. The hero used to live in
+          its own card on the today tab; promoting it here keeps the today
+          screen focused on action items (logs + mission strip + cards). */}
       <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"48px 20px 16px"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           {onBack&&<button onClick={onBack} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20,padding:0,marginRight:2}}>←</button>}
           <div style={{width:44,height:44,borderRadius:14,background:C.accentDim,border:`1.5px solid ${C.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>{profile.avatar}</div>
-          <div style={{flex:1}}><div style={{fontSize:12,color:C.muted}}>{t("header.welcome")}</div><div style={{fontWeight:700,fontSize:16}}>{profile.name}</div></div>
-          <div style={{display:"flex",gap:12,alignItems:"center"}}>
+          <div style={{flex:1, minWidth:0}}>
+            <div style={{fontWeight:700,fontSize:15,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{profile.name}</div>
+            {!isDay0 && (
+              <div style={{fontSize:11,color:C.muted,marginTop:2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                <span style={{color:C.accent,fontWeight:700}}>День {userGlobalDay}</span>
+                <span style={{margin:"0 6px",color:C.dim}}>·</span>
+                Неделя {currentWeekNum} — {currentWeekData.theme}
+              </div>
+            )}
+          </div>
+          <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
             <div style={{textAlign:"center"}}><div style={{fontSize:16,fontWeight:800,color:C.orange}}>🔥{profile.streak}</div><div style={{fontSize:10,color:C.muted}}>{t("header.streak")}</div></div>
             {onSignOut&&<button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:10,padding:"5px 10px",color:C.muted,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{t("header.signout")}</button>}
           </div>
@@ -85,13 +96,10 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
       {tab==="today"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
 
-          {/* Day progress + date + log buttons */}
+          {/* Compact log row + program-progress bar (the hero moved to header) */}
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 16px",marginBottom:14}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-              <div>
-                <div style={{fontFamily:"'Syne',sans-serif",fontSize:20,fontWeight:800,color:C.accent}}>День {userGlobalDay} <span style={{fontSize:13,color:C.muted,fontWeight:400}}>из 112</span></div>
-                <div style={{fontSize:11,color:C.muted,marginTop:1}}>Неделя {currentWeekNum} — {currentWeekData.theme}</div>
-              </div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,gap:10}}>
+              <div style={{fontSize:12,color:C.muted,textTransform:"capitalize"}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"})}</div>
               <div style={{display:"flex",gap:8,flexShrink:0}}>
                 <button onClick={()=>setShowMorningLog(true)} style={{background:todayLog?.weight?C.accentDim:C.accent,color:todayLog?.weight?C.accent:C.bg,border:todayLog?.weight?`1.5px solid ${C.accent}55`:"none",borderRadius:18,padding:"8px 12px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>
                   {todayLog?.weight?"⚖️ ✓":"⚖️ Утро"}
@@ -104,7 +112,7 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
             <div style={{height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}>
               <div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${Math.min(100,(userGlobalDay/112)*100)}%`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
             </div>
-            <div style={{fontSize:11,color:C.muted,marginTop:5}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"})}</div>
+            <div style={{fontSize:10,color:C.muted,marginTop:5,textAlign:"right"}}>{userGlobalDay} / 112</div>
           </div>
 
           {/* ── DAY 0 FULL TAKEOVER ── */}
@@ -195,72 +203,16 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
             /* ── NORMAL DAY 1+ CONTENT ── */
             <>
 
-              {/* ── HABIT TRACKER GRID ── */}
-              {(()=>{
-                // Habits unlock progressively by week
-                const habits = [
-                  {id:"weight", icon:"⚖️", label:"Вес",     col:"#1D9E75", unlocksWeek:1, check:(log)=>log?.weight>0},
-                  {id:"meals",  icon:"🍽️", label:"Питание", col:"#378ADD", unlocksWeek:1, check:(log)=>log?.calories>0},
-                  {id:"steps",  icon:"👟", label:"Шаги",    col:"#BA7517", unlocksWeek:2, check:(log)=>log?.steps>0},
-                  {id:"protein",icon:"🥩", label:"Белок",   col:"#7F77DD", unlocksWeek:3, check:(log)=>log?.protein>0},
-                ].filter(h=>currentWeekNum>=h.unlocksWeek);
-
-                // Build 7 days of current week
-                const weekStartGlobalDay = (currentWeekNum-1)*7+1;
-                const weekDays = Array.from({length:7},(_,i)=>{
-                  const gd = weekStartGlobalDay+i;
-                  const date = new Date(profile.joinedAt);
-                  date.setDate(date.getDate()+gd);
-                  const dateStr = date.toISOString().split("T")[0];
-                  const log = profile.logs.find(l=>l.date===dateStr);
-                  const isToday = gd===userGlobalDay;
-                  const isPast = gd<userGlobalDay;
-                  const isFuture = gd>userGlobalDay;
-                  return {gd,dateStr,log,isToday,isPast,isFuture,dayNum:i+1};
-                });
-
-                const dayLabels=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
-
-                return (
-                  <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"12px 14px",marginBottom:14,overflowX:"auto"}}>
-                    <div style={{fontSize:11,color:C.muted,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:10}}>Привычки недели</div>
-                    <table style={{width:"100%",borderCollapse:"collapse"}}>
-                      <thead>
-                        <tr>
-                          <td style={{width:80,paddingBottom:6}}/>
-                          {weekDays.map(d=>(
-                            <td key={d.gd} style={{textAlign:"center",paddingBottom:6,width:32}}>
-                              <div style={{fontSize:10,color:d.isToday?C.accent:C.muted,fontWeight:d.isToday?700:400}}>{dayLabels[d.dayNum-1]}</div>
-                              {d.isToday&&<div style={{width:4,height:4,borderRadius:"50%",background:C.accent,margin:"2px auto 0"}}/>}
-                            </td>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {habits.map((habit,hi)=>(
-                          <tr key={habit.id} style={{borderTop:`0.5px solid ${C.border}`}}>
-                            <td style={{padding:"5px 0",display:"flex",alignItems:"center",gap:6}}>
-                              <span style={{fontSize:13}}>{habit.icon}</span>
-                              <span style={{fontSize:11,color:C.muted}}>{habit.label}</span>
-                            </td>
-                            {weekDays.map(d=>{
-                              const done = habit.check(d.log);
-                              const missed = d.isPast && !done;
-                              return (
-                                <td key={d.gd} style={{textAlign:"center",padding:"5px 2px"}}>
-                                  <div style={{width:26,height:26,borderRadius:7,margin:"0 auto",background:done?(d.isToday?habit.col:`${habit.col}33`):missed?"transparent":C.surface,border:missed?`1.5px dashed ${C.border}`:done?"none":`0.5px solid ${C.border}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:done?(d.isToday?"#fff":habit.col):"transparent",opacity:d.isFuture?0.3:1}}>
-                                    {done?"✓":""}
-                                  </div>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })()}
+              {/* ── MISSION STRIP ── one-line week view; tap a circle to expand ── */}
+              {todayDayData && (
+                <MissionStrip
+                  profile={profile}
+                  userGlobalDay={userGlobalDay}
+                  currentWeekNum={currentWeekNum}
+                  currentWeekData={currentWeekData}
+                  onOpenDetails={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})}
+                />
+              )}
 
               {/* ── MEASUREMENT REMINDER ── persistent until logged ── */}
               {missedMeasurement && (
@@ -284,16 +236,6 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
 
               {/* ── INLINE CHAT BAR ── */}
               <InlineChatBar profile={profile} onOpen={()=>setShowChat(true)}/>
-
-              {/* Today's task — Instagram-style swipeable carousel */}
-              {todayDayData && (
-                <DailyTaskCarousel
-                  todayDayData={todayDayData}
-                  currentWeekData={currentWeekData}
-                  profile={profile}
-                  onOpenDetails={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})}
-                />
-              )}
 
               {/* Weight + BFP */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
