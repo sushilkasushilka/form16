@@ -19,7 +19,7 @@
 //   W5–16  — + hit greens target
 //
 // "Hit target" means logged value within the per-day target band:
-//   calories: within ±20% of `dailyTargets.calories`
+//   calories: within ±10% of `dailyTargets.calories`
 //   protein:  ≥ 80% of `dailyTargets.protein`
 //   steps:    ≥ 80% of `dailyTargets.steps`
 //   greens:   `log.greens === true` (the boolean from the evening log)
@@ -50,8 +50,8 @@ const METRICS = {
   caloriesTarget: {
     label: "Цель ккал",
     check: (l, t) => l?.calories > 0 && !!t?.calories
-      && l.calories >= t.calories * 0.8
-      && l.calories <= t.calories * 1.2,
+      && l.calories >= t.calories * 0.9
+      && l.calories <= t.calories * 1.1,
   },
   proteinTarget: {
     label: "Цель белка",
