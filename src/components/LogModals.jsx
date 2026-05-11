@@ -138,10 +138,32 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
   const [protein,  setProtein]  = useState("");
   const [steps,    setSteps]    = useState("");
   const [greens,   setGreens]   = useState(false);
+  const [greensAuto, setGreensAuto] = useState(false); // true when ticked by FS keyword detection
+  const [greensDetected, setGreensDetected] = useState([]); // canonical veg names FS matched
 
   const showProtein = currentWeekNum >= 2;
   const showSteps   = currentWeekNum >= 3;
   const showGreens  = currentWeekNum >= 4;
+
+  // Auto-fill greens + protein/calories from FatSecret when connected (week 4+)
+  useEffect(() => {
+    if (!showGreens || !profile.fatsecretConnected) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const d = await FS.fetchDiaryTotals(profile.id);
+        if (cancelled || !d) return;
+        if (d.calories && !calories) setCalories(String(d.calories));
+        if (d.protein  && !protein)  setProtein(String(d.protein));
+        if (d.greens) {
+          setGreens(true);
+          setGreensAuto(true);
+          setGreensDetected(d.greensDetected || []);
+        }
+      } catch { /* sync failure is non-fatal — user can fill manually */ }
+    })();
+    return () => { cancelled = true; };
+  }, [showGreens, profile.fatsecretConnected, profile.id]);
 
   function handleSave() {
     const todayExisting = profile.logs?.find(l=>l.date===todayStr())||{};
@@ -183,11 +205,18 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
         ))}
 
         {showGreens&&(
-          <div onClick={()=>setGreens(v=>!v)} style={{display:"flex",alignItems:"center",gap:12,background:greens?`${C.accent}14`:C.card,border:`1.5px solid ${greens?C.accent:C.border}`,borderRadius:14,padding:"14px 16px",marginBottom:12,cursor:"pointer",transition:"all 0.15s"}}>
+          <div onClick={()=>{setGreens(v=>!v);setGreensAuto(false);}} style={{display:"flex",alignItems:"center",gap:12,background:greens?`${C.accent}14`:C.card,border:`1.5px solid ${greens?C.accent:C.border}`,borderRadius:14,padding:"14px 16px",marginBottom:12,cursor:"pointer",transition:"all 0.15s"}}>
             <div style={{width:24,height:24,borderRadius:8,background:greens?C.accent:C.dim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:greens?C.bg:"transparent",flexShrink:0}}>✓</div>
-            <div>
-              <div style={{fontSize:13,fontWeight:600}}>🥦 Съел овощи сегодня</div>
-              <div style={{fontSize:11,color:C.muted}}>Минимум 2 порции разных овощей</div>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <div style={{fontSize:13,fontWeight:600}}>🥦 Съел овощи сегодня</div>
+                {greensAuto&&<span style={{fontSize:10,color:C.accent,background:C.accentDim,padding:"2px 8px",borderRadius:20,fontWeight:700}}>⚡ FatSecret</span>}
+              </div>
+              <div style={{fontSize:11,color:C.muted}}>
+                {greensAuto && greensDetected.length>0
+                  ? `Найдено по дневнику: ${greensDetected.slice(0,3).join(", ")}${greensDetected.length>3?` +${greensDetected.length-3}`:""}`
+                  : "Минимум 2 порции разных овощей"}
+              </div>
             </div>
           </div>
         )}
