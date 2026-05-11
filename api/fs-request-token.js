@@ -2,7 +2,7 @@
 import crypto from "crypto";
 
 const FS_REQUEST_TOKEN_URL = "https://authentication.fatsecret.com/oauth/request_token";
-const FS_AUTHORIZE_URL     = "https://www.fatsecret.com/oauth/authorize";
+const FS_AUTHORIZE_URL     = "https://authentication.fatsecret.com/oauth/authorize";
 
 function pct(str) {
   return encodeURIComponent(String(str))
