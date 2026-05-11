@@ -11,6 +11,7 @@ import { MetricBar, WeightChart } from "../components/ui.jsx";
 import { FatSecretConnect } from "../components/FatSecretConnect.jsx";
 import { InlineChatBar, ChatModal } from "../components/Chat.jsx";
 import { DayDetailModal, MorningLogModal, EveningLogModal, LogModal } from "../components/LogModals.jsx";
+import { DailyTaskCarousel } from "../components/DailyTaskCarousel.jsx";
 
 export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened}){
   const [tab,setTab]=useState("today");
@@ -284,56 +285,14 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
               {/* ── INLINE CHAT BAR ── */}
               <InlineChatBar profile={profile} onOpen={()=>setShowChat(true)}/>
 
-              {/* Today's task card */}
+              {/* Today's task — Instagram-style swipeable carousel */}
               {todayDayData && (
-                <div style={{background:`${taskTypeColor}18`,border:`1px solid ${taskTypeColor}44`,borderRadius:22,padding:"18px 20px",marginBottom:14}}>
-                  <div style={{fontSize:11,color:taskTypeColor,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:10}}>
-                    🎯 День {todayDayData.day} · {todayDayData.type}
-                  </div>
-                  <div style={{display:"flex",gap:13,alignItems:"flex-start"}}>
-                    <div style={{width:52,height:52,borderRadius:16,background:`${taskTypeColor}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,flexShrink:0}}>{todayDayData.icon}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{todayDayData.title}</div>
-                      <div style={{fontSize:13,color:C.muted,lineHeight:1.65}}>{todayDayData.task}</div>
-                      <div style={{marginTop:10,display:"flex",alignItems:"center",justifyContent:"flex-end"}}>
-                        <button onClick={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})} style={{fontSize:11,color:taskTypeColor,background:`${taskTypeColor}18`,border:"none",borderRadius:20,padding:"4px 12px",cursor:"pointer",fontFamily:"'DM Sans',sans-serif",fontWeight:700}}>Детали →</button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Extended info blocks */}
-                  {todayDayData.info&&(
-                    <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:10}}>
-                      {todayDayData.info.why&&(<div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}><div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>📖 Почему это важно</div><div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.why}</div></div>)}
-                      {todayDayData.info.howTo&&(<div style={{background:C.surface,borderRadius:14,padding:"14px 16px"}}><div style={{fontSize:11,color:taskTypeColor,fontWeight:700,marginBottom:8,textTransform:"uppercase",letterSpacing:0.8}}>✅ Как это делать</div><div style={{fontSize:12,color:C.muted,lineHeight:1.8,whiteSpace:"pre-line"}}>{todayDayData.info.howTo}</div></div>)}
-                      {todayDayData.info.weekTarget&&(<div style={{background:`${taskTypeColor}10`,border:`1px solid ${taskTypeColor}33`,borderRadius:14,padding:"12px 14px"}}><div style={{fontSize:12,color:C.muted,lineHeight:1.7,whiteSpace:"pre-line"}}><b style={{color:taskTypeColor}}>🎯 </b>{todayDayData.info.weekTarget}</div></div>)}
-                    </div>
-                  )}
-
-                  {/* Weekly stats — Day 8 */}
-                  {todayDayData.isWeeklyStats&&profile.logs.length>0&&(()=>{
-                    const w7=profile.logs.slice(-7);
-                    const avgCal=w7.length?Math.round(w7.reduce((s,l)=>s+(l.calories||0),0)/w7.length):0;
-                    const avgProt=w7.length?Math.round(w7.reduce((s,l)=>s+(l.protein||0),0)/w7.length):0;
-                    const avgSteps=w7.length?Math.round(w7.reduce((s,l)=>s+(l.steps||0),0)/w7.length):0;
-                    const avgWeight=w7.length?+(w7.reduce((s,l)=>s+(l.weight||0),0)/w7.length).toFixed(1):profile.weight;
-                    const tdee=profile.tdee||2000; const protTarget=profile.dailyTargets?.protein||150; const calDiff=avgCal-tdee;
-                    return(<div style={{marginTop:14,background:C.surface,borderRadius:16,padding:"16px"}}>
-                      <div style={{fontSize:12,color:C.accent,fontWeight:700,marginBottom:14,textTransform:"uppercase",letterSpacing:0.8}}>📊 Статистика за неделю 1</div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>{[{label:"Ср. вес",val:`${avgWeight} кг`,color:C.blue},{label:"Ср. калории",val:`${avgCal} ккал`,color:C.orange},{label:"Ср. белок",val:`${avgProt} г`,color:C.purple},{label:"Ср. шаги",val:avgSteps.toLocaleString(),color:C.accent}].map(s=>(<div key={s.label} style={{background:C.card,borderRadius:12,padding:"10px 12px"}}><div style={{fontSize:10,color:C.muted,marginBottom:4}}>{s.label}</div><div style={{fontFamily:"'Syne',sans-serif",fontSize:16,fontWeight:800,color:s.color}}>{s.val}</div></div>))}</div>
-                      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                        <div style={{fontSize:11,color:C.muted,fontWeight:700,marginBottom:2}}>💡 Рекомендации</div>
-                        {avgCal>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>🔥 <b style={{color:C.orange}}>{avgCal} ккал/день</b>. {calDiff>300?"Выше нормы — попробуй уменьшить порции.":calDiff<-500?"Ниже нормы — не голодай.":"Отлично — близко к норме!"}</div>}
-                        {avgProt>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>🥩 <b style={{color:C.purple}}>{avgProt} г/день</b> из {protTarget} г. {avgProt<protTarget*0.7?"Добавь белок к каждому приёму пищи.":avgProt<protTarget*0.9?"Почти у цели!":"Отлично!"}</div>}
-                        {avgSteps>0&&<div style={{background:C.card,borderRadius:12,padding:"10px 12px",fontSize:12,color:C.muted,lineHeight:1.6}}>👟 <b style={{color:C.accent}}>{avgSteps.toLocaleString()}/день</b>. {avgSteps<5000?"Добавь прогулку после обеда.":avgSteps<8000?"Цель — 8 000 шагов.":"Отличная активность!"}</div>}
-                      </div>
-                    </div>);
-                  })()}
-
-                  <div style={{marginTop:12,background:C.accentDim,border:`1px solid ${C.accent}22`,borderRadius:11,padding:"9px 13px"}}>
-                    <div style={{fontSize:12,color:C.muted,lineHeight:1.65}}><b style={{color:C.accent}}>{todayDayData.tip.cat}:</b> {todayDayData.tip.text}</div>
-                  </div>
-                </div>
+                <DailyTaskCarousel
+                  todayDayData={todayDayData}
+                  currentWeekData={currentWeekData}
+                  profile={profile}
+                  onOpenDetails={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})}
+                />
               )}
 
               {/* Weight + BFP */}
