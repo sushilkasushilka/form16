@@ -491,6 +491,33 @@ export function getTodayData(profile) {
   return { week, day, isDay0: false };
 }
 
+// Tells the UI when body measurements are due but haven't been logged yet.
+// Returns null when there's nothing to nag the user about, or
+// `{ weekNum, daysSince }` describing the most recent missed measurement
+// window. Measurement days are every 7th day of the program (day 7, 14, 21…).
+export function getMissedMeasurement(profile) {
+  const globalDay = getUserGlobalDay(profile);
+  if (globalDay < 7 || !profile?.joinedAt) return null;
+
+  const lastMeasureDay = Math.floor(globalDay / 7) * 7; // 7, 14, 21…
+  const joined = new Date(profile.joinedAt);
+  joined.setHours(0,0,0,0);
+  const measureDate = new Date(joined);
+  measureDate.setDate(measureDate.getDate() + lastMeasureDay);
+  const measureDateStr = measureDate.toISOString().split("T")[0];
+
+  // Was a measurement logged on the measurement day or any day after?
+  const hasMeasurement = (profile.logs || []).some(l =>
+    l.date >= measureDateStr && l.waist != null && l.neck != null
+  );
+  if (hasMeasurement) return null;
+
+  return {
+    weekNum:   lastMeasureDay / 7,
+    daysSince: globalDay - lastMeasureDay,
+  };
+}
+
 // ─── MOCK DATA ────────────────────────────────────────────────────────────────
 export function makeLogs(bw, bc, days) {
   return Array.from({ length: days }, (_, i) => {

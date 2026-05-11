@@ -76,8 +76,10 @@ export function DayDetailModal({ weekData, day, onClose }) {
   );
 }
 
-export function MorningLogModal({ profile, userGlobalDay, onSave, onClose }) {
-  const isMeasureDay = userGlobalDay > 0 && userGlobalDay % 7 === 0;
+export function MorningLogModal({ profile, userGlobalDay, isMeasureOverdue, onSave, onClose }) {
+  // Show measurement fields when today is a scheduled measurement day OR when
+  // the user missed a previous one — in either case the data is what we need.
+  const isMeasureDay = (userGlobalDay > 0 && userGlobalDay % 7 === 0) || !!isMeasureOverdue;
   const [weight, setWeight] = useState(String(profile.weight||""));
   const [waist,  setWaist]  = useState("");
   const [neck,   setNeck]   = useState("");
@@ -110,7 +112,9 @@ export function MorningLogModal({ profile, userGlobalDay, onSave, onClose }) {
         {isMeasureDay&&(
           <>
             <div style={{background:C.accentDim,border:`1px solid ${C.accent}33`,borderRadius:14,padding:"10px 14px",marginBottom:16,fontSize:12,color:C.muted,lineHeight:1.6}}>
-              📏 Раз в 7 дней замеряем тело для расчёта % жира. Используй сантиметровую ленту.
+              📏 {isMeasureOverdue
+                ? "Замеры пропущены — внеси сейчас, чтобы пересчитать % жира."
+                : "Раз в 7 дней замеряем тело для расчёта % жира. Используй сантиметровую ленту."}
             </div>
             <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Талия (см) — на уровне пупка</div>
             <input type="number" value={waist} onChange={e=>setWaist(e.target.value)} placeholder="0" style={{...inputStyle,fontSize:18}}/>
