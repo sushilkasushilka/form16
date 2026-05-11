@@ -234,6 +234,12 @@ export default function App(){
         calories: l.calories,
         protein: l.protein,
         steps: l.steps,
+        // Body measurements + computed body-fat percentage. Optional —
+        // only present on logs created on/after a measurement day.
+        waist: l.waist,
+        neck: l.neck,
+        hips: l.hips,
+        bfp: l.bfp,
         fromFatSecret: l.from_fatsecret,
       })),
       dailyTargets: {
@@ -310,23 +316,43 @@ export default function App(){
     const userId = session?.user?.id;
     if (!userId) return;
 
-    // Upsert — replaces existing log for same date
-    await supabase.from("daily_logs").upsert({
+    // Upsert — replaces existing log for same date.
+    // NOTE: requires `waist`, `neck`, `hips`, `bfp` columns (numeric, nullable)
+    // on `daily_logs`. Add them via Supabase Dashboard → Table Editor.
+    const { error } = await supabase.from("daily_logs").upsert({
       user_id: userId,
       date: log.date,
       weight: log.weight,
       calories: log.calories,
       protein: log.protein,
       steps: log.steps,
+      waist: log.waist ?? null,
+      neck:  log.neck  ?? null,
+      hips:  log.hips  ?? null,
+      bfp:   log.bfp   ?? null,
       from_fatsecret: log.fromFatSecret || false,
     }, { onConflict: "user_id,date" });
+    if (error) console.error("saveLog Supabase error:", error);
 
     setProfile(p => ({
       ...p,
       logs: [...(p.logs||[]).filter(l=>l.date!==log.date), log],
       streak: p.streak + (p.logs?.at(-1)?.date !== todayStr() ? 1 : 0),
       totalXP: p.totalXP + 20,
+      // Bubble the latest BFP up onto the profile so the BFP card on the
+      // today/account screens reflects it without waiting for a reload.
+      ...(log.bfp ? { bfp: log.bfp } : {}),
     }));
+
+    // Persist the new BFP to the profiles row too — otherwise the local
+    // value above is lost on the next page load.
+    if (log.bfp) {
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update({ bfp: log.bfp })
+        .eq("id", userId);
+      if (profErr) console.error("saveLog profile.bfp error:", profErr);
+    }
   }
 
   async function signOut() {
