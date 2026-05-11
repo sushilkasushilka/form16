@@ -6,7 +6,7 @@ import { supabase } from "../supabase.js";
 import { C } from "../theme.js";
 import { todayStr, fmtDate, calcBMI } from "../utils.js";
 import { t } from "../i18n.js";
-import { PROGRAM, getUserGlobalDay, getTodayData } from "../program.js";
+import { PROGRAM, getUserGlobalDay, getTodayData, getMissedMeasurement } from "../program.js";
 import { MetricBar, WeightChart } from "../components/ui.jsx";
 import { FatSecretConnect } from "../components/FatSecretConnect.jsx";
 import { InlineChatBar, ChatModal } from "../components/Chat.jsx";
@@ -49,6 +49,7 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
   const userGlobalDay = getUserGlobalDay(profile);
   const currentWeekNum = Math.max(1, Math.min(16, Math.ceil((userGlobalDay) / 7) || 1));
   const { week: currentWeekData, day: todayDayData, isDay0 } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
+  const missedMeasurement = getMissedMeasurement(profile);
   const fsSyncData=profile.fsSyncData;
   const nutritionSource=fsSyncData&&profile.fsSyncedAt&&new Date(profile.fsSyncedAt).toISOString().split("T")[0]===todayStr()?fsSyncData:todayLog;
 
@@ -260,17 +261,23 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                 );
               })()}
 
-              {/* ── MEASUREMENT REQUEST ── every 7 days ── */}
-              {userGlobalDay>0 && userGlobalDay%7===0 && !todayLog?.waist && (
+              {/* ── MEASUREMENT REMINDER ── persistent until logged ── */}
+              {missedMeasurement && (
                 <div style={{background:`${C.purple}14`,border:`1.5px solid ${C.purple}44`,borderRadius:18,padding:"14px 16px",marginBottom:14}}>
-                  <div style={{fontSize:11,color:C.purple,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>📏 День замеров — Неделя {currentWeekNum}</div>
+                  <div style={{fontSize:11,color:C.purple,fontWeight:700,textTransform:"uppercase",letterSpacing:0.8,marginBottom:8}}>
+                    📏 {missedMeasurement.daysSince === 0
+                      ? `День замеров — Неделя ${missedMeasurement.weekNum}`
+                      : `Замеры за неделю ${missedMeasurement.weekNum} — пропущены ${missedMeasurement.daysSince} ${missedMeasurement.daysSince === 1 ? "день" : missedMeasurement.daysSince < 5 ? "дня" : "дней"} назад`}
+                  </div>
                   <div style={{fontSize:13,color:C.muted,lineHeight:1.65,marginBottom:12}}>
-                    Раз в 7 дней замеряем тело — так мы рассчитываем % жира по методу ВМС США. Нужна сантиметровая лента.
+                    {missedMeasurement.daysSince === 0
+                      ? "Раз в 7 дней замеряем тело — так мы рассчитываем % жира по методу ВМС США. Нужна сантиметровая лента."
+                      : "Внеси замеры сегодня, чтобы пересчитать % жира и не сбить тренд. Нужна сантиметровая лента."}
                     {profile.gender==="male"
                       ? " Замеряй: талию и шею."
                       : " Замеряй: талию, бёдра и шею."}
                   </div>
-                  <button onClick={()=>setShowLog(true)} style={{background:C.purple,color:"#fff",border:"none",borderRadius:14,padding:"10px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>Внести замеры →</button>
+                  <button onClick={()=>setShowMorningLog(true)} style={{background:C.purple,color:"#fff",border:"none",borderRadius:14,padding:"10px 18px",fontSize:13,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>Внести замеры →</button>
                 </div>
               )}
 
@@ -532,7 +539,7 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
       </div>
 
       {showLog&&<LogModal profile={profile} onSave={log=>{handleSaveLog(log);setShowLog(false);}} onClose={()=>setShowLog(false)}/>}
-      {showMorningLog&&<MorningLogModal profile={profile} userGlobalDay={userGlobalDay} onSave={log=>{handleSaveLog(log);setShowMorningLog(false);}} onClose={()=>setShowMorningLog(false)}/>}
+      {showMorningLog&&<MorningLogModal profile={profile} userGlobalDay={userGlobalDay} isMeasureOverdue={!!missedMeasurement} onSave={log=>{handleSaveLog(log);setShowMorningLog(false);}} onClose={()=>setShowMorningLog(false)}/>}
       {showEveningLog&&<EveningLogModal profile={profile} userGlobalDay={userGlobalDay} currentWeekNum={currentWeekNum} onSave={log=>{handleSaveLog(log);setShowEveningLog(false);}} onClose={()=>setShowEveningLog(false)}/>}
       {selectedDay&&<DayDetailModal weekData={selectedDay.weekData} day={selectedDay.day} onClose={()=>setSelectedDay(null)}/>}
       {showChat&&<ChatModal profile={profile} onClose={()=>{setShowChat(false);setUnreadCount(0);}}/>}
