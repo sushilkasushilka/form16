@@ -1,4 +1,4 @@
-// FORM16 Service Worker — Push Notifications
+// Sciencebody Service Worker — Push Notifications
 
 self.addEventListener("install", e => {
   self.skipWaiting();
@@ -10,12 +10,12 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("push", e => {
   const data = e.data ? e.data.json() : {};
-  const title = data.title || "FORM16";
+  const title = data.title || "Sciencebody";
   const options = {
     body: data.body || "",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
-    tag: data.tag || "form16",
+    tag: data.tag || "sciencebody",
     renotify: true,
     data: { url: data.url || "/" },
     actions: data.actions || [],

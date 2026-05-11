@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sciencebody · Today — Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─── Direction 2 · "Studio" ──────────────────────────────────────────
+   Warm dark, refined editorial.
+   Typography: Instrument Serif (italic display) + Manrope (UI).
+   Palette: ink-black background, paper-white text, single warm gold accent.
+   Replaces the current rainbow palette with weight & one accent. */
+:root {
+  --bg: #0B0B0C;
+  --surface: #131315;
+  --card: #1A1A1D;
+  --card-strong: #202023;
+  --line: #2A2A2D;
+  --line-soft: #1F1F22;
+  --text: #F4F2ED;
+  --text-dim: #B4B2AC;
+  --muted: #76757A;
+  --accent: #E8B84B;
+  --accent-soft: rgba(232,184,75,0.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #050505; font-family: 'Manrope', system-ui, sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+.app { max-width: 430px; margin: 0 auto; background: var(--bg); min-height: 100vh; padding-bottom: 100px; }
+
+/* Header */
+.head { padding: 58px 22px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--line-soft); }
+.brand-mark { font-family: 'Instrument Serif', serif; font-size: 30px; font-style: italic; color: var(--accent); line-height: 1; flex-shrink: 0; width: 30px; text-align: center; }
+.brand-text { flex: 1; }
+.brand-name { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 22px; letter-spacing: -0.01em; line-height: 1; }
+.brand-sub { font-size: 10px; color: var(--muted); margin-top: 5px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
+.streak { text-align: right; }
+.streak .num { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 24px; color: var(--accent); line-height: 1; }
+.streak .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.14em; font-weight: 700; margin-top: 4px; }
+
+/* Day hero */
+.day-hero { padding: 26px 22px 20px; }
+.day-eyebrow { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; }
+.day-headline { font-family: 'Instrument Serif', serif; font-size: 40px; font-weight: 400; line-height: 1.05; letter-spacing: -0.012em; margin-top: 10px; }
+.day-headline em { font-style: italic; color: var(--accent); }
+.day-sub { font-size: 13px; color: var(--text-dim); margin-top: 12px; line-height: 1.55; }
+.progress-wrap { margin-top: 20px; }
+.progress { height: 1px; background: var(--line); position: relative; }
+.progress > .fill { position: absolute; left: 0; top: 0; height: 1px; background: var(--accent); width: 22%; }
+.progress > .marker { position: absolute; left: 22%; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); transform: translateX(-50%); }
+.progress-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+
+/* Log buttons */
+.logs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 4px 22px 0; }
+.log-btn { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; cursor: pointer; transition: border-color .15s; text-align: left; color: inherit; font-family: inherit; }
+.log-btn:hover { border-color: var(--accent); }
+.log-top { display: flex; justify-content: space-between; align-items: center; }
+.log-top .ic { font-size: 17px; }
+.log-top .tag { font-size: 9px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 700; }
+.log-val { font-family: 'Instrument Serif', serif; font-size: 24px; font-weight: 400; margin-top: 8px; line-height: 1; }
+.log-val small { font-family: 'Manrope', sans-serif; font-size: 12px; color: var(--muted); font-weight: 500; }
+.log-btn.done { border-color: var(--accent); background: linear-gradient(180deg, rgba(232,184,75,0.06), transparent); }
+.log-btn.done .log-top .ic { color: var(--accent); }
+.log-btn.done .log-val { color: var(--accent); }
+
+/* Section title */
+.section-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.18em; padding: 32px 22px 14px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; }
+.section-title .right { color: var(--accent); font-weight: 700; }
+
+/* Habits */
+.habits-card { margin: 0 22px; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+.habit-table { width: 100%; border-collapse: collapse; }
+.habit-table th { font-size: 10px; color: var(--muted); font-weight: 600; padding-bottom: 12px; text-align: center; letter-spacing: 0.04em; }
+.habit-table th.today { color: var(--accent); font-weight: 700; }
+.habit-table td.lbl { font-size: 12px; color: var(--text-dim); padding: 7px 8px 7px 0; white-space: nowrap; font-weight: 500; }
+.habit-cell { width: 28px; height: 28px; border-radius: 8px; margin: 0 auto; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 12px; color: transparent; font-weight: 700; }
+.habit-cell.done { background: var(--text-dim); color: var(--bg); border-color: var(--text-dim); }
+.habit-cell.today.done { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+.habit-cell.missed { background: transparent; border-style: dashed; }
+
+/* Task */
+.task { margin: 0 22px; background: linear-gradient(135deg, #19191B, #131315); border: 1px solid var(--line); border-radius: 18px; padding: 24px 22px 22px; position: relative; overflow: hidden; }
+.task::after { content: ''; position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; background: radial-gradient(circle, var(--accent-soft) 0%, transparent 65%); pointer-events: none; }
+.task-kind { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.18em; font-weight: 700; position: relative; }
+.task-title { font-family: 'Instrument Serif', serif; font-size: 30px; font-weight: 400; line-height: 1.08; letter-spacing: -0.015em; margin-top: 12px; position: relative; }
+.task-title em { font-style: italic; color: var(--accent); }
+.task-body { font-size: 14px; color: var(--text-dim); line-height: 1.7; margin-top: 14px; position: relative; }
+.task-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); position: relative; }
+.task-target { font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
+.task-target b { color: var(--accent); font-weight: 700; }
+.task-cta { font-size: 11px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; text-decoration: none; }
+
+/* Stats */
+.stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 22px 0; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+.stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+.stat-value { font-family: 'Instrument Serif', serif; font-size: 44px; font-weight: 400; line-height: 1; letter-spacing: -0.025em; margin-top: 12px; }
+.stat-unit { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.stat-delta { font-size: 11px; color: var(--text-dim); margin-top: 12px; }
+.stat-delta b { color: var(--accent); font-weight: 700; }
+
+/* Metrics */
+.metrics { margin: 14px 22px 0; background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 6px 22px; }
+.metric { padding: 16px 0; border-top: 1px solid var(--line-soft); }
+.metric:first-child { border-top: none; }
+.metric-row { display: flex; justify-content: space-between; align-items: baseline; }
+.metric-lbl { font-size: 13px; color: var(--text); font-weight: 600; }
+.metric-val { font-family: 'Instrument Serif', serif; font-size: 20px; font-weight: 400; }
+.metric-val small { font-family: 'Manrope', sans-serif; color: var(--muted); font-size: 11px; font-weight: 500; }
+.bar { height: 2px; background: var(--line); margin-top: 10px; overflow: hidden; }
+.bar > div { height: 100%; background: var(--accent); }
+
+/* Tab bar */
+.tabs { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: rgba(11,11,12,0.88); backdrop-filter: blur(20px); border-top: 1px solid var(--line); display: flex; padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); }
+.tab { flex: 1; background: none; border: none; cursor: pointer; padding: 6px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; font-family: inherit; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+.tab.active { color: var(--accent); }
+.tab .line { width: 18px; height: 1px; background: transparent; }
+.tab.active .line { background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="head">
+    <div class="brand-mark">S</div>
+    <div class="brand-text">
+      <div class="brand-name">Sciencebody</div>
+      <div class="brand-sub">тело по науке</div>
+    </div>
+    <div class="streak">
+      <div class="num">12</div>
+      <div class="lbl">серия</div>
+    </div>
+  </header>
+
+  <section class="day-hero">
+    <div class="day-eyebrow">День 25 · Неделя 4</div>
+    <h1 class="day-headline">Считай <em>белок</em>,<br>не калории.</h1>
+    <div class="day-sub">Понедельник, 11 марта. Фаза недели — состав тела.</div>
+    <div class="progress-wrap">
+      <div class="progress">
+        <div class="fill"></div>
+        <div class="marker"></div>
+      </div>
+      <div class="progress-row">
+        <span>0</span>
+        <span>25 / 112</span>
+        <span>112</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="logs">
+    <button class="log-btn done">
+      <div class="log-top"><span class="ic">⚖</span><span class="tag">Утро · ✓</span></div>
+      <div class="log-val">78.4 <small>кг</small></div>
+    </button>
+    <button class="log-btn">
+      <div class="log-top"><span class="ic">◑</span><span class="tag">Вечер</span></div>
+      <div class="log-val" style="color:var(--muted)">— записать</div>
+    </button>
+  </div>
+
+  <div class="section-title"><span>Привычки недели</span><span class="right">3 / 4</span></div>
+  <div class="habits-card">
+    <table class="habit-table">
+      <thead><tr><th></th><th>Пн</th><th>Вт</th><th>Ср</th><th class="today">Чт</th><th>Пт</th><th>Сб</th><th>Вс</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="lbl">Вес</td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell today done">✓</div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+        </tr>
+        <tr>
+          <td class="lbl">Питание</td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell missed"></div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+        </tr>
+        <tr>
+          <td class="lbl">Шаги</td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell missed"></div></td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+        </tr>
+        <tr>
+          <td class="lbl">Белок</td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell done">✓</div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+          <td><div class="habit-cell"></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-title"><span>Задание дня</span></div>
+  <div class="task">
+    <div class="task-kind">Питание · день 25</div>
+    <h2 class="task-title">Белок в каждом приёме пищи.</h2>
+    <p class="task-body">Цель — 1.6 г белка на килограмм веса. Положи источник белка первым: курица, творог, яйца, тофу. Углеводы и жиры — вторым.</p>
+    <div class="task-foot">
+      <div class="task-target">Сегодня <b>128 / 145 г</b></div>
+      <a href="#" class="task-cta">Подробнее →</a>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat">
+      <div class="stat-label">Вес</div>
+      <div class="stat-value">78.4</div>
+      <div class="stat-unit">кг</div>
+      <div class="stat-delta">с начала <b>−1.6 кг</b></div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">% жира</div>
+      <div class="stat-value">22.1</div>
+      <div class="stat-unit">метод ВМС США</div>
+      <div class="stat-delta">за месяц <b>−1.2</b></div>
+    </div>
+  </div>
+
+  <div class="section-title"><span>Сегодня</span></div>
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-row"><span class="metric-lbl">Калории</span><span class="metric-val">1 840 <small>/ 2 200 ккал</small></span></div>
+      <div class="bar"><div style="width:83%"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-row"><span class="metric-lbl">Белок</span><span class="metric-val">128 <small>/ 145 г</small></span></div>
+      <div class="bar"><div style="width:88%"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-row"><span class="metric-lbl">Шаги</span><span class="metric-val">7 240 <small>/ 10 000</small></span></div>
+      <div class="bar"><div style="width:72%"></div></div>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab active"><div class="line"></div>Сегодня</button>
+    <button class="tab"><div class="line"></div>Программа</button>
+    <button class="tab"><div class="line"></div>Я</button>
+  </nav>
+</div>
+</body>
+</html>

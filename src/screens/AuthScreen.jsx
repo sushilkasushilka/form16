@@ -1,7 +1,7 @@
 // Login / signup screen — wraps Supabase email auth.
 import { useState } from "react";
 import { supabase } from "../supabase.js";
-import { C } from "../theme.js";
+import { C, F, BRAND } from "../theme.js";
 import { t } from "../i18n.js";
 
 export function AuthScreen({ onAuth }) {
@@ -28,19 +28,22 @@ export function AuthScreen({ onAuth }) {
   }
 
   const inputStyle = (name) => ({
-    width:"100%", background:C.card, border:`1.5px solid ${focused===name?C.accent:C.border}`,
-    borderRadius:14, padding:"14px 16px", color:C.text, fontSize:15,
-    fontFamily:"'DM Sans',sans-serif", outline:"none", marginBottom:12,
+    width:"100%", background:C.surface, border:`1.5px solid ${focused===name?C.accent:C.border}`,
+    borderRadius:12, padding:"14px 16px", color:C.text, fontSize:15,
+    fontFamily:F.sans, outline:"none", marginBottom:10,
   });
 
   return (
     <div style={{minHeight:"100vh",background:C.bg,display:"flex",flexDirection:"column",justifyContent:"center",padding:"32px 28px"}}>
       <div style={{textAlign:"center",marginBottom:36}}>
-        <div style={{display:"inline-flex",alignItems:"center",gap:10,background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"8px 16px",marginBottom:24}}>
-          <div style={{width:26,height:26,borderRadius:7,background:C.accent,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>⚡</div>
-          <span style={{fontFamily:"'Syne',sans-serif",fontSize:15,fontWeight:800,color:C.text,letterSpacing:1}}>FORM16</span>
+        <div style={{display:"inline-flex",alignItems:"center",gap:10,marginBottom:28}}>
+          <div style={{width:32,height:32,borderRadius:8,background:C.text,color:C.bg,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:F.serif,fontWeight:600,fontSize:18,letterSpacing:"-0.02em"}}>S</div>
+          <div style={{textAlign:"left"}}>
+            <div style={{fontFamily:F.serif,fontSize:17,fontWeight:500,color:C.text,letterSpacing:"-0.015em",lineHeight:1}}>{BRAND.name}</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:3}}>{BRAND.tagline}</div>
+          </div>
         </div>
-        <div style={{fontFamily:"'Syne',sans-serif",fontSize:28,fontWeight:800,color:C.text,marginBottom:8}}>
+        <div style={{fontFamily:F.serif,fontSize:30,fontWeight:400,color:C.text,marginBottom:8,letterSpacing:"-0.02em",lineHeight:1.15}}>
           {mode==="login"?t("auth.welcome_back"):t("auth.create_account")}
         </div>
         <div style={{fontSize:14,color:C.muted}}>
@@ -56,16 +59,16 @@ export function AuthScreen({ onAuth }) {
         onKeyDown={e=>e.key==="Enter"&&handleEmail()}
       />
 
-      {error && <div style={{fontSize:13,color:C.red,marginBottom:12,background:C.redDim,borderRadius:10,padding:"8px 12px"}}>{error}</div>}
-      {message && <div style={{fontSize:13,color:C.accent,marginBottom:12,background:C.accentDim,borderRadius:10,padding:"8px 12px"}}>{message}</div>}
+      {error && <div style={{fontSize:13,color:C.red,marginBottom:12,background:C.redDim,borderRadius:10,padding:"10px 12px"}}>{error}</div>}
+      {message && <div style={{fontSize:13,color:C.accent,marginBottom:12,background:C.accentDim,borderRadius:10,padding:"10px 12px"}}>{message}</div>}
 
-      <button onClick={handleEmail} disabled={loading} style={{width:"100%",background:loading?C.dim:C.accent,color:loading?C.muted:C.bg,border:"none",borderRadius:16,padding:"16px",fontSize:16,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:loading?"default":"pointer",marginBottom:16}}>
+      <button onClick={handleEmail} disabled={loading} style={{width:"100%",background:loading?C.dim:C.text,color:loading?C.muted:C.bg,border:"none",borderRadius:14,padding:"15px",fontSize:15,fontWeight:600,fontFamily:F.sans,cursor:loading?"default":"pointer",marginBottom:18,marginTop:6,letterSpacing:"0.01em"}}>
         {loading?t("auth.loading"):mode==="login"?t("auth.signin_btn"):t("auth.signup_btn")}
       </button>
 
       <div style={{textAlign:"center",fontSize:14,color:C.muted}}>
         {mode==="login"?t("auth.no_account"):t("auth.has_account")}
-        <span onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setMessage("");}} style={{color:C.accent,cursor:"pointer",fontWeight:700}}>
+        <span onClick={()=>{setMode(mode==="login"?"signup":"login");setError("");setMessage("");}} style={{color:C.accent,cursor:"pointer",fontWeight:600,marginLeft:4}}>
           {mode==="login"?t("auth.signup_link"):t("auth.signin_link")}
         </span>
       </div>
