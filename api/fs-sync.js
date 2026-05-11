@@ -19,6 +19,54 @@ function toFSDate(date = new Date()) {
   return Math.floor((date - new Date(1970,0,1)) / 86400000);
 }
 
+// Greens detection — matches food entry names against vegetable keywords.
+// Each key is a canonical vegetable; the array contains substrings (lowercased)
+// that should map to it. We deliberately exclude the bare words "salad" / "салат"
+// because they hit too many composed dishes (оливье, цезарь). When in doubt,
+// prefer false negatives — the user can still tick the checkbox manually.
+const GREENS_KEYWORDS = {
+  spinach:     ["spinach", "шпинат"],
+  kale:        ["kale", "кейл"],
+  arugula:     ["arugula", "rocket", "руккола", "рукола"],
+  lettuce:     ["lettuce", "romaine", "латук", "айсберг"],
+  chard:       ["chard", "мангольд"],
+  broccoli:    ["broccoli", "брокколи"],
+  cauliflower: ["cauliflower", "цветная капуста"],
+  brussels:    ["brussels sprout", "брюссельская"],
+  cabbage:     ["cabbage", "белокочанная", "краснокочанная", "капуст"],
+  cucumber:    ["cucumber", "огурец", "огурц"],
+  tomato:      ["tomato", "помидор", "томат"],
+  pepper:      ["bell pepper", "sweet pepper", "болгарский перец", "перец слад"],
+  carrot:      ["carrot", "морков"],
+  zucchini:    ["zucchini", "courgette", "кабачок", "цукини"],
+  eggplant:    ["eggplant", "aubergine", "баклажан"],
+  pumpkin:     ["pumpkin", "тыкв"],
+  beet:        ["beetroot", "свекл"],
+  radish:      ["radish", "редис", "редьк"],
+  onion:       ["onion", "лук репчат", "лук-пор", "leek"],
+  garlic:      ["garlic", "чеснок"],
+  asparagus:   ["asparagus", "спаржа"],
+  artichoke:   ["artichoke", "артишок"],
+  celery:      ["celery", "сельдерей"],
+  green_bean:  ["green bean", "стручковая фасоль", "стручк фасол"],
+  herbs:       ["parsley", "dill", "cilantro", "basil", "петрушк", "укроп", "кинза", "базилик"],
+  greens_misc: ["mixed greens", "salad greens", "зелень", "микс зелен"],
+};
+
+const GREENS_THRESHOLD = 2; // distinct vegetable types per day
+
+function detectGreens(entries) {
+  const detected = new Set();
+  for (const entry of entries) {
+    const name = String(entry?.food_entry_name || entry?.food_name || "").toLowerCase();
+    if (!name) continue;
+    for (const [key, keywords] of Object.entries(GREENS_KEYWORDS)) {
+      if (keywords.some(kw => name.includes(kw))) detected.add(key);
+    }
+  }
+  return { greens: detected.size >= GREENS_THRESHOLD, greensDetected: [...detected] };
+}
+
 /**
  * POST /api/fs-sync — pull today's diary totals from FatSecret for one user.
  *
@@ -26,10 +74,13 @@ function toFSDate(date = new Date()) {
  *   @param {{ userId: string }} body
  *
  * Responses:
- *   200 { calories, protein, carbs, fat, entries, fromFatSecret? }
- *       Numeric totals (rounded). When the user has no entries today, returns
- *       all zeros without `fromFatSecret`. When entries exist, includes
- *       `fromFatSecret: true` so the client can mark the log accordingly.
+ *   200 { calories, protein, carbs, fat, entries, greens, greensDetected, fromFatSecret? }
+ *       Numeric totals (rounded), plus a `greens` boolean (true when at least
+ *       GREENS_THRESHOLD distinct vegetable types are detected in entry names)
+ *       and `greensDetected` listing which canonical vegetables matched.
+ *       When the user has no entries today, returns all zeros without
+ *       `fromFatSecret`. When entries exist, includes `fromFatSecret: true`
+ *       so the client can mark the log accordingly.
  *   400 { error: "Missing userId" | "FatSecret not connected" }
  *   405                                            — non-POST method
  *   500 { error: string }                          — network failure
@@ -93,7 +144,7 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (data.error || !data.food_entries)
-      return res.status(200).json({ calories:0, protein:0, carbs:0, fat:0, entries:0 });
+      return res.status(200).json({ calories:0, protein:0, carbs:0, fat:0, entries:0, greens:false, greensDetected:[] });
 
     const entries = Array.isArray(data.food_entries.food_entry)
       ? data.food_entries.food_entry
@@ -108,12 +159,16 @@ export default async function handler(req, res) {
       return acc;
     }, { calories:0, protein:0, carbs:0, fat:0 });
 
+    const { greens, greensDetected } = detectGreens(entries);
+
     return res.status(200).json({
       calories: Math.round(totals.calories),
       protein:  Math.round(totals.protein),
       carbs:    Math.round(totals.carbs),
       fat:      Math.round(totals.fat),
       entries:  entries.length,
+      greens,
+      greensDetected,
       fromFatSecret: true,
     });
   } catch (err) {
