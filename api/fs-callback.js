@@ -22,6 +22,33 @@ function parseCookies(cookieHeader) {
   );
 }
 
+/**
+ * GET /api/fs-callback — legacy redirect-based FatSecret OAuth callback.
+ *
+ * The current flow uses the PIN variant (fs-request-token + fs-verify-pin) and
+ * does not hit this handler. This is kept for FatSecret app configurations that
+ * still have a registered redirect URL.
+ *
+ * Query params:
+ *   @param {string} oauth_token     — temporary token from request_token step
+ *   @param {string} oauth_verifier  — verifier appended by FatSecret
+ *   @param {string} userId          — Supabase profile id round-tripped via the URL
+ *
+ * Cookies:
+ *   Reads `fs_token_secret` set by /api/fs-request-token (when in cookie mode).
+ *
+ * Responses:
+ *   302  → redirects to `${VITE_APP_URL}/?fs_connected=1` on success
+ *   400 { error: "Missing OAuth params" }
+ *   500 { error: "No access token", raw? } | { error: string }
+ *
+ * Side effects:
+ *   On success, sets `profiles.fs_oauth_token`, `profiles.fs_oauth_secret`, and
+ *   `profiles.fatsecret_connected = true`, then clears the fs_token_secret cookie.
+ *
+ * @param {import('@vercel/node').VercelRequest} req
+ * @param {import('@vercel/node').VercelResponse} res
+ */
 export default async function handler(req, res) {
   const { oauth_token, oauth_verifier, userId } = req.query;
   if (!oauth_token || !oauth_verifier || !userId)

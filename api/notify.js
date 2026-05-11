@@ -19,6 +19,34 @@ const supabase = createClient(
 const MORNING_UTC_HOUR = 4;
 const EVENING_UTC_HOUR = 18;
 
+/**
+ * /api/notify — fan out push notifications to every subscriber.
+ *
+ * Triggered by Vercel Cron at 04:00 and 18:00 UTC (07:00 and 21:00 Moscow).
+ *
+ * Auth:
+ *   Requires header `x-cron-secret` (preferred) or `?secret=` matching CRON_SECRET.
+ *
+ * Behavior:
+ *   - GET: only sends during the morning (04–08 UTC) or evening (18–22 UTC)
+ *     window. Outside those windows it returns `{ ok: true, message: "Not a notification hour" }`
+ *     without sending — this lets the same handler safely tolerate cron misfires.
+ *   - POST: forces the morning payload regardless of clock (useful for manual triggers).
+ *
+ * Responses:
+ *   200 { ok: true, sent: number, total: number }
+ *   200 { ok: true, sent: 0 }                       — no subscribers
+ *   200 { ok: true, message: "Not a notification hour" }
+ *   401 { error: "Unauthorized" }                   — bad/missing secret
+ *   500 { error: string }                           — DB read failure
+ *
+ * Side effects:
+ *   - Sends a web-push notification to every row in `push_subscriptions`.
+ *   - Deletes rows whose endpoint returned 404/410 (expired subscriptions).
+ *
+ * @param {import('@vercel/node').VercelRequest} req
+ * @param {import('@vercel/node').VercelResponse} res
+ */
 export default async function handler(req, res) {
   // Verify cron secret
   const secret = req.headers["x-cron-secret"] || req.query.secret;

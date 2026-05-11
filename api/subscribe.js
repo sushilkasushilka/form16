@@ -7,6 +7,26 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
+/**
+ * POST /api/subscribe — register or update a push subscription for a user.
+ *
+ * Request body:
+ *   @param {{ userId: string, subscription: PushSubscriptionJSON }} body
+ *     `subscription` is the result of `PushSubscription.toJSON()` from the browser.
+ *
+ * Responses:
+ *   200 { ok: true }
+ *   400 { error: "Missing fields" }
+ *   405                              — non-POST method
+ *   500 { error: string }            — DB write failure
+ *
+ * Side effects:
+ *   Upserts into `push_subscriptions` keyed by `user_id`, so re-subscribing
+ *   from the same user (e.g. after permission re-grant) replaces the old row.
+ *
+ * @param {import('@vercel/node').VercelRequest} req
+ * @param {import('@vercel/node').VercelResponse} res
+ */
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
