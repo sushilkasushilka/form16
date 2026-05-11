@@ -25,7 +25,9 @@ const EVENING_UTC_HOUR = 18;
  * Triggered by Vercel Cron at 04:00 and 18:00 UTC (07:00 and 21:00 Moscow).
  *
  * Auth:
- *   Requires header `x-cron-secret` (preferred) or `?secret=` matching CRON_SECRET.
+ *   Vercel Cron sets `Authorization: Bearer ${CRON_SECRET}` automatically when
+ *   the CRON_SECRET env var exists on the project. Manual triggers can use
+ *   `x-cron-secret` header or `?secret=` query string with the same value.
  *
  * Behavior:
  *   - GET: only sends during the morning (04–08 UTC) or evening (18–22 UTC)
@@ -48,9 +50,13 @@ const EVENING_UTC_HOUR = 18;
  * @param {import('@vercel/node').VercelResponse} res
  */
 export default async function handler(req, res) {
-  // Verify cron secret
-  const secret = req.headers["x-cron-secret"] || req.query.secret;
-  if (secret !== process.env.CRON_SECRET) {
+  // Verify cron secret. Vercel Cron uses `Authorization: Bearer <CRON_SECRET>`
+  // automatically; the other two forms exist for manual curl/Postman testing.
+  const expected = process.env.CRON_SECRET;
+  const auth = req.headers.authorization || "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  const secret = bearer || req.headers["x-cron-secret"] || req.query.secret;
+  if (!expected || secret !== expected) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
