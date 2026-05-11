@@ -1,7 +1,7 @@
 // Root component: language picker, Supabase auth state, screen routing,
 // and the global CSS that every other screen relies on. Feature components
 // live under src/components and src/screens.
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase.js";
 import { LANGUAGES } from "./lang.js";
 import { C } from "./theme.js";
@@ -71,6 +71,12 @@ export default function App(){
   });
   const [athletes, setAthletes] = useState(MOCK_ATHLETES);
 
+  // True only when the user explicitly tapped the sign-out button. Supabase
+  // also fires "SIGNED_OUT" on transient token-refresh failures (e.g. when a
+  // VPN switches and the in-flight refresh dies); without this flag we'd kick
+  // the user to the auth screen every time their network blinked.
+  const userInitiatedSignOut = useRef(false);
+
   // Cache profile to localStorage whenever it changes
   useEffect(()=>{
     if(profile) {
@@ -103,6 +109,13 @@ export default function App(){
   }, []);
 
   // ── Listen to auth state ──────────────────────────────────────────────────
+  // Design notes (see "auto-logout on VPN" bug):
+  // - SIGNED_OUT can fire from a transient token-refresh failure, not just
+  //   real sign-outs. We only act on it when the user clicked the button.
+  // - On startup with no session yet (slow network), we render the cached
+  //   profile instead of dropping to auth — getSession() runs in background.
+  // - We never wipe the cache except on intentional sign-out; the profile is
+  //   always re-loaded from Supabase once a session is confirmed.
   useEffect(() => {
     let initialDone = false;
 
@@ -128,35 +141,60 @@ export default function App(){
           loadProfile(session.user.id);
         } else if (event === "SIGNED_IN") {
           loadProfile(session.user.id);
-        } else if (event === "TOKEN_REFRESHED") {
-          // Session refreshed — keep user logged in, no action needed
-          console.log("Session refreshed");
         }
+        // TOKEN_REFRESHED: nothing to do — we just stay logged in.
       } else if (event === "SIGNED_OUT") {
-        // Only logout on explicit sign out, not on token refresh failures
-        initialDone = true;
-        localStorage.removeItem("form16_profile_cache");
-        setScreen("auth");
-        setProfile(null);
+        // Only act on the user's own sign-out. Supabase also fires this on
+        // transient refresh failures (network drop, VPN flip) and we don't
+        // want to bounce users to login because their network blinked.
+        if (userInitiatedSignOut.current) {
+          userInitiatedSignOut.current = false;
+          initialDone = true;
+          localStorage.removeItem("form16_profile_cache");
+          setScreen("auth");
+          setProfile(null);
+        }
+        // Otherwise: ignore. Session is gone right now but the refresh token
+        // is still in localStorage; Supabase will retry, or we'll trigger a
+        // refresh ourselves on the next "online" / visibility-change event.
       } else if (!initialDone) {
         initialDone = true;
-        // No session — check if we have a cached profile to show auth faster
-        localStorage.removeItem("form16_profile_cache");
+        // No session yet on startup. If we have a cached profile, render that
+        // and let auth resolve in the background. Only show auth screen when
+        // there's truly nothing local to render.
+        const cached = localStorage.getItem("form16_profile_cache");
+        if (cached) {
+          try {
+            const p = JSON.parse(cached);
+            const hasSeenDay0 = localStorage.getItem(`form16_day0_${p.id}`);
+            const isNewUser = p.joinedAt === todayStr() && !hasSeenDay0;
+            setScreen(isNewUser ? "day0" : "member");
+            return;
+          } catch { /* fall through to auth screen */ }
+        }
         setScreen("auth");
       }
     });
 
-    // Shorter safety fallback: 2s instead of 4s
-    const timeout = setTimeout(() => {
-      if (!initialDone) {
-        initialDone = true;
-        setScreen("auth");
+    // Recover the session whenever the network comes back or the app returns
+    // to the foreground. iOS PWAs in particular pause everything in the
+    // background; without this kick, a stale session can sit there until the
+    // user does something that hits Supabase.
+    const tryRefresh = () => {
+      if (navigator.onLine) {
+        supabase.auth.getSession().then(({ data }) => {
+          if (!data?.session) supabase.auth.refreshSession().catch(() => {});
+        }).catch(() => {});
       }
-    }, 2000);
+    };
+    const onVisibility = () => { if (document.visibilityState === "visible") tryRefresh(); };
+    window.addEventListener("online", tryRefresh);
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       subscription.unsubscribe();
-      clearTimeout(timeout);
+      window.removeEventListener("online", tryRefresh);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 
@@ -292,6 +330,7 @@ export default function App(){
   }
 
   async function signOut() {
+    userInitiatedSignOut.current = true;
     await supabase.auth.signOut();
   }
 
@@ -329,7 +368,7 @@ export default function App(){
         {chosen && screen==="onboarding" && (
           <SignUp
             onComplete={saveProfile}
-            onBack={async()=>{ await supabase.auth.signOut(); setScreen("auth"); }}
+            onBack={async()=>{ userInitiatedSignOut.current = true; await supabase.auth.signOut(); setScreen("auth"); }}
           />
         )}
 
