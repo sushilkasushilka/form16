@@ -13,6 +13,7 @@ import { InlineChatBar, ChatModal } from "../components/Chat.jsx";
 import { DayDetailModal, MorningLogModal, EveningLogModal, LogModal } from "../components/LogModals.jsx";
 import { Icon, Avatar, AVATAR_OPTIONS } from "../components/icons.jsx";
 import { ProgramView } from "../components/ProgramView.jsx";
+import { MissionStrip } from "../components/MissionStrip.jsx";
 
 export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened,lang,setLang}){
   const [tab,setTab]=useState("today");
@@ -219,74 +220,16 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
             /* ── NORMAL DAY 1+ CONTENT ── */
             <>
 
-              {/* ── HABIT TRACKER GRID ── */}
-              {(()=>{
-                const habits = [
-                  {id:"weight",  label:"Вес",     unlocksWeek:1, check:(log)=>log?.weight>0},
-                  {id:"meals",   label:"Питание", unlocksWeek:1, check:(log)=>log?.calories>0},
-                  {id:"steps",   label:"Шаги",    unlocksWeek:2, check:(log)=>log?.steps>0},
-                  {id:"protein", label:"Белок",   unlocksWeek:3, check:(log)=>log?.protein>0},
-                ].filter(h=>currentWeekNum>=h.unlocksWeek);
-
-                const weekStartGlobalDay = (currentWeekNum-1)*7+1;
-                const weekDays = Array.from({length:7},(_,i)=>{
-                  const gd = weekStartGlobalDay+i;
-                  const date = new Date(profile.joinedAt);
-                  date.setDate(date.getDate()+gd);
-                  const dateStr = date.toISOString().split("T")[0];
-                  const log = profile.logs.find(l=>l.date===dateStr);
-                  return {gd,dateStr,log,isToday:gd===userGlobalDay,isPast:gd<userGlobalDay,isFuture:gd>userGlobalDay,dayNum:i+1};
-                });
-
-                const dayLabels=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
-                const todayDoneCount = habits.filter(h=>h.check(weekDays.find(d=>d.isToday)?.log)).length;
-
-                return (
-                  <>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",margin:"4px 0 12px"}}>
-                      <div style={{fontSize:10,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.12em"}}>Привычки недели</div>
-                      <div style={{fontFamily:F.mono,fontSize:11,color:C.text,fontWeight:500}}>{todayDoneCount} / {habits.length}</div>
-                    </div>
-                    <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"14px 16px",marginBottom:22,overflowX:"auto"}}>
-                      <table style={{width:"100%",borderCollapse:"collapse"}}>
-                        <thead>
-                          <tr>
-                            <td style={{width:72,paddingBottom:10}}/>
-                            {weekDays.map(d=>(
-                              <td key={d.gd} style={{textAlign:"center",paddingBottom:10,width:32}}>
-                                <div style={{fontSize:10,color:d.isToday?C.accent:C.muted,fontWeight:d.isToday?700:500,letterSpacing:"0.02em"}}>{dayLabels[d.dayNum-1]}</div>
-                              </td>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {habits.map((habit)=>(
-                            <tr key={habit.id}>
-                              <td style={{padding:"6px 0",fontSize:13,color:C.text,whiteSpace:"nowrap",fontWeight:500}}>{habit.label}</td>
-                              {weekDays.map(d=>{
-                                const done = habit.check(d.log);
-                                const missed = d.isPast && !done;
-                                return (
-                                  <td key={d.gd} style={{textAlign:"center",padding:"6px 2px"}}>
-                                    <div style={{
-                                      width:28,height:28,borderRadius:6,margin:"0 auto",
-                                      background:done?(d.isToday?C.accent:C.text):"transparent",
-                                      border:done?"1px solid "+(d.isToday?C.accent:C.text):missed?`1px dashed ${C.dim}`:`1px solid ${C.dim}`,
-                                      display:"flex",alignItems:"center",justifyContent:"center",
-                                      fontSize:12,color:done?C.bg:"transparent",fontWeight:500,
-                                      opacity:d.isFuture?0.45:1,
-                                    }}>{done?"✓":""}</div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                );
-              })()}
+              {/* ── MISSION STRIP ── week-at-a-glance + per-week metrics expand ── */}
+              {todayDayData && (
+                <MissionStrip
+                  profile={profile}
+                  userGlobalDay={userGlobalDay}
+                  currentWeekNum={currentWeekNum}
+                  currentWeekData={currentWeekData}
+                  onDaySelected={(weekData, dayData) => setSelectedDay({ weekData, day: dayData })}
+                />
+              )}
 
               {/* ── MEASUREMENT BANNER ── persistent until logged ── */}
               {missedMeasurement && (
