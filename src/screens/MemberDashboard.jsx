@@ -12,6 +12,7 @@ import { FatSecretConnect } from "../components/FatSecretConnect.jsx";
 import { InlineChatBar, ChatModal } from "../components/Chat.jsx";
 import { DayDetailModal, MorningLogModal, EveningLogModal, LogModal } from "../components/LogModals.jsx";
 import { MissionStrip } from "../components/MissionStrip.jsx";
+import { DailyTaskCarousel } from "../components/DailyTaskCarousel.jsx";
 
 export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened}){
   const [tab,setTab]=useState("today");
@@ -67,9 +68,10 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
 
   return (
     <div style={{minHeight:"100vh",background:C.bg,paddingBottom:88}}>
-      {/* Header — name + day/week hero + streak. The hero used to live in
-          its own card on the today tab; promoting it here keeps the today
-          screen focused on action items (logs + mission strip + cards). */}
+      {/* Header — name + day/week + date + program-progress bar.
+          One united block at the top, replacing the previous header + the
+          standalone date/progress card. Log buttons moved into a new
+          "Отчёты" card on the today tab. */}
       <div style={{background:C.surface,borderBottom:`1px solid ${C.border}`,padding:"48px 20px 16px"}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}>
           {onBack&&<button onClick={onBack} style={{background:"none",border:"none",color:C.muted,cursor:"pointer",fontSize:20,padding:0,marginRight:2}}>←</button>}
@@ -89,6 +91,19 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
             {onSignOut&&<button onClick={onSignOut} style={{background:"none",border:`1px solid ${C.border}`,borderRadius:10,padding:"5px 10px",color:C.muted,cursor:"pointer",fontSize:11,fontFamily:"'DM Sans',sans-serif"}}>{t("header.signout")}</button>}
           </div>
         </div>
+
+        {/* Date + program-progress (same surface block as the header above) */}
+        {!isDay0 && (
+          <div style={{marginTop:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div style={{fontSize:12,color:C.muted,textTransform:"capitalize"}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"})}</div>
+              <div style={{fontSize:10,color:C.muted}}>{userGlobalDay} / 112</div>
+            </div>
+            <div style={{height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}>
+              <div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${Math.min(100,(userGlobalDay/112)*100)}%`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
+            </div>
+          </div>
+        )}
       </div>
 
 
@@ -96,24 +111,38 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
       {tab==="today"&&(
         <div style={{padding:"18px",animation:"slideUp 0.28s both"}}>
 
-          {/* Compact log row + program-progress bar (the hero moved to header) */}
-          <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 16px",marginBottom:14}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10,gap:10}}>
-              <div style={{fontSize:12,color:C.muted,textTransform:"capitalize"}}>{new Date().toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"})}</div>
-              <div style={{display:"flex",gap:8,flexShrink:0}}>
-                <button onClick={()=>setShowMorningLog(true)} style={{background:todayLog?.weight?C.accentDim:C.accent,color:todayLog?.weight?C.accent:C.bg,border:todayLog?.weight?`1.5px solid ${C.accent}55`:"none",borderRadius:18,padding:"8px 12px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>
-                  {todayLog?.weight?"⚖️ ✓":"⚖️ Утро"}
+          {/* ── ОТЧЁТЫ ── morning + evening log buttons in their own card ── */}
+          {!isDay0 && (
+            <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:18,padding:"14px 16px",marginBottom:14}}>
+              <div style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",marginBottom:10}}>Отчёты</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <button onClick={()=>setShowMorningLog(true)} style={{
+                  background: todayLog?.weight ? C.accentDim : C.accent,
+                  color: todayLog?.weight ? C.accent : C.bg,
+                  border: todayLog?.weight ? `1.5px solid ${C.accent}55` : "none",
+                  borderRadius:14, padding:"14px 12px",
+                  fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
+                  cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                }}>
+                  <span style={{fontSize:18}}>⚖️</span>
+                  <span>Утренний</span>
+                  {todayLog?.weight && <span style={{fontWeight:800}}>✓</span>}
                 </button>
-                <button onClick={()=>setShowEveningLog(true)} style={{background:todayLog?.calories?C.blueDim:C.blue,color:todayLog?.calories?C.blue:C.bg,border:todayLog?.calories?`1.5px solid ${C.blue}55`:"none",borderRadius:18,padding:"8px 12px",fontSize:12,fontWeight:700,fontFamily:"'DM Sans',sans-serif",cursor:"pointer"}}>
-                  {todayLog?.calories?"🌙 ✓":"🌙 Вечер"}
+                <button onClick={()=>setShowEveningLog(true)} style={{
+                  background: todayLog?.calories ? C.blueDim : C.blue,
+                  color: todayLog?.calories ? C.blue : C.bg,
+                  border: todayLog?.calories ? `1.5px solid ${C.blue}55` : "none",
+                  borderRadius:14, padding:"14px 12px",
+                  fontSize:14, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
+                  cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                }}>
+                  <span style={{fontSize:18}}>🌙</span>
+                  <span>Вечерний</span>
+                  {todayLog?.calories && <span style={{fontWeight:800}}>✓</span>}
                 </button>
               </div>
             </div>
-            <div style={{height:5,background:C.dim,borderRadius:3,overflow:"hidden"}}>
-              <div style={{height:"100%",background:`linear-gradient(90deg,${C.accent},#00D2FF)`,width:`${Math.min(100,(userGlobalDay/112)*100)}%`,borderRadius:3,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
-            </div>
-            <div style={{fontSize:10,color:C.muted,marginTop:5,textAlign:"right"}}>{userGlobalDay} / 112</div>
-          </div>
+          )}
 
           {/* ── DAY 0 FULL TAKEOVER ── */}
           {isDay0 ? (
@@ -203,13 +232,23 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
             /* ── NORMAL DAY 1+ CONTENT ── */
             <>
 
-              {/* ── MISSION STRIP ── one-line week view; tap a circle to expand ── */}
+              {/* ── MISSION STRIP ── one-line week view; tap a circle opens that day's detail modal ── */}
               {todayDayData && (
                 <MissionStrip
                   profile={profile}
                   userGlobalDay={userGlobalDay}
                   currentWeekNum={currentWeekNum}
                   currentWeekData={currentWeekData}
+                  onDaySelected={(weekData, dayData) => setSelectedDay({weekData, day: dayData})}
+                />
+              )}
+
+              {/* ── TODAY'S TASK CAROUSEL ── separate from the mission strip ── */}
+              {todayDayData && (
+                <DailyTaskCarousel
+                  todayDayData={todayDayData}
+                  currentWeekData={currentWeekData}
+                  profile={profile}
                   onOpenDetails={()=>setSelectedDay({weekData:currentWeekData,day:todayDayData})}
                 />
               )}
