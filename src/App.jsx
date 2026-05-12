@@ -85,16 +85,41 @@ export default function App(){
   },[profile?.streak, profile?.currentWeek, profile?.weight, profile?.is_subscribed]);
 
   // ── Detect notification tap → open correct modal ─────────────────────────
+  // Two paths: (1) cold start where the SW opens a new window with ?action=…
+  // in the URL; (2) warm app where the SW posts NOTIFICATION_CLICK to the
+  // already-focused client (no URL change). Without the postMessage branch
+  // the user lands on the dashboard and has to tap the morning button.
   useEffect(() => {
+    function openFromAction(action) {
+      if (action !== "morning" && action !== "evening" && action !== "log") return;
+      // Slight delay so the dashboard mounts first; otherwise the modal
+      // flashes against an empty screen.
+      setTimeout(() => {
+        setOpenLogOnLoad(action === "evening" ? "evening" : "morning");
+      }, 400);
+    }
+
     const params = new URLSearchParams(window.location.search);
     const action = params.get("action");
-    if (action === "morning" || action === "evening" || action === "log") {
+    if (action) {
       window.history.replaceState({}, "", window.location.pathname);
-      const timer = setTimeout(() => {
-        setOpenLogOnLoad(action === "evening" ? "evening" : "morning");
-      }, 800);
-      return () => clearTimeout(timer);
+      openFromAction(action);
     }
+
+    const onSwMessage = (e) => {
+      if (e.data?.type !== "NOTIFICATION_CLICK") return;
+      const url = e.data.url || "";
+      const a = new URLSearchParams(url.split("?")[1] || "").get("action");
+      openFromAction(a);
+    };
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener("message", onSwMessage);
+    }
+    return () => {
+      if (navigator.serviceWorker) {
+        navigator.serviceWorker.removeEventListener("message", onSwMessage);
+      }
+    };
   }, []);
 
   // ── Detect FatSecret OAuth callback (?fs_connected=1) ────────────────────
@@ -322,37 +347,68 @@ export default function App(){
     const userId = session?.user?.id;
     if (!userId) return;
 
-    // Upsert — replaces existing log for same date.
-    // NOTE: requires `waist`, `neck`, `hips`, `bfp` (numeric, nullable) and
-    // `greens` (boolean, nullable) columns on `daily_logs`. Add them via
-    // Supabase Dashboard → Table Editor.
-    const { error } = await supabase.from("daily_logs").upsert({
+    // Read the existing row for this date so a partial log (morning-only or
+    // evening-only) doesn't blank out fields the other half already wrote.
+    // `undefined` in `log` = "not in this update"; anything else overrides.
+    const { data: existing } = await supabase
+      .from("daily_logs")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("date", log.date)
+      .maybeSingle();
+
+    const pick = (next, prev) => next !== undefined ? next : (prev ?? null);
+    const payload = {
       user_id: userId,
       date: log.date,
-      weight: log.weight,
-      calories: log.calories,
-      protein: log.protein,
-      steps: log.steps,
-      waist: log.waist ?? null,
-      neck:  log.neck  ?? null,
-      hips:  log.hips  ?? null,
-      bfp:   log.bfp   ?? null,
-      // Treat `undefined` as "not in this update" so a morning-only log
-      // doesn't blank a previously-true greens flag.
-      ...(typeof log.greens === "boolean" ? { greens: log.greens } : {}),
-      from_fatsecret: log.fromFatSecret || false,
-    }, { onConflict: "user_id,date" });
-    if (error) console.error("saveLog Supabase error:", error);
+      weight:   pick(log.weight,   existing?.weight),
+      calories: pick(log.calories, existing?.calories),
+      protein:  pick(log.protein,  existing?.protein),
+      steps:    pick(log.steps,    existing?.steps),
+      waist:    pick(log.waist,    existing?.waist),
+      neck:     pick(log.neck,     existing?.neck),
+      hips:     pick(log.hips,     existing?.hips),
+      bfp:      pick(log.bfp,      existing?.bfp),
+      greens:   typeof log.greens === "boolean" ? log.greens : (existing?.greens ?? null),
+      from_fatsecret: log.fromFatSecret !== undefined ? log.fromFatSecret : (existing?.from_fatsecret ?? false),
+    };
 
-    setProfile(p => ({
-      ...p,
-      logs: [...(p.logs||[]).filter(l=>l.date!==log.date), log],
-      streak: p.streak + (p.logs?.at(-1)?.date !== todayStr() ? 1 : 0),
-      totalXP: p.totalXP + 20,
-      // Bubble the latest BFP up onto the profile so the BFP card on the
-      // today/account screens reflects it without waiting for a reload.
-      ...(log.bfp ? { bfp: log.bfp } : {}),
-    }));
+    const { error } = await supabase
+      .from("daily_logs")
+      .upsert(payload, { onConflict: "user_id,date" });
+    if (error) {
+      console.error("saveLog Supabase error:", error);
+      alert("Не удалось сохранить отчёт: " + (error.message || "ошибка БД"));
+      return;
+    }
+
+    // Merge into local state with the same precedence as the DB payload.
+    setProfile(p => {
+      const prevLogs = p.logs || [];
+      const prev = prevLogs.find(l => l.date === log.date) || {};
+      const merged = {
+        ...prev,
+        date: log.date,
+        ...(log.weight   !== undefined ? { weight: log.weight     } : {}),
+        ...(log.calories !== undefined ? { calories: log.calories } : {}),
+        ...(log.protein  !== undefined ? { protein: log.protein   } : {}),
+        ...(log.steps    !== undefined ? { steps: log.steps       } : {}),
+        ...(log.waist    !== undefined ? { waist: log.waist       } : {}),
+        ...(log.neck     !== undefined ? { neck: log.neck         } : {}),
+        ...(log.hips     !== undefined ? { hips: log.hips         } : {}),
+        ...(log.bfp      !== undefined ? { bfp: log.bfp           } : {}),
+        ...(typeof log.greens === "boolean" ? { greens: log.greens } : {}),
+        ...(log.fromFatSecret !== undefined ? { fromFatSecret: log.fromFatSecret } : {}),
+      };
+      const wasLoggedToday = prevLogs.some(l => l.date === todayStr());
+      return {
+        ...p,
+        logs: [...prevLogs.filter(l => l.date !== log.date), merged],
+        streak: p.streak + (log.date === todayStr() && !wasLoggedToday ? 1 : 0),
+        totalXP: p.totalXP + 20,
+        ...(log.bfp ? { bfp: log.bfp } : {}),
+      };
+    });
 
     // Persist the new BFP to the profiles row too — otherwise the local
     // value above is lost on the next page load.

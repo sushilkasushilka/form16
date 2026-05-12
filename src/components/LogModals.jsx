@@ -9,6 +9,44 @@ import { todayStr, calcBFP } from "../utils.js";
 import { t } from "../i18n.js";
 import { FS, getUserGlobalDay } from "../program.js";
 
+// Horizontal pill row of the last 7 days for back-dating a log.
+// `date` is an ISO yyyy-mm-dd string; `setDate` accepts the same.
+function DateSelector({ date, setDate }) {
+  const today = todayStr();
+  const dayMs = 86400000;
+  const days = Array.from({length:7}, (_,i) => {
+    const d = new Date();
+    d.setHours(0,0,0,0);
+    d.setTime(d.getTime() - i*dayMs);
+    return d.toISOString().split("T")[0];
+  });
+  const labelFor = (iso) => {
+    if (iso === today) return "Сегодня";
+    const d = new Date(iso);
+    const y = new Date(); y.setHours(0,0,0,0); y.setTime(y.getTime() - dayMs);
+    if (iso === y.toISOString().split("T")[0]) return "Вчера";
+    return d.toLocaleDateString("ru-RU", { day:"numeric", month:"short" });
+  };
+  return (
+    <div style={{marginBottom:14}}>
+      <div style={{fontSize:11,color:C.muted,marginBottom:6,letterSpacing:"0.04em"}}>Дата отчёта</div>
+      <div style={{display:"flex",gap:6,overflowX:"auto",paddingBottom:2,scrollbarWidth:"none"}}>
+        {days.map(iso => {
+          const sel = iso === date;
+          return (
+            <button key={iso} onClick={()=>setDate(iso)} style={{
+              flex:"0 0 auto",padding:"7px 12px",borderRadius:999,
+              background:sel?C.accent:C.card,border:`1px solid ${sel?C.accent:C.border}`,
+              color:sel?C.bg:C.text,fontSize:12,fontWeight:500,cursor:"pointer",
+              fontFamily:"'Inter',system-ui,sans-serif",whiteSpace:"nowrap",
+            }}>{labelFor(iso)}</button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function DayDetailModal({ weekData, day, onClose }) {
   const col = {training:C.orange,nutrition:C.accent,mindset:C.purple,rest:C.muted,active_recovery:C.blue}[day.type]||C.accent;
 
@@ -80,13 +118,14 @@ export function MorningLogModal({ profile, userGlobalDay, isMeasureOverdue, onSa
   // Show measurement fields when today is a scheduled measurement day OR when
   // the user missed a previous one — in either case the data is what we need.
   const isMeasureDay = (userGlobalDay > 0 && userGlobalDay % 7 === 0) || !!isMeasureOverdue;
+  const [date,   setDate]   = useState(todayStr());
   const [weight, setWeight] = useState(String(profile.weight||""));
   const [waist,  setWaist]  = useState("");
   const [neck,   setNeck]   = useState("");
   const [hips,   setHips]   = useState("");
 
   function handleSave() {
-    const log = { date:todayStr(), weight:parseFloat(weight)||profile.weight };
+    const log = { date, weight:parseFloat(weight)||profile.weight };
     if(isMeasureDay && waist && neck){
       log.waist = parseFloat(waist);
       log.neck  = parseFloat(neck);
@@ -112,7 +151,9 @@ export function MorningLogModal({ profile, userGlobalDay, isMeasureOverdue, onSa
       <div style={{background:C.surface,borderRadius:"26px 26px 0 0",padding:"24px 24px 40px",animation:"slideUp 0.35s cubic-bezier(.16,1,.3,1) both",maxHeight:"90vh",overflowY:"auto"}}>
         <div style={{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}/>
         <div style={{fontSize:11,color:C.accent,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>⚖️ Утренний замер</div>
-        <div style={{fontSize:18,fontWeight:600,marginBottom:20}}>{isMeasureDay?"Вес + замеры тела":"Утренний вес"}</div>
+        <div style={{fontSize:18,fontWeight:600,marginBottom:14}}>{isMeasureDay?"Вес + замеры тела":"Утренний вес"}</div>
+
+        <DateSelector date={date} setDate={setDate} />
 
         <div style={{fontSize:12,color:C.muted,marginBottom:6}}>Вес (кг)</div>
         <input type="number" value={weight} onChange={e=>setWeight(e.target.value)} placeholder="0.0" style={inputStyle} autoFocus/>
@@ -146,47 +187,63 @@ export function MorningLogModal({ profile, userGlobalDay, isMeasureOverdue, onSa
 }
 
 export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave, onClose }) {
+  // Pick a default date: yesterday morning still feels like "today" until ~noon,
+  // but we keep the simple rule — default = today, user can override.
+  const [date, setDate] = useState(todayStr());
   const [calories, setCalories] = useState("");
   const [protein,  setProtein]  = useState("");
   const [steps,    setSteps]    = useState("");
   const [greens,   setGreens]   = useState(false);
   const [greensAuto, setGreensAuto] = useState(false); // true when ticked by FS keyword detection
   const [greensDetected, setGreensDetected] = useState([]); // canonical veg names FS matched
+  const [fsSyncing, setFsSyncing] = useState(false);
+  const [fsSynced,  setFsSynced]  = useState(false);
 
   const showProtein = currentWeekNum >= 2;
   const showSteps   = currentWeekNum >= 3;
   const showGreens  = currentWeekNum >= 4;
 
-  // Auto-fill greens + protein/calories from FatSecret when connected (week 4+)
+  // When FS is connected AND the user is reporting for today, auto-sync
+  // calories/protein on open (the FS button says "Sync FatSecret" for these
+  // users — they expect data to land without manual entry). FS only returns
+  // *today's* diary totals; for back-dated entries we skip the sync and let
+  // the user fill in manually.
   useEffect(() => {
-    if (!showGreens || !profile.fatsecretConnected) return;
+    if (!profile.fatsecretConnected) return;
+    if (date !== todayStr()) return;
     let cancelled = false;
     (async () => {
+      setFsSyncing(true);
       try {
         const d = await FS.fetchDiaryTotals(profile.id);
-        if (cancelled || !d) return;
-        if (d.calories && !calories) setCalories(String(d.calories));
-        if (d.protein  && !protein)  setProtein(String(d.protein));
-        if (d.greens) {
-          setGreens(true);
-          setGreensAuto(true);
-          setGreensDetected(d.greensDetected || []);
+        if (cancelled) return;
+        if (d) {
+          if (d.calories) setCalories(String(d.calories));
+          if (d.protein)  setProtein(String(d.protein));
+          if (showGreens && d.greens) {
+            setGreens(true);
+            setGreensAuto(true);
+            setGreensDetected(d.greensDetected || []);
+          }
+          setFsSynced(true);
         }
       } catch { /* sync failure is non-fatal — user can fill manually */ }
+      finally { if (!cancelled) setFsSyncing(false); }
     })();
     return () => { cancelled = true; };
-  }, [showGreens, profile.fatsecretConnected, profile.id]);
+  }, [profile.fatsecretConnected, profile.id, showGreens, date]);
 
   function handleSave() {
-    const todayExisting = profile.logs?.find(l=>l.date===todayStr())||{};
+    const existing = profile.logs?.find(l=>l.date===date)||{};
     onSave({
-      ...todayExisting,
-      date:     todayStr(),
-      weight:   todayExisting.weight || profile.weight,
+      ...existing,
+      date,
+      weight:   existing.weight || profile.weight,
       calories: parseInt(calories)||0,
-      protein:  showProtein ? parseInt(protein)||0   : todayExisting.protein,
-      steps:    showSteps   ? parseInt(steps)||0     : todayExisting.steps,
-      greens:   showGreens  ? greens                 : todayExisting.greens,
+      protein:  showProtein ? parseInt(protein)||0   : existing.protein,
+      steps:    showSteps   ? parseInt(steps)||0     : existing.steps,
+      greens:   showGreens  ? greens                 : existing.greens,
+      fromFatSecret: fsSynced,
     });
   }
 
@@ -204,7 +261,18 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
         <div style={{width:40,height:4,background:C.border,borderRadius:2,margin:"0 auto 20px"}}/>
         <div style={{fontSize:11,color:C.blue,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>🌙 Вечерний итог</div>
         <div style={{fontSize:18,fontWeight:600,marginBottom:4}}>Итог дня</div>
-        <div style={{fontSize:12,color:C.muted,marginBottom:20}}>Неделя {currentWeekNum} — заполни то, что отслеживаешь</div>
+        <div style={{fontSize:12,color:C.muted,marginBottom:14}}>Неделя {currentWeekNum} — заполни то, что отслеживаешь</div>
+
+        <DateSelector date={date} setDate={setDate} />
+
+        {profile.fatsecretConnected && (
+          <div style={{background:fsSynced?`${C.accent}14`:C.card,border:`1px solid ${fsSynced?`${C.accent}55`:C.border}`,borderRadius:12,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+            <div style={{fontSize:12,color:fsSynced?C.accent:C.muted,display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:14}}>{fsSyncing?"⏳":fsSynced?"⚡":"🥗"}</span>
+              {fsSyncing ? "Синхронизация с FatSecret…" : fsSynced ? "Данные подтянуты из FatSecret" : "FatSecret подключён"}
+            </div>
+          </div>
+        )}
 
         {fields.map(f=>(
           <div key={f.label}>

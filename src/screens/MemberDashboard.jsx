@@ -122,13 +122,23 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                 <div style={{fontFamily:F.mono,fontSize:13,fontWeight:500,color:todayLog?.weight?C.accent:C.text,marginTop:3}}>{todayLog?.weight?`${todayLog.weight} кг`:"Записать →"}</div>
               </div>
             </button>
-            <button onClick={()=>setShowEveningLog(true)} style={{background:todayLog?.calories?C.accentDim:C.surface,border:`1px solid ${todayLog?.calories?C.accent:C.border}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",textAlign:"left",fontFamily:F.sans,color:todayLog?.calories?C.accent:C.text}}>
-              <Icon name={todayLog?.calories?"check":"moon"} size={22} strokeWidth={todayLog?.calories?1.75:1.5} />
-              <div style={{flex:1}}>
-                <div style={{fontSize:10,color:todayLog?.calories?C.accent:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>Вечер{todayLog?.calories?" · готово":""}</div>
-                <div style={{fontFamily:F.mono,fontSize:13,fontWeight:500,color:todayLog?.calories?C.accent:C.text,marginTop:3}}>{todayLog?.calories?`${todayLog.calories} ккал`:"Записать →"}</div>
-              </div>
-            </button>
+            {profile.fatsecretConnected ? (
+              <button onClick={()=>setShowEveningLog(true)} style={{background:todayLog?.calories?C.accentDim:C.surface,border:`1px solid ${todayLog?.calories?C.accent:C.border}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",textAlign:"left",fontFamily:F.sans,color:todayLog?.calories?C.accent:C.text}}>
+                <div style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{todayLog?.calories?"✓":"⚡"}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:10,color:todayLog?.calories?C.accent:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>Синх. FatSecret{todayLog?.calories?" · готово":""}</div>
+                  <div style={{fontFamily:F.mono,fontSize:13,fontWeight:500,color:todayLog?.calories?C.accent:C.text,marginTop:3}}>{todayLog?.calories?`${todayLog.calories} ккал`:"Синхронизировать →"}</div>
+                </div>
+              </button>
+            ) : (
+              <button onClick={()=>setShowEveningLog(true)} style={{background:todayLog?.calories?C.accentDim:C.surface,border:`1px solid ${todayLog?.calories?C.accent:C.border}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",textAlign:"left",fontFamily:F.sans,color:todayLog?.calories?C.accent:C.text}}>
+                <Icon name={todayLog?.calories?"check":"moon"} size={22} strokeWidth={todayLog?.calories?1.75:1.5} />
+                <div style={{flex:1}}>
+                  <div style={{fontSize:10,color:todayLog?.calories?C.accent:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>Вечер{todayLog?.calories?" · готово":""}</div>
+                  <div style={{fontFamily:F.mono,fontSize:13,fontWeight:500,color:todayLog?.calories?C.accent:C.text,marginTop:3}}>{todayLog?.calories?`${todayLog.calories} ккал`:"Записать →"}</div>
+                </div>
+              </button>
+            )}
           </div>
 
           <div style={{padding:"24px 22px 0"}}>
@@ -335,7 +345,7 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
               {profile.logs.length>1&&<div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"16px 18px",marginBottom:14}}><div style={{fontSize:10,color:C.muted,marginBottom:10,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>{t("today.trend")}</div><WeightChart logs={profile.logs} compact/></div>}
 
               {/* Metrics */}
-              {(todayLog||nutritionSource)?(
+              {(todayLog||nutritionSource) && (
                 <>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",margin:"8px 0 12px"}}>
                     <div style={{fontSize:10,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.12em"}}>{t("today.metrics")}</div>
@@ -347,10 +357,6 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                   <MetricBar label={t("metric.steps")} value={todayLog?.steps||0} target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.text} icon=""/>
                   </div>
                 </>
-              ):(
-                <div style={{border:`1px dashed ${C.dim}`,borderRadius:14,padding:"28px 24px",textAlign:"center",marginBottom:14}}>
-                  <div style={{fontSize:13,color:C.muted}}>{t("today.no_log")}</div>
-                </div>
               )}
             </>
           )}

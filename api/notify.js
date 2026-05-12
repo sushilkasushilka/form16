@@ -1,5 +1,5 @@
 // api/notify.js — sends push notifications to all subscribers
-// Called by Vercel Cron at 07:00 and 21:00 Moscow time (04:00 and 18:00 UTC)
+// Called by Vercel Cron at 06:00 and 21:00 Moscow time (03:00 and 18:00 UTC)
 
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
@@ -15,8 +15,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_KEY
 );
 
-// Moscow is UTC+3. Cron runs at 04:00 UTC = 07:00 MSK and 18:00 UTC = 21:00 MSK
-const MORNING_UTC_HOUR = 4;
+// Moscow is UTC+3. Cron runs at 03:00 UTC = 06:00 MSK and 18:00 UTC = 21:00 MSK
+const MORNING_UTC_HOUR = 3;
 const EVENING_UTC_HOUR = 18;
 
 /**
@@ -30,7 +30,7 @@ const EVENING_UTC_HOUR = 18;
  *   `x-cron-secret` header or `?secret=` query string with the same value.
  *
  * Behavior:
- *   - GET: only sends during the morning (04–08 UTC) or evening (18–22 UTC)
+ *   - GET: only sends during the morning (03–07 UTC) or evening (18–22 UTC)
  *     window. Outside those windows it returns `{ ok: true, message: "Not a notification hour" }`
  *     without sending — this lets the same handler safely tolerate cron misfires.
  *   - POST: forces the morning payload regardless of clock (useful for manual triggers).
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
   }
 
   const hour = new Date().getUTCHours();
-  const isMorning = hour >= 4 && hour <= 8;   // 07:00–11:00 MSK
+  const isMorning = hour >= 3 && hour <= 7;   // 06:00–10:00 MSK
   const isEvening = hour >= 18 && hour <= 22; // 21:00–01:00 MSK
   const isForced = req.method === "POST";
 
