@@ -150,12 +150,25 @@ export default async function handler(req, res) {
       ? data.food_entries.food_entry
       : [data.food_entries.food_entry];
 
+    // FatSecret's `food_entries.get.v2` response puts macros directly on each
+    // `food_entry` object (per-entry totals already multiplied by servings).
+    // We also fall back to a (legacy) nested `nutritional_content` shape just
+    // in case the API surface ever returns one — costs nothing and avoids a
+    // silent regression if FS changes the schema again.
+    const num = (...candidates) => {
+      for (const v of candidates) {
+        if (v === undefined || v === null) continue;
+        const n = parseFloat(v);
+        if (!Number.isNaN(n)) return n;
+      }
+      return 0;
+    };
     const totals = entries.reduce((acc, e) => {
       const n = e.nutritional_content || {};
-      acc.calories += parseFloat(n.calories||0);
-      acc.protein  += parseFloat(n.protein||0);
-      acc.carbs    += parseFloat(n.carbohydrate||0);
-      acc.fat      += parseFloat(n.fat||0);
+      acc.calories += num(e.calories,     n.calories);
+      acc.protein  += num(e.protein,      n.protein);
+      acc.carbs    += num(e.carbohydrate, n.carbohydrate);
+      acc.fat      += num(e.fat,          n.fat);
       return acc;
     }, { calories:0, protein:0, carbs:0, fat:0 });
 
