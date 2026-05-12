@@ -198,6 +198,7 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
   const [greensDetected, setGreensDetected] = useState([]); // canonical veg names FS matched
   const [fsSyncing, setFsSyncing] = useState(false);
   const [fsSynced,  setFsSynced]  = useState(false);
+  const [fsEmpty,   setFsEmpty]   = useState(false); // FS responded but no entries today
 
   const showProtein = currentWeekNum >= 2;
   const showSteps   = currentWeekNum >= 3;
@@ -218,14 +219,18 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
         const d = await FS.fetchDiaryTotals(profile.id);
         if (cancelled) return;
         if (d) {
-          if (d.calories) setCalories(String(d.calories));
-          if (d.protein)  setProtein(String(d.protein));
+          // Always reflect what FS returned, even zeros — empty input on a
+          // synced badge is confusing. `fromFatSecret` from the API is only
+          // true when entries existed; otherwise we tag the sync as empty.
+          if (typeof d.calories === "number") setCalories(String(d.calories));
+          if (typeof d.protein  === "number") setProtein(String(d.protein));
           if (showGreens && d.greens) {
             setGreens(true);
             setGreensAuto(true);
             setGreensDetected(d.greensDetected || []);
           }
           setFsSynced(true);
+          setFsEmpty(!d.fromFatSecret);
         }
       } catch { /* sync failure is non-fatal — user can fill manually */ }
       finally { if (!cancelled) setFsSyncing(false); }
@@ -266,10 +271,16 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
         <DateSelector date={date} setDate={setDate} />
 
         {profile.fatsecretConnected && (
-          <div style={{background:fsSynced?`${C.accent}14`:C.card,border:`1px solid ${fsSynced?`${C.accent}55`:C.border}`,borderRadius:12,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
-            <div style={{fontSize:12,color:fsSynced?C.accent:C.muted,display:"flex",alignItems:"center",gap:8}}>
-              <span style={{fontSize:14}}>{fsSyncing?"⏳":fsSynced?"⚡":"🥗"}</span>
-              {fsSyncing ? "Синхронизация с FatSecret…" : fsSynced ? "Данные подтянуты из FatSecret" : "FatSecret подключён"}
+          <div style={{background:fsSynced&&!fsEmpty?`${C.accent}14`:C.card,border:`1px solid ${fsSynced&&!fsEmpty?`${C.accent}55`:C.border}`,borderRadius:12,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:14}}>{fsSyncing?"⏳":fsSynced&&!fsEmpty?"⚡":fsEmpty?"📭":"🥗"}</span>
+            <div style={{flex:1,fontSize:12,color:fsSynced&&!fsEmpty?C.accent:C.muted,lineHeight:1.45}}>
+              {fsSyncing
+                ? "Синхронизация с FatSecret…"
+                : fsSynced && !fsEmpty
+                  ? "Данные подтянуты из FatSecret"
+                  : fsEmpty
+                    ? "В FatSecret сегодня пока нет записей — добавьте еду в приложении FS или внесите вручную"
+                    : "FatSecret подключён"}
             </div>
           </div>
         )}
