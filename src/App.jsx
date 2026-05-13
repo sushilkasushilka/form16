@@ -393,43 +393,11 @@ export default function App(){
     const userId = session?.user?.id;
     if (!userId) return;
 
-    // Read the existing row for this date so a partial log (morning-only or
-    // evening-only) doesn't blank out fields the other half already wrote.
-    // `undefined` in `log` = "not in this update"; anything else overrides.
-    const { data: existing } = await supabase
-      .from("daily_logs")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("date", log.date)
-      .maybeSingle();
-
-    const pick = (next, prev) => next !== undefined ? next : (prev ?? null);
-    const payload = {
-      user_id: userId,
-      date: log.date,
-      weight:   pick(log.weight,   existing?.weight),
-      calories: pick(log.calories, existing?.calories),
-      protein:  pick(log.protein,  existing?.protein),
-      steps:    pick(log.steps,    existing?.steps),
-      waist:    pick(log.waist,    existing?.waist),
-      neck:     pick(log.neck,     existing?.neck),
-      hips:     pick(log.hips,     existing?.hips),
-      bfp:      pick(log.bfp,      existing?.bfp),
-      greens:   typeof log.greens === "boolean" ? log.greens : (existing?.greens ?? null),
-      from_fatsecret: log.fromFatSecret !== undefined ? log.fromFatSecret : (existing?.from_fatsecret ?? false),
-    };
-
-    const { error } = await supabase
-      .from("daily_logs")
-      .upsert(payload, { onConflict: "user_id,date" });
-    if (error) {
-      console.error("saveLog Supabase error:", error);
-      alert("Не удалось сохранить отчёт: " + (error.message || "ошибка БД"));
-      return;
-    }
-
-    // Build the merged today-log up-front so we can compute streak deltas
-    // from real values rather than chasing the setState callback closure.
+    // 1) Build the merged row from in-memory state. Logs are cached in
+    //    localStorage and rehydrated on cold start, so we don't need an
+    //    extra round-trip just to learn what's already on this date. This
+    //    also avoids losing the user's input if a pre-flight SELECT fails
+    //    (which is what was raising "TypeError: Load failed" before).
     const prevLogs = profile?.logs || [];
     const prevSameDate = prevLogs.find(l => l.date === log.date) || {};
     const merged = {
@@ -447,19 +415,21 @@ export default function App(){
       ...(log.fromFatSecret !== undefined ? { fromFatSecret: log.fromFatSecret } : {}),
     };
 
-    // Streak counts a day only when BOTH morning (weight) and evening
-    // (calories) reports are in. We bump it once, only when this save flips
-    // today from incomplete → complete. Past-dated and partial saves don't
-    // move the streak.
+    // 2) Streak: only ticks up when this save flips today from incomplete
+    //    (missing morning OR evening) to complete (both present).
     const todayKey = todayStr();
     const prevToday  = prevLogs.find(l => l.date === todayKey) || {};
     const wasComplete = (prevToday.weight > 0) && (prevToday.calories > 0);
     const newToday    = log.date === todayKey ? merged : prevToday;
     const isComplete  = (newToday.weight   > 0) && (newToday.calories   > 0);
     const streakDelta = log.date === todayKey && !wasComplete && isComplete ? 1 : 0;
-    const newStreak   = (profile?.streak || 0) + streakDelta;
+    const newStreak   = (profile?.streak  || 0) + streakDelta;
     const newTotalXP  = (profile?.totalXP || 0) + 20;
 
+    // 3) Optimistic local update. Even if the DB call dies on iOS Safari's
+    //    "Load failed" we leave the user's data on screen + in the
+    //    localStorage cache. The retry below will sync it the moment the
+    //    network recovers; worst case the user re-saves later.
     setProfile(p => ({
       ...p,
       logs: [...(p.logs || []).filter(l => l.date !== log.date), merged],
@@ -468,15 +438,63 @@ export default function App(){
       ...(log.bfp ? { bfp: log.bfp } : {}),
     }));
 
-    // Persist anything that needs to outlive a page reload. Streak/XP go on
-    // every save; bfp only when this save produced a new value.
+    // 4) Push to Supabase with one retry. Network-level errors come back
+    //    either as a thrown TypeError (Safari) or as a `{error}` object
+    //    with `message: "Load failed"` (supabase-js wrapping the same
+    //    fetch). Treat both as retryable.
+    const payload = {
+      user_id: userId,
+      date: merged.date,
+      weight:   merged.weight   ?? null,
+      calories: merged.calories ?? null,
+      protein:  merged.protein  ?? null,
+      steps:    merged.steps    ?? null,
+      waist:    merged.waist    ?? null,
+      neck:     merged.neck     ?? null,
+      hips:     merged.hips     ?? null,
+      bfp:      merged.bfp      ?? null,
+      greens:   typeof merged.greens === "boolean" ? merged.greens : null,
+      from_fatsecret: typeof merged.fromFatSecret === "boolean" ? merged.fromFatSecret : false,
+    };
+
+    async function attemptSave() {
+      try {
+        const { error } = await supabase
+          .from("daily_logs")
+          .upsert(payload, { onConflict: "user_id,date" });
+        return { ok: !error, error };
+      } catch (err) {
+        return { ok: false, error: err };
+      }
+    }
+
+    let result = await attemptSave();
+    if (!result.ok) {
+      // Brief pause, then a single retry. Most "Load failed"s on iOS
+      // resolve within a second once Safari un-pauses the connection.
+      await new Promise(r => setTimeout(r, 800));
+      result = await attemptSave();
+    }
+    if (!result.ok) {
+      console.error("saveLog Supabase error after retry:", result.error);
+      alert("Не удалось отправить отчёт на сервер — проверьте интернет и попробуйте ещё раз. Введённые данные сохранены локально.");
+      return;
+    }
+
+    // 5) Persist the profile-level rollups (streak, XP, fresh BFP) so they
+    //    survive a reload. Non-fatal if this leg fails — the daily_logs
+    //    row is already in.
     const profileUpdate = { streak: newStreak, total_xp: newTotalXP };
     if (log.bfp) profileUpdate.bfp = log.bfp;
-    const { error: profErr } = await supabase
-      .from("profiles")
-      .update(profileUpdate)
-      .eq("id", userId);
-    if (profErr) console.error("saveLog profile update error:", profErr);
+    try {
+      const { error: profErr } = await supabase
+        .from("profiles")
+        .update(profileUpdate)
+        .eq("id", userId);
+      if (profErr) console.error("saveLog profile update error:", profErr);
+    } catch (err) {
+      console.error("saveLog profile update threw:", err);
+    }
   }
 
   async function signOut() {
