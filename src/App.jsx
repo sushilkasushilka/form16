@@ -77,12 +77,18 @@ export default function App(){
   // the user to the auth screen every time their network blinked.
   const userInitiatedSignOut = useRef(false);
 
-  // Cache profile to localStorage whenever it changes
+  // Cache profile + logs to localStorage so cold start renders the full
+  // dashboard immediately (yesterday's report shouldn't pop in after a
+  // network round-trip). fsSyncData is excluded — it's re-fetched on open
+  // and we don't want a stale 3-hour-old number cached across sessions.
   useEffect(()=>{
-    if(profile) {
-      try { localStorage.setItem("form16_profile_cache", JSON.stringify({...profile, logs:[]})); } catch{}
-    }
-  },[profile?.streak, profile?.currentWeek, profile?.weight, profile?.is_subscribed]);
+    if(!profile) return;
+    try {
+      const { fsSyncData, fsSyncedAt, ...rest } = profile;
+      void fsSyncData; void fsSyncedAt;
+      localStorage.setItem("form16_profile_cache", JSON.stringify(rest));
+    } catch{}
+  },[profile?.streak, profile?.currentWeek, profile?.weight, profile?.is_subscribed, profile?.logs?.length, profile?.logs?.at(-1)?.date]);
 
   // ── Detect notification tap → open correct modal ─────────────────────────
   // Two paths: (1) cold start where the SW opens a new window with ?action=…
@@ -259,24 +265,22 @@ export default function App(){
 
   // ── Load profile from Supabase ────────────────────────────────────────────
   async function loadProfile(userId) {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    // Fetch profile + logs in parallel so the dashboard is whole on first
+    // render instead of "profile, then logs, then FS data" each landing on
+    // a different frame.
+    const [profileRes, logsRes] = await Promise.all([
+      supabase.from("profiles").select("*").eq("id", userId).single(),
+      supabase.from("daily_logs").select("*").eq("user_id", userId).order("date", { ascending: true }),
+    ]);
+
+    const { data, error } = profileRes;
+    const logs = logsRes.data;
 
     if (error || !data) {
       // No profile yet — send to onboarding
       setScreen("onboarding");
       return;
     }
-
-    // Load daily logs
-    const { data: logs } = await supabase
-      .from("daily_logs")
-      .select("*")
-      .eq("user_id", userId)
-      .order("date", { ascending: true });
 
     const fullProfile = {
       ...data,
@@ -312,7 +316,15 @@ export default function App(){
       foodLog: [],
     };
 
-    setProfile(fullProfile);
+    // Preserve any in-flight FS sync result from current state. The 3h
+    // background sync can land before this fetch returns; without this
+    // merge the fresh profile would clobber the just-synced numbers and
+    // they'd vanish until the next tick.
+    setProfile(prev => ({
+      ...fullProfile,
+      fsSyncData:  prev?.fsSyncData,
+      fsSyncedAt:  prev?.fsSyncedAt,
+    }));
 
     // Route to day0 if: joined today, no logs yet, and haven't seen day0 screen yet
     const isNewUser = fullProfile.joinedAt === todayStr() && (!logs || logs.length === 0);
