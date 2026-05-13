@@ -6,7 +6,7 @@ import { supabase } from "./supabase.js";
 import { LANGUAGES } from "./lang.js";
 import { C, F, BRAND } from "./theme.js";
 import { todayStr } from "./utils.js";
-import { MOCK_ATHLETES } from "./program.js";
+import { MOCK_ATHLETES, FS } from "./program.js";
 import { AuthScreen } from "./screens/AuthScreen.jsx";
 import { SignUp } from "./screens/SignUp.jsx";
 import { Day0Screen } from "./screens/Day0Screen.jsx";
@@ -132,6 +132,40 @@ export default function App(){
       });
     }
   }, []);
+
+  // ── Background FatSecret sync ─────────────────────────────────────────────
+  // Pulls today's diary totals every 3h while the app is open, and again
+  // whenever the user brings the tab back to the foreground. Result is stored
+  // in `profile.fsSyncData` / `fsSyncedAt` (memory only — these aren't
+  // persisted) so the today screen and evening modal can show fresh numbers
+  // without waiting for an explicit modal-open fetch. The actual daily_logs
+  // row is still only written when the user taps "Сохранить итог дня" —
+  // that's the manual confirmation that "all food is in FS".
+  const profileFsConnected = profile?.fatsecretConnected;
+  const profileId          = profile?.id;
+  useEffect(() => {
+    if (!profileFsConnected || !profileId) return;
+
+    let cancelled = false;
+    async function syncFS() {
+      try {
+        const d = await FS.fetchDiaryTotals(profileId);
+        if (cancelled || !d) return;
+        setProfile(p => p ? { ...p, fsSyncData: d, fsSyncedAt: new Date().toISOString() } : p);
+      } catch { /* non-fatal — next tick will retry */ }
+    }
+
+    syncFS();
+    const interval = setInterval(syncFS, 3 * 60 * 60 * 1000); // 3 hours
+    const onVisible = () => { if (document.visibilityState === "visible") syncFS(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [profileFsConnected, profileId]);
 
   // ── Listen to auth state ──────────────────────────────────────────────────
   // Design notes (see "auto-logout on VPN" bug):
@@ -382,43 +416,55 @@ export default function App(){
       return;
     }
 
-    // Merge into local state with the same precedence as the DB payload.
-    setProfile(p => {
-      const prevLogs = p.logs || [];
-      const prev = prevLogs.find(l => l.date === log.date) || {};
-      const merged = {
-        ...prev,
-        date: log.date,
-        ...(log.weight   !== undefined ? { weight: log.weight     } : {}),
-        ...(log.calories !== undefined ? { calories: log.calories } : {}),
-        ...(log.protein  !== undefined ? { protein: log.protein   } : {}),
-        ...(log.steps    !== undefined ? { steps: log.steps       } : {}),
-        ...(log.waist    !== undefined ? { waist: log.waist       } : {}),
-        ...(log.neck     !== undefined ? { neck: log.neck         } : {}),
-        ...(log.hips     !== undefined ? { hips: log.hips         } : {}),
-        ...(log.bfp      !== undefined ? { bfp: log.bfp           } : {}),
-        ...(typeof log.greens === "boolean" ? { greens: log.greens } : {}),
-        ...(log.fromFatSecret !== undefined ? { fromFatSecret: log.fromFatSecret } : {}),
-      };
-      const wasLoggedToday = prevLogs.some(l => l.date === todayStr());
-      return {
-        ...p,
-        logs: [...prevLogs.filter(l => l.date !== log.date), merged],
-        streak: p.streak + (log.date === todayStr() && !wasLoggedToday ? 1 : 0),
-        totalXP: p.totalXP + 20,
-        ...(log.bfp ? { bfp: log.bfp } : {}),
-      };
-    });
+    // Build the merged today-log up-front so we can compute streak deltas
+    // from real values rather than chasing the setState callback closure.
+    const prevLogs = profile?.logs || [];
+    const prevSameDate = prevLogs.find(l => l.date === log.date) || {};
+    const merged = {
+      ...prevSameDate,
+      date: log.date,
+      ...(log.weight   !== undefined ? { weight: log.weight     } : {}),
+      ...(log.calories !== undefined ? { calories: log.calories } : {}),
+      ...(log.protein  !== undefined ? { protein: log.protein   } : {}),
+      ...(log.steps    !== undefined ? { steps: log.steps       } : {}),
+      ...(log.waist    !== undefined ? { waist: log.waist       } : {}),
+      ...(log.neck     !== undefined ? { neck: log.neck         } : {}),
+      ...(log.hips     !== undefined ? { hips: log.hips         } : {}),
+      ...(log.bfp      !== undefined ? { bfp: log.bfp           } : {}),
+      ...(typeof log.greens === "boolean" ? { greens: log.greens } : {}),
+      ...(log.fromFatSecret !== undefined ? { fromFatSecret: log.fromFatSecret } : {}),
+    };
 
-    // Persist the new BFP to the profiles row too — otherwise the local
-    // value above is lost on the next page load.
-    if (log.bfp) {
-      const { error: profErr } = await supabase
-        .from("profiles")
-        .update({ bfp: log.bfp })
-        .eq("id", userId);
-      if (profErr) console.error("saveLog profile.bfp error:", profErr);
-    }
+    // Streak counts a day only when BOTH morning (weight) and evening
+    // (calories) reports are in. We bump it once, only when this save flips
+    // today from incomplete → complete. Past-dated and partial saves don't
+    // move the streak.
+    const todayKey = todayStr();
+    const prevToday  = prevLogs.find(l => l.date === todayKey) || {};
+    const wasComplete = (prevToday.weight > 0) && (prevToday.calories > 0);
+    const newToday    = log.date === todayKey ? merged : prevToday;
+    const isComplete  = (newToday.weight   > 0) && (newToday.calories   > 0);
+    const streakDelta = log.date === todayKey && !wasComplete && isComplete ? 1 : 0;
+    const newStreak   = (profile?.streak || 0) + streakDelta;
+    const newTotalXP  = (profile?.totalXP || 0) + 20;
+
+    setProfile(p => ({
+      ...p,
+      logs: [...(p.logs || []).filter(l => l.date !== log.date), merged],
+      streak:  newStreak,
+      totalXP: newTotalXP,
+      ...(log.bfp ? { bfp: log.bfp } : {}),
+    }));
+
+    // Persist anything that needs to outlive a page reload. Streak/XP go on
+    // every save; bfp only when this save produced a new value.
+    const profileUpdate = { streak: newStreak, total_xp: newTotalXP };
+    if (log.bfp) profileUpdate.bfp = log.bfp;
+    const { error: profErr } = await supabase
+      .from("profiles")
+      .update(profileUpdate)
+      .eq("id", userId);
+    if (profErr) console.error("saveLog profile update error:", profErr);
   }
 
   async function signOut() {

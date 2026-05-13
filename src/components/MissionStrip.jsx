@@ -1,16 +1,10 @@
 // MissionStrip — week-at-a-glance ribbon for the user's current program week.
-// Re-ported into the Sciencebody "Lab" aesthetic: paper background, hairline
-// borders, single accent green, Fraunces serif for the day number, Onest sans
-// for labels.
 //
-// One row of 7 circles (День 1–7). Each circle is colored by completion
-// against the per-week metric set:
-//
-//   today    — solid accent + halo (always, regardless of completion)
-//   hit all  — solid accent fill, white text
-//   partial  — hollow with amber hairline border, amber text
-//   missed   — hollow with red dashed border, red text   (past day only)
-//   future   — hollow with dim hairline, muted text
+// One row of 7 circles (День 1–7). The circle is a "pie" split into N equal
+// sectors, one per metric tracked in the current week. A sector is filled
+// in the accent color when that metric was hit for the day. So a Week 1
+// user who only filed their morning report sees a half-filled circle; a
+// user who also filed evening sees a fully filled circle.
 //
 // Per-week metric sets:
 //   W1     — weight + food log (any calorie entry)
@@ -25,10 +19,8 @@
 //   steps    — ≥ 80% of target
 //   greens   — `log.greens === true` (boolean from evening log)
 //
-// Tap any circle to open the existing read-only DayDetailModal for that
-// day's program task via `onDaySelected`. Tap "Раскрыть" to expand a
-// per-day metrics grid; the same metric set is used for both views so
-// they always agree.
+// Tapping a circle toggles the expanded per-day metric grid (it no longer
+// opens the program-task modal — that affordance lives elsewhere now).
 import { useState } from "react";
 import { C, F } from "../theme.js";
 import { Icon } from "./icons.jsx";
@@ -55,54 +47,95 @@ function metricIdsForWeek(weekNum) {
   return ["weight", "caloriesTarget", "proteinTarget", "stepsTarget", "greensTarget"];
 }
 
-function dayCompletion(log, weekNum, dailyTargets) {
-  const ids = metricIdsForWeek(weekNum);
-  let met = 0;
-  for (const id of ids) {
-    if (METRICS[id].check(log, dailyTargets)) met++;
-  }
-  return { met, total: ids.length };
-}
+// Sectored day circle — splits the disc into N equal pie wedges (one per
+// metric tracked this week) and fills the "done" wedges with the accent
+// colour. The day number sits in a small surface-coloured medallion at the
+// center so it stays legible regardless of which wedges are filled.
+function SectoredDay({ segments, dayInWeek, isToday, isFuture }) {
+  const size = 36;
+  const cx = size / 2, cy = size / 2;
+  const r = (size - 2) / 2;
+  const innerR = r * 0.62;
+  const n = Math.max(1, segments.length);
 
-// Lab-styled circle states. Today wins over completion so the
-// "you are here" affordance is unmistakable.
-function circleStyle(ratio, isToday, isFuture) {
-  if (isToday) return {
-    fill:   C.accent,
-    border: C.accent,
-    text:   "#fff",
-    halo:   true,
-    dashed: false,
-  };
-  if (isFuture) return {
-    fill:   "transparent",
-    border: C.dim,
-    text:   C.muted,
-    halo:   false,
-    dashed: false,
-  };
-  if (ratio === 1) return {
-    fill:   C.text,
-    border: C.text,
-    text:   C.bg,
-    halo:   false,
-    dashed: false,
-  };
-  if (ratio > 0) return {
-    fill:   "transparent",
-    border: C.yellow,
-    text:   C.yellow,
-    halo:   false,
-    dashed: false,
-  };
-  // none hit on a past day
-  return {
-    fill:   "transparent",
-    border: C.red,
-    text:   C.red,
-    halo:   false,
-    dashed: true,
-  };
+  // Build SVG wedge paths. With a single segment we fall back to a circle to
+  // dodge the 360° arc degeneracy.
+  const rad = (deg) => ((deg - 90) * Math.PI) / 180;
+  const point = (a) => [cx + r * Math.cos(rad(a)), cy + r * Math.sin(rad(a))];
+
+  const anyDone = segments.some(s => s.done);
+  const allDone = segments.length > 0 && segments.every(s => s.done);
+  const missed  = !isToday && !isFuture && !anyDone;
+
+  // Border + day-number colour rules. Today's accent halo wins.
+  const borderColor = isToday ? C.accent : isFuture ? C.dim : missed ? C.red : C.border;
+  const borderDash  = missed ? "3 3" : "";
+  const textColor   = isToday ? C.accent : isFuture ? C.muted : C.text;
+
+  return (
+    <div style={{
+      position: "relative",
+      width: size, height: size,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      boxShadow: isToday ? `0 0 0 2px ${C.bg}, 0 0 0 4px ${C.accent}` : "none",
+      borderRadius: "50%",
+      opacity: isFuture ? 0.7 : 1,
+    }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        {/* Filled wedges (only when the metric was hit) */}
+        {n === 1
+          ? segments[0]?.done && (
+              <circle cx={cx} cy={cy} r={r} fill={C.accent} />
+            )
+          : segments.map((seg, i) => {
+              if (!seg.done) return null;
+              const start = (360 / n) * i;
+              const end   = (360 / n) * (i + 1);
+              const [x1, y1] = point(start);
+              const [x2, y2] = point(end);
+              const large = end - start > 180 ? 1 : 0;
+              return (
+                <path
+                  key={i}
+                  d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`}
+                  fill={C.accent}
+                />
+              );
+            })}
+
+        {/* Sector separators when more than one segment exists — gives the
+            "split into N parts" affordance even if no wedge is filled. */}
+        {n > 1 && segments.map((_, i) => {
+          const a = (360 / n) * i;
+          const [x, y] = point(a);
+          return (
+            <line key={`sep-${i}`} x1={cx} y1={cy} x2={x} y2={y}
+                  stroke={allDone ? C.accent : C.border} strokeWidth={1} />
+          );
+        })}
+
+        {/* Outer ring */}
+        <circle
+          cx={cx} cy={cy} r={r}
+          fill="none"
+          stroke={borderColor}
+          strokeWidth={1.5}
+          strokeDasharray={borderDash || undefined}
+        />
+
+        {/* Inner medallion so the digit reads cleanly over any wedge */}
+        <circle cx={cx} cy={cy} r={innerR} fill={C.surface} />
+      </svg>
+
+      <span style={{
+        position: "absolute",
+        fontFamily: F.serif,
+        fontSize: 13, fontWeight: 600,
+        color: textColor,
+        lineHeight: 1,
+      }}>{dayInWeek}</span>
+    </div>
+  );
 }
 
 export function MissionStrip({
@@ -110,7 +143,9 @@ export function MissionStrip({
   userGlobalDay,
   currentWeekNum,
   currentWeekData,
-  onDaySelected,
+  // `onDaySelected` is intentionally unused now — kept in the signature so
+  // existing callers don't need to change. The week-task affordance was
+  // removed from the day circles per design.
 }) {
   const [expanded, setExpanded] = useState(false);
   const targets = profile?.dailyTargets || {};
@@ -125,17 +160,19 @@ export function MissionStrip({
     const log = profile.logs.find(l => l.date === dateStr);
     const isToday  = gd === userGlobalDay;
     const isFuture = gd > userGlobalDay;
-    const { met, total } = dayCompletion(log, currentWeekNum, targets);
-    const ratio = total ? met / total : 0;
-    const style = circleStyle(ratio, isToday, isFuture);
+    const segments = metricIds.map(id => ({
+      id,
+      done: !isFuture && METRICS[id].check(log, targets),
+    }));
     return {
-      gd, dateStr, log, isToday, isFuture,
-      met, total, style,
+      gd, dateStr, log, isToday, isFuture, segments,
       dayInWeek: i + 1,
       label: DAY_LABELS[i],
       programDay: currentWeekData?.days?.[i],
     };
   });
+
+  const toggleExpand = () => setExpanded(v => !v);
 
   return (
     <>
@@ -147,9 +184,9 @@ export function MissionStrip({
         <div style={{
           fontSize: 10, color: C.muted, fontWeight: 500,
           textTransform: "uppercase", letterSpacing: "0.12em",
-        }}>Миссия недели</div>
+        }}>Задача недели</div>
         <button
-          onClick={() => setExpanded(v => !v)}
+          onClick={toggleExpand}
           style={{
             background: "none", border: "none", cursor: "pointer",
             color: C.muted, fontSize: 11, padding: 0,
@@ -167,39 +204,28 @@ export function MissionStrip({
         padding: "16px 14px",
         marginBottom: 22,
       }}>
-        {/* Day circles */}
+        {/* Day circles — tap any one to toggle the expanded metric grid */}
         <div style={{ display: "flex", justifyContent: "space-between", gap: 4 }}>
           {days.map(d => (
             <button
               key={d.gd}
-              onClick={() => d.programDay && onDaySelected?.(currentWeekData, d.programDay)}
-              aria-label={`День ${d.dayInWeek}${d.isToday ? " (сегодня)" : ""}`}
-              disabled={!d.programDay}
+              onClick={toggleExpand}
+              aria-label={`День ${d.dayInWeek}${d.isToday ? " (сегодня)" : ""} — ${d.segments.filter(s=>s.done).length}/${d.segments.length} выполнено`}
               style={{
                 flex: 1,
                 background: "none",
                 border: "none",
                 padding: "4px 0",
-                cursor: d.programDay ? "pointer" : "default",
+                cursor: "pointer",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                opacity: d.isFuture ? 0.7 : 1,
               }}
             >
-              <div style={{
-                width: 34, height: 34, borderRadius: "50%",
-                background: d.style.fill,
-                border: `1.5px ${d.style.dashed ? "dashed" : "solid"} ${d.style.border}`,
-                boxShadow: d.style.halo
-                  ? `0 0 0 2px ${C.bg}, 0 0 0 4px ${C.accent}`
-                  : "none",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: F.serif,
-                fontSize: 14, fontWeight: 600,
-                color: d.style.text,
-                transition: "all 0.18s",
-              }}>
-                {d.dayInWeek}
-              </div>
+              <SectoredDay
+                segments={d.segments}
+                dayInWeek={d.dayInWeek}
+                isToday={d.isToday}
+                isFuture={d.isFuture}
+              />
               <div style={{
                 fontSize: 10,
                 color: d.isToday ? C.accent : C.muted,
