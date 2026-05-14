@@ -208,9 +208,11 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   };
 
-  // Show the "swipe →" hint only while there are still slides ahead of
-  // the active one. Sits absolutely over the carousel's right edge.
+  // Pulse chevrons sit over the card edges to hint at swipe direction.
+  // Right shows when there's a slide ahead; left shows when there's one
+  // behind (i.e., everywhere from slide 2 onward).
   const showNextHint = activeIdx < slides.length - 1;
+  const showPrevHint = activeIdx > 0;
 
   return (
     <div style={{ marginBottom: 14, position: "relative" }}>
@@ -239,6 +241,11 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
             50%{transform:translate(5px,-50%);opacity:1}
             100%{transform:translate(0,-50%);opacity:0.55}
           }
+          @keyframes form16-swipe-hint-left{
+            0%{transform:translate(0,-50%);opacity:0.55}
+            50%{transform:translate(-5px,-50%);opacity:1}
+            100%{transform:translate(0,-50%);opacity:0.55}
+          }
         `}</style>
         {slides.map((s, i) => (
           <div
@@ -263,9 +270,35 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
         ))}
       </div>
 
-      {/* Swipe-right pulse arrow — sits over the card's right edge to
-          tell the user there are more slides. Pure chevron (no circle
-          bg), same icon size as before. Vanishes on the last slide. */}
+      {/* Swipe pulse arrows — pure chevrons sitting over the card edges.
+          Right appears while there's a slide ahead, left from slide 2
+          onward. Tapping either nudges one step in that direction. */}
+      {showPrevHint && (
+        <button
+          aria-label="Предыдущий слайд"
+          onClick={() => scrollTo(activeIdx - 1)}
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: 10,
+            transform: "translate(0,-50%)",
+            background: "transparent",
+            border: "none",
+            padding: 4,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: accent,
+            cursor: "pointer",
+            animation: "form16-swipe-hint-left 1.4s ease-in-out infinite",
+            zIndex: 2,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
       {showNextHint && (
         <button
           aria-label="Следующий слайд"
