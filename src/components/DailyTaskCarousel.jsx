@@ -208,8 +208,12 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   };
 
+  // Show the "swipe →" hint only while there are still slides ahead of
+  // the active one. Sits absolutely over the carousel's right edge.
+  const showNextHint = activeIdx < slides.length - 1;
+
   return (
-    <div style={{ marginBottom: 14 }}>
+    <div style={{ marginBottom: 14, position: "relative" }}>
       <div
         ref={scrollRef}
         style={{
@@ -230,6 +234,11 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
       >
         <style>{`
           .form16-carousel-track::-webkit-scrollbar{display:none;}
+          @keyframes form16-swipe-hint{
+            0%{transform:translate(0,-50%);opacity:0.55}
+            50%{transform:translate(5px,-50%);opacity:1}
+            100%{transform:translate(0,-50%);opacity:0.55}
+          }
         `}</style>
         {slides.map((s, i) => (
           <div
@@ -253,6 +262,41 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
           </div>
         ))}
       </div>
+
+      {/* Swipe-right pulse arrow — sits over the card's right edge to
+          tell the user there are more slides. Vanishes on the last slide
+          and is purely decorative (pointer-events: none) so it never
+          blocks a tap on the card. */}
+      {showNextHint && (
+        <button
+          aria-label="Следующий слайд"
+          onClick={() => scrollTo(activeIdx + 1)}
+          style={{
+            position: "absolute",
+            top: "50%",
+            right: 4,
+            transform: "translate(0,-50%)",
+            background: "rgba(255,255,255,0.85)",
+            border: "none",
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: accent,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(14,17,23,0.18)",
+            animation: "form16-swipe-hint 1.4s ease-in-out infinite",
+            zIndex: 2,
+            padding: 0,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
 
       {/* Dot indicators */}
       <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 12 }}>
