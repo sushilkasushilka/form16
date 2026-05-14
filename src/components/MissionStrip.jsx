@@ -236,14 +236,17 @@ export function MissionStrip({
           ))}
         </div>
 
-        {/* Expanded per-day metric grid */}
+        {/* Expanded per-day metric grid — animates downward from its top
+            edge so the panel reads as opening top-to-bottom (we used to use
+            slideUp, which made the panel feel like it grew bottom-up). */}
         {expanded && (
           <div style={{
             marginTop: 16,
             paddingTop: 14,
             borderTop: `1px solid ${C.border}`,
-            animation: "slideUp 0.25s both",
-            overflowX: "auto",
+            animation: "revealDown 0.28s cubic-bezier(.16,1,.3,1) both",
+            transformOrigin: "top",
+            overflow: "hidden",
           }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>

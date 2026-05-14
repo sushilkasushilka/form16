@@ -4,15 +4,18 @@
 // short and rich days expand without scrolling forever.
 //
 // Slide order (each conditional on its data being present):
-//   1. Task        — icon + title + task text + Details CTA       [always]
+//   1. Task        — icon + title + task text                     [always]
 //   2. Why         — info.why                                     [optional]
 //   3. How         — info.howTo                                   [optional]
 //   4. Goal        — info.weekTarget                              [optional]
 //   5. Stats       — weekly averages from logs                    [day 8 only, isWeeklyStats]
-//   6. Tip         — tip.text + tip.cat                           [always]
+//   6. Tip         — tip.text + tip.cat (psychology, etc.)        [always]
 //
 // Swipe is implemented with native CSS scroll-snap. The dot indicator below
 // tracks the centred card via IntersectionObserver.
+//
+// Per design: no Details / Подробнее CTA on any slide — the slides themselves
+// carry the content, so an extra modal would just be redundant.
 import { useEffect, useRef, useState } from "react";
 import { C } from "../theme.js";
 
@@ -109,7 +112,7 @@ function WeeklyStatsContent({ profile }) {
   );
 }
 
-export function DailyTaskCarousel({ todayDayData, currentWeekData, profile, onOpenDetails }) {
+export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const scrollRef = useRef(null);
   const cardRefs = useRef([]);
@@ -125,6 +128,7 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile, onOp
       accent,
       label: `🎯 День ${todayDayData.day} · ${todayDayData.type}`,
       title: todayDayData.title,
+      // No Details CTA — the rest of the carousel slides ARE the details.
       content: (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", paddingTop: 4 }}>
           <div style={{
@@ -136,13 +140,6 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile, onOp
             {todayDayData.task}
           </div>
         </div>
-      ),
-      footer: (
-        <button onClick={onOpenDetails} style={{
-          width: "100%", background: accent, color: C.bg, border: "none",
-          borderRadius: 14, padding: "12px", fontSize: 14, fontWeight: 700,
-          fontFamily: "'DM Sans',sans-serif", cursor: "pointer",
-        }}>Подробнее →</button>
       ),
     },
     todayDayData.info?.why && {
@@ -219,9 +216,11 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile, onOp
           scrollbarWidth: "none",
           msOverflowStyle: "none",
           padding: "2px 0 6px",
-          margin: "0 -18px",  // bleed past the parent's 18px padding so cards sit edge-to-edge
-          paddingLeft: 18,
-          paddingRight: 18,
+          // Bleed past the dashboard's 22px gutter so the cards land
+          // edge-to-edge like an Instagram feed.
+          margin: "0 -22px",
+          paddingLeft: 22,
+          paddingRight: 22,
         }}
       >
         <style>{`
