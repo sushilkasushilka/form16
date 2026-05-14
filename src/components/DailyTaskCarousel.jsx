@@ -27,6 +27,49 @@ const TYPE_COLOR = {
   active_recovery: C.blue,
 };
 
+// Split a long body string into card-sized chunks. Tries to break on
+// paragraph boundaries first; falls back to sentence boundaries when a
+// single paragraph is itself too long for one card. Card body at our
+// current font sizing (~14px, 1.7 line-height, ~336px content width on
+// a 380px square card) holds roughly 450 characters comfortably; we use
+// a slightly smaller budget so the last line never gets clipped.
+function chunkText(text, maxChars = 420) {
+  if (text == null) return [];
+  const norm = String(text).trim();
+  if (!norm) return [];
+  if (norm.length <= maxChars) return [norm];
+
+  const paragraphs = norm.split(/\n+/).map(p => p.trim()).filter(Boolean);
+  const chunks = [];
+  let current = "";
+
+  const flush = () => { if (current) { chunks.push(current); current = ""; } };
+  const append = (piece) => {
+    if (!piece) return;
+    if (!current) { current = piece; return; }
+    const candidate = current + "\n\n" + piece;
+    if (candidate.length <= maxChars) {
+      current = candidate;
+    } else {
+      flush();
+      current = piece;
+    }
+  };
+
+  for (const p of paragraphs) {
+    if (p.length <= maxChars) {
+      append(p);
+    } else {
+      // Single oversized paragraph — split on sentence enders so we don't
+      // chop in the middle of a phrase.
+      const sentences = p.match(/[^.!?…]+[.!?…]+\s*/g) || [p];
+      for (const s of sentences) append(s.trim());
+    }
+  }
+  flush();
+  return chunks;
+}
+
 // One slide in the carousel. Big bold title, single body block, optional CTA.
 // Background is a tinted version of `accent` so each slide reads as one
 // cohesive panel even when multiple are visible during the swipe.
@@ -58,7 +101,9 @@ function Slide({ accent, label, title, children, footer }) {
         fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 800,
         lineHeight: 1.2, color: C.text, marginBottom: 12,
       }}>{title}</div>
-      <div style={{ flex: 1, overflowY: "auto", color: C.muted, fontSize: 14, lineHeight: 1.7 }}>
+      {/* Body — no inner scroll. Long text fields are pre-chunked into
+          multiple slides so nothing spills past the card edge. */}
+      <div style={{ flex: 1, overflow: "hidden", color: C.muted, fontSize: 14, lineHeight: 1.7 }}>
         {children}
       </div>
       {footer && <div style={{ marginTop: 12, flexShrink: 0 }}>{footer}</div>}
@@ -126,67 +171,80 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
   // Card shape is square (aspect-ratio: 1) — no explicit pixel height
   // any more; the Slide component sizes itself from its own width.
 
-  // Build slide list, skipping any that don't have data for today.
-  const slides = [
-    {
-      key: "task",
-      accent,
-      label: `🎯 День ${todayDayData.day} · ${todayDayData.type}`,
-      title: todayDayData.title,
-      // No Details CTA — the rest of the carousel slides ARE the details.
-      content: (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", paddingTop: 4 }}>
-          <div style={{
-            width: 88, height: 88, borderRadius: 24, marginBottom: 16,
-            background: `${accent}22`, display: "flex", alignItems: "center",
-            justifyContent: "center", fontSize: 48,
-          }}>{todayDayData.icon}</div>
-          <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.7 }}>
-            {todayDayData.task}
-          </div>
+  // Build slide list. Long text sections (why / how / goal / tip) are
+  // split into card-sized chunks so nothing overflows; each chunk
+  // becomes its own slide, with a "1/2"-style continuation label when
+  // the section spans more than one card.
+  const slides = [];
+
+  // Task slide — icon + short task line. Task text is usually short, so
+  // no chunking here.
+  slides.push({
+    key: "task",
+    accent,
+    label: `🎯 День ${todayDayData.day} · ${todayDayData.type}`,
+    title: todayDayData.title,
+    content: (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", paddingTop: 4 }}>
+        <div style={{
+          width: 88, height: 88, borderRadius: 24, marginBottom: 16,
+          background: `${accent}22`, display: "flex", alignItems: "center",
+          justifyContent: "center", fontSize: 48,
+        }}>{todayDayData.icon}</div>
+        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.7 }}>
+          {todayDayData.task}
         </div>
-      ),
-    },
-    todayDayData.info?.why && {
-      key: "why",
-      accent,
-      label: "📖 Почему это важно",
-      title: "Контекст",
-      content: <div style={{ whiteSpace: "pre-line" }}>{todayDayData.info.why}</div>,
-    },
-    todayDayData.info?.howTo && {
-      key: "howto",
-      accent,
-      label: "✅ Как это делать",
-      title: "Действия",
-      content: <div style={{ whiteSpace: "pre-line" }}>{todayDayData.info.howTo}</div>,
-    },
-    todayDayData.info?.weekTarget && {
-      key: "goal",
-      accent,
-      label: "🎯 Цель",
-      title: "На сегодня",
-      content: <div style={{ whiteSpace: "pre-line" }}>{todayDayData.info.weekTarget}</div>,
-    },
-    (todayDayData.isWeeklyStats && profile.logs.length > 0) && {
+      </div>
+    ),
+  });
+
+  // Helper: append one slide per chunk for a long-text section.
+  function pushChunked({ key, text, label, title, slideAccent = accent, maxChars }) {
+    const chunks = chunkText(text, maxChars);
+    chunks.forEach((chunk, i) => {
+      slides.push({
+        key: `${key}-${i}`,
+        accent: slideAccent,
+        label: chunks.length > 1 ? `${label} · ${i + 1}/${chunks.length}` : label,
+        title,
+        content: <div style={{ whiteSpace: "pre-line" }}>{chunk}</div>,
+      });
+    });
+  }
+
+  if (todayDayData.info?.why)        pushChunked({ key: "why",  text: todayDayData.info.why,        label: "📖 Почему это важно", title: "Контекст" });
+  if (todayDayData.info?.howTo)      pushChunked({ key: "how",  text: todayDayData.info.howTo,      label: "✅ Как это делать",   title: "Действия" });
+  if (todayDayData.info?.weekTarget) pushChunked({ key: "goal", text: todayDayData.info.weekTarget, label: "🎯 Цель",             title: "На сегодня" });
+
+  // Day-8 weekly stats — structured grid, not chunkable.
+  if (todayDayData.isWeeklyStats && profile.logs.length > 0) {
+    slides.push({
       key: "stats",
       accent: C.accent,
       label: `📊 Статистика за неделю ${currentWeekData?.week || 1}`,
       title: "Твои средние",
       content: <WeeklyStatsContent profile={profile} />,
-    },
-    {
-      key: "tip",
+    });
+  }
+
+  // Tip slide — bigger font (16 vs 14) means it holds less text per
+  // card, so we use a tighter chunk budget.
+  const tipChunks = chunkText(todayDayData.tip.text, 320);
+  tipChunks.forEach((chunk, i) => {
+    slides.push({
+      key: `tip-${i}`,
       accent: C.accent,
-      label: `💡 ${todayDayData.tip.cat}`,
+      label: tipChunks.length > 1
+        ? `💡 ${todayDayData.tip.cat} · ${i + 1}/${tipChunks.length}`
+        : `💡 ${todayDayData.tip.cat}`,
       title: "Знал?",
       content: (
         <div style={{ fontSize: 16, lineHeight: 1.7, color: C.text, fontWeight: 500 }}>
-          {todayDayData.tip.text}
+          {chunk}
         </div>
       ),
-    },
-  ].filter(Boolean);
+    });
+  });
 
   // Track which slide is centred → drives the dot indicator.
   useEffect(() => {
@@ -208,11 +266,10 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   };
 
-  // Pulse chevrons sit over the card edges to hint at swipe direction.
-  // Right shows when there's a slide ahead; left shows when there's one
-  // behind (i.e., everywhere from slide 2 onward).
-  const showNextHint = activeIdx < slides.length - 1;
-  const showPrevHint = activeIdx > 0;
+  // Single pulse chevron on the right edge — visible only on slide 0 to
+  // teach the swipe gesture. Once the user moves past the first card the
+  // affordance has done its job, so it vanishes.
+  const showNextHint = activeIdx === 0 && slides.length > 1;
 
   return (
     <div style={{ marginBottom: 14, position: "relative" }}>
@@ -241,11 +298,6 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
             50%{transform:translate(5px,-50%);opacity:1}
             100%{transform:translate(0,-50%);opacity:0.55}
           }
-          @keyframes form16-swipe-hint-left{
-            0%{transform:translate(0,-50%);opacity:0.55}
-            50%{transform:translate(-5px,-50%);opacity:1}
-            100%{transform:translate(0,-50%);opacity:0.55}
-          }
         `}</style>
         {slides.map((s, i) => (
           <div
@@ -270,71 +322,38 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
         ))}
       </div>
 
-      {/* Swipe pulse arrows — pure chevrons over the card edges. Both are
-          always mounted so their animations stay in lockstep (mounting one
-          later would leave them out of phase). Visibility is toggled via
-          `visibility` / `pointer-events` based on the active slide. */}
-      <button
-        aria-label="Предыдущий слайд"
-        onClick={() => scrollTo(activeIdx - 1)}
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: 0,
-          transform: "translate(0,-50%)",
-          background: "transparent",
-          border: "none",
-          // Explicit box + lineHeight:0 so the two chevrons are guaranteed
-          // pixel-identical boxes (a SVG inside a default <button> picks
-          // up baseline space that can drift between left/right glyphs).
-          width: 22,
-          height: 22,
-          padding: 0,
-          lineHeight: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: accent,
-          cursor: "pointer",
-          animation: "form16-swipe-hint-left 1.4s ease-in-out infinite",
-          zIndex: 2,
-          visibility: showPrevHint ? "visible" : "hidden",
-          pointerEvents: showPrevHint ? "auto" : "none",
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
-          <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-      <button
-        aria-label="Следующий слайд"
-        onClick={() => scrollTo(activeIdx + 1)}
-        style={{
-          position: "absolute",
-          top: "50%",
-          right: 0,
-          transform: "translate(0,-50%)",
-          background: "transparent",
-          border: "none",
-          width: 22,
-          height: 22,
-          padding: 0,
-          lineHeight: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: accent,
-          cursor: "pointer",
-          animation: "form16-swipe-hint 1.4s ease-in-out infinite",
-          zIndex: 2,
-          visibility: showNextHint ? "visible" : "hidden",
-          pointerEvents: showNextHint ? "auto" : "none",
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
-          <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
+      {/* Swipe-right pulse arrow — only on the first slide. Once the
+          user has swiped at least once, the affordance is no longer
+          needed and disappears. */}
+      {showNextHint && (
+        <button
+          aria-label="Следующий слайд"
+          onClick={() => scrollTo(activeIdx + 1)}
+          style={{
+            position: "absolute",
+            top: "50%",
+            right: 0,
+            transform: "translate(0,-50%)",
+            background: "transparent",
+            border: "none",
+            width: 22,
+            height: 22,
+            padding: 0,
+            lineHeight: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: accent,
+            cursor: "pointer",
+            animation: "form16-swipe-hint 1.4s ease-in-out infinite",
+            zIndex: 2,
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
+            <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      )}
 
       {/* Dot indicators */}
       <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 12 }}>
