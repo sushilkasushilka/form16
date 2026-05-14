@@ -33,12 +33,15 @@ const TYPE_COLOR = {
 function Slide({ accent, label, title, children, footer, height }) {
   return (
     <div style={{
-      flex: "0 0 88%",
+      // Full container width — Instagram-style one-card-at-a-time. The
+      // outer flex wrapper carries the width sizing so swipe snapping
+      // works; the visual card fills 100% of that wrapper.
+      width: "100%",
       scrollSnapAlign: "center",
       background: `${accent}18`,
       border: `1px solid ${accent}44`,
       borderRadius: 22,
-      padding: "20px 22px",
+      padding: "22px 24px",
       height,
       display: "flex",
       flexDirection: "column",
@@ -118,8 +121,11 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
   const cardRefs = useRef([]);
   const accent = TYPE_COLOR[todayDayData?.type] || C.accent;
 
-  // Fixed height keeps the swipe feeling consistent — long text scrolls inside.
-  const SLIDE_HEIGHT = 380;
+  // Height scales with the phone — `clamp` keeps a 400px floor on small
+  // screens, lets the card breathe to ~62% of viewport height on average
+  // phones, and caps at 600px on tall iPads so a single card doesn't fill
+  // the whole page. Long body content scrolls inside the card.
+  const SLIDE_HEIGHT = "clamp(400px, 62vh, 600px)";
 
   // Build slide list, skipping any that don't have data for today.
   const slides = [
@@ -231,7 +237,11 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
             key={s.key}
             ref={el => (cardRefs.current[i] = el)}
             data-idx={i}
-            style={{ flex: "0 0 88%", scrollSnapAlign: "center" }}
+            // Each slide carrier takes the full visible width of the track
+            // so only one card is on screen at a time (Instagram feed feel).
+            // The track itself is the dashboard width minus the bleed, so
+            // this auto-fits whatever phone the user is on.
+            style={{ flex: "0 0 100%", scrollSnapAlign: "center" }}
           >
             <Slide
               accent={s.accent}

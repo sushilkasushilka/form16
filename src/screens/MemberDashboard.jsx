@@ -248,11 +248,25 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                 <div style={{fontSize:10,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.12em"}}>{t("today.metrics")}</div>
                 {nutritionSource?.fromFatSecret&&<span style={{fontSize:10,color:C.accent,fontWeight:500,letterSpacing:"0.06em",textTransform:"uppercase"}}>· FatSecret</span>}
               </div>
-              <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"4px 20px",marginBottom:14}}>
+              <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"4px 20px",marginBottom:18}}>
                 <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="ккал" color={C.text} icon=""/>
                 <MetricBar label={t("metric.protein")}  value={nutritionSource?.protein||0}  target={profile.dailyTargets?.protein||150}  unit="г"     color={C.text} icon=""/>
                 <MetricBar label={t("metric.steps")}    value={todayLog?.steps||0}           target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.text} icon=""/>
               </div>
+
+              {/* ── DAILY ACTIONS CAROUSEL ── Instagram-style full-bleed
+                   swipeable slides (task, why, how, goal, day-8 stats,
+                   psychology tip). Sits right under Показатели дня so the
+                   day's "what to do" is the next thing the user sees. */}
+              {todayDayData && (
+                <div style={{marginBottom:18}}>
+                  <DailyTaskCarousel
+                    todayDayData={todayDayData}
+                    currentWeekData={currentWeekData}
+                    profile={profile}
+                  />
+                </div>
+              )}
 
               {/* Weight + BFP */}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>
@@ -292,19 +306,6 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
 
               {/* ── INLINE CHAT BAR ── */}
               <InlineChatBar profile={profile} onOpen={()=>setShowChat(true)}/>
-
-              {/* ── DAILY ACTIONS CAROUSEL ── Instagram-style swipeable slides
-                   (task, why, how, goal, day-8 stats, psychology tip). Replaces
-                   the previous inline task card + Детали/arrow CTA. */}
-              {todayDayData && (
-                <div style={{marginTop:18}}>
-                  <DailyTaskCarousel
-                    todayDayData={todayDayData}
-                    currentWeekData={currentWeekData}
-                    profile={profile}
-                  />
-                </div>
-              )}
 
               {/* Weight-trend chart removed from the Today tab — it now lives
                   only on the Account ("Я") tab. */}
