@@ -167,6 +167,10 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
   const scrollRef = useRef(null);
   const cardRefs = useRef([]);
   const accent = TYPE_COLOR[todayDayData?.type] || C.accent;
+  // Latched-off as soon as the user starts the first swipe (or taps the
+  // chevron). CSS transition on the wrapper handles the actual fade — we
+  // just flip this once and it stays false for the rest of the session.
+  const [chevronArmed, setChevronArmed] = useState(true);
 
   // Card shape is square (aspect-ratio: 1) — no explicit pixel height
   // any more; the Slide component sizes itself from its own width.
@@ -266,10 +270,26 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   };
 
+  // Disarm the swipe-hint chevron the instant the user starts moving the
+  // track. A very small threshold (8px) is enough — by then the fade has
+  // started and the affordance has done its job. We don't wait for the
+  // intersection observer's slide-change tick because that fires much
+  // later and the chevron would visibly linger.
+  useEffect(() => {
+    if (!chevronArmed) return;
+    const track = scrollRef.current;
+    if (!track) return;
+    const onScroll = () => {
+      if (track.scrollLeft > 8) setChevronArmed(false);
+    };
+    track.addEventListener("scroll", onScroll, { passive: true });
+    return () => track.removeEventListener("scroll", onScroll);
+  }, [chevronArmed]);
+
   // Single pulse chevron on the right edge — visible only on slide 0 to
   // teach the swipe gesture. Once the user moves past the first card the
-  // affordance has done its job, so it vanishes.
-  const showNextHint = activeIdx === 0 && slides.length > 1;
+  // affordance has done its job and stays faded out for the session.
+  const showNextHint = slides.length > 1 && chevronArmed && activeIdx === 0;
 
   return (
     <div style={{ marginBottom: 14, position: "relative" }}>
@@ -294,9 +314,9 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
         <style>{`
           .form16-carousel-track::-webkit-scrollbar{display:none;}
           @keyframes form16-swipe-hint{
-            0%{transform:translate(0,-50%);opacity:0.55}
-            50%{transform:translate(5px,-50%);opacity:1}
-            100%{transform:translate(0,-50%);opacity:0.55}
+            0%{transform:translateX(0);opacity:0.55}
+            50%{transform:translateX(5px);opacity:1}
+            100%{transform:translateX(0);opacity:0.55}
           }
         `}</style>
         {slides.map((s, i) => (
@@ -322,37 +342,47 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
         ))}
       </div>
 
-      {/* Swipe-right pulse arrow — only on the first slide. Once the
-          user has swiped at least once, the affordance is no longer
-          needed and disappears. */}
-      {showNextHint && (
-        <button
-          aria-label="Следующий слайд"
-          onClick={() => scrollTo(activeIdx + 1)}
+      {/* Swipe-right pulse arrow — visible on slide 0; fades out smoothly
+          the moment the user starts the first swipe, then stays gone for
+          the session. Kept in the DOM so the opacity transition runs;
+          opacity wrapper is outside the pulsing button so the keyframe
+          animation can't fight the fade. */}
+      {slides.length > 1 && (
+        <div
           style={{
             position: "absolute",
             top: "50%",
             right: 0,
-            transform: "translate(0,-50%)",
-            background: "transparent",
-            border: "none",
-            width: 22,
-            height: 22,
-            padding: 0,
-            lineHeight: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: accent,
-            cursor: "pointer",
-            animation: "form16-swipe-hint 1.4s ease-in-out infinite",
+            transform: "translateY(-50%)",
             zIndex: 2,
+            opacity: showNextHint ? 1 : 0,
+            pointerEvents: showNextHint ? "auto" : "none",
+            transition: "opacity 0.45s ease-out",
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
-            <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
+          <button
+            aria-label="Следующий слайд"
+            onClick={() => { setChevronArmed(false); scrollTo(activeIdx + 1); }}
+            style={{
+              background: "transparent",
+              border: "none",
+              width: 22,
+              height: 22,
+              padding: 0,
+              lineHeight: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: accent,
+              cursor: "pointer",
+              animation: "form16-swipe-hint 1.4s ease-in-out infinite",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
+              <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
       )}
 
       {/* Dot indicators */}
