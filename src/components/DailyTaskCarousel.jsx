@@ -270,61 +270,62 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
         ))}
       </div>
 
-      {/* Swipe pulse arrows — pure chevrons sitting over the card edges.
-          Right appears while there's a slide ahead, left from slide 2
-          onward. Tapping either nudges one step in that direction. */}
-      {showPrevHint && (
-        <button
-          aria-label="Предыдущий слайд"
-          onClick={() => scrollTo(activeIdx - 1)}
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: 10,
-            transform: "translate(0,-50%)",
-            background: "transparent",
-            border: "none",
-            padding: 4,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: accent,
-            cursor: "pointer",
-            animation: "form16-swipe-hint-left 1.4s ease-in-out infinite",
-            zIndex: 2,
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      )}
-      {showNextHint && (
-        <button
-          aria-label="Следующий слайд"
-          onClick={() => scrollTo(activeIdx + 1)}
-          style={{
-            position: "absolute",
-            top: "50%",
-            right: 10,
-            transform: "translate(0,-50%)",
-            background: "transparent",
-            border: "none",
-            padding: 4,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: accent,
-            cursor: "pointer",
-            animation: "form16-swipe-hint 1.4s ease-in-out infinite",
-            zIndex: 2,
-          }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      )}
+      {/* Swipe pulse arrows — pure chevrons over the card edges. Both are
+          always mounted so their animations stay in lockstep (mounting one
+          later would leave them out of phase). Visibility is toggled via
+          `visibility` / `pointer-events` based on the active slide. */}
+      <button
+        aria-label="Предыдущий слайд"
+        onClick={() => scrollTo(activeIdx - 1)}
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: 10,
+          transform: "translate(0,-50%)",
+          background: "transparent",
+          border: "none",
+          padding: 4,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: accent,
+          cursor: "pointer",
+          animation: "form16-swipe-hint-left 1.4s ease-in-out infinite",
+          zIndex: 2,
+          visibility: showPrevHint ? "visible" : "hidden",
+          pointerEvents: showPrevHint ? "auto" : "none",
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      <button
+        aria-label="Следующий слайд"
+        onClick={() => scrollTo(activeIdx + 1)}
+        style={{
+          position: "absolute",
+          top: "50%",
+          right: 10,
+          transform: "translate(0,-50%)",
+          background: "transparent",
+          border: "none",
+          padding: 4,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: accent,
+          cursor: "pointer",
+          animation: "form16-swipe-hint 1.4s ease-in-out infinite",
+          zIndex: 2,
+          visibility: showNextHint ? "visible" : "hidden",
+          pointerEvents: showNextHint ? "auto" : "none",
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
 
       {/* Dot indicators */}
       <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 12 }}>
