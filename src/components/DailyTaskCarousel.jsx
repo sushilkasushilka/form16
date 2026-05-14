@@ -264,9 +264,8 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
       </div>
 
       {/* Swipe-right pulse arrow — sits over the card's right edge to
-          tell the user there are more slides. Vanishes on the last slide
-          and is purely decorative (pointer-events: none) so it never
-          blocks a tap on the card. */}
+          tell the user there are more slides. Pure chevron (no circle
+          bg), same icon size as before. Vanishes on the last slide. */}
       {showNextHint && (
         <button
           aria-label="Следующий слайд"
@@ -274,22 +273,18 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
           style={{
             position: "absolute",
             top: "50%",
-            right: 4,
+            right: 10,
             transform: "translate(0,-50%)",
-            background: "rgba(255,255,255,0.85)",
+            background: "transparent",
             border: "none",
-            width: 28,
-            height: 28,
-            borderRadius: "50%",
+            padding: 4,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             color: accent,
             cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(14,17,23,0.18)",
             animation: "form16-swipe-hint 1.4s ease-in-out infinite",
             zIndex: 2,
-            padding: 0,
           }}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
