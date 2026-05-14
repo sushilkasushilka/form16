@@ -30,19 +30,21 @@ const TYPE_COLOR = {
 // One slide in the carousel. Big bold title, single body block, optional CTA.
 // Background is a tinted version of `accent` so each slide reads as one
 // cohesive panel even when multiple are visible during the swipe.
-function Slide({ accent, label, title, children, footer, height }) {
+function Slide({ accent, label, title, children, footer }) {
   return (
     <div style={{
       // Full container width — Instagram-style one-card-at-a-time. The
       // outer flex wrapper carries the width sizing so swipe snapping
       // works; the visual card fills 100% of that wrapper.
       width: "100%",
+      // Square card (Instagram feed post proportions). Height tracks
+      // width so it autofits any phone — no fixed pixel value to retune.
+      aspectRatio: "1 / 1",
       scrollSnapAlign: "center",
       background: `${accent}18`,
       border: `1px solid ${accent}44`,
       borderRadius: 22,
-      padding: "22px 24px",
-      height,
+      padding: "20px 22px",
       display: "flex",
       flexDirection: "column",
       boxSizing: "border-box",
@@ -121,11 +123,8 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
   const cardRefs = useRef([]);
   const accent = TYPE_COLOR[todayDayData?.type] || C.accent;
 
-  // Height scales with the phone — `clamp` keeps a 400px floor on small
-  // screens, lets the card breathe to ~62% of viewport height on average
-  // phones, and caps at 600px on tall iPads so a single card doesn't fill
-  // the whole page. Long body content scrolls inside the card.
-  const SLIDE_HEIGHT = "clamp(400px, 62vh, 600px)";
+  // Card shape is square (aspect-ratio: 1) — no explicit pixel height
+  // any more; the Slide component sizes itself from its own width.
 
   // Build slide list, skipping any that don't have data for today.
   const slides = [
@@ -248,7 +247,6 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
               label={s.label}
               title={s.title}
               footer={s.footer}
-              height={SLIDE_HEIGHT}
             >
               {s.content}
             </Slide>
