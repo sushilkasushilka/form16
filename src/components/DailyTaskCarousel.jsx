@@ -280,7 +280,7 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
         style={{
           position: "absolute",
           top: "50%",
-          left: 10,
+          left: 0,
           transform: "translate(0,-50%)",
           background: "transparent",
           border: "none",
@@ -306,7 +306,7 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
         style={{
           position: "absolute",
           top: "50%",
-          right: 10,
+          right: 0,
           transform: "translate(0,-50%)",
           background: "transparent",
           border: "none",
