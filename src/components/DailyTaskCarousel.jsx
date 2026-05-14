@@ -284,7 +284,13 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
           transform: "translate(0,-50%)",
           background: "transparent",
           border: "none",
-          padding: 4,
+          // Explicit box + lineHeight:0 so the two chevrons are guaranteed
+          // pixel-identical boxes (a SVG inside a default <button> picks
+          // up baseline space that can drift between left/right glyphs).
+          width: 22,
+          height: 22,
+          padding: 0,
+          lineHeight: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -296,7 +302,7 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
           pointerEvents: showPrevHint ? "auto" : "none",
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
           <path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
@@ -310,7 +316,10 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
           transform: "translate(0,-50%)",
           background: "transparent",
           border: "none",
-          padding: 4,
+          width: 22,
+          height: 22,
+          padding: 0,
+          lineHeight: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -322,7 +331,7 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
           pointerEvents: showNextHint ? "auto" : "none",
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
           <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
