@@ -25,7 +25,11 @@ import { useState } from "react";
 import { C, F } from "../theme.js";
 import { Icon } from "./icons.jsx";
 
-const DAY_LABELS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+// Russian short weekday labels, indexed by JS Date.getDay()
+// (0=Sun, 1=Mon … 6=Sat). The strip labels each circle with the actual
+// calendar weekday for that program day, so a Tuesday signup lands
+// day 1 on Wednesday and the ribbon reads Ср · Чт · Пт · Сб · Вс · Пн · Вт.
+const WEEKDAY_LABELS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
 const METRICS = {
   weight:         { label: "Вес",        check: (l)    => l?.weight > 0 },
@@ -167,7 +171,10 @@ export function MissionStrip({
     return {
       gd, dateStr, log, isToday, isFuture, segments,
       dayInWeek: i + 1,
-      label: DAY_LABELS[i],
+      // Pull the label from the calendar weekday of the actual date
+      // (not the position-in-week), so the ribbon reflects the user's
+      // real Mon/Tue/… as they live them.
+      label: WEEKDAY_LABELS[date.getDay()],
       programDay: currentWeekData?.days?.[i],
     };
   });
@@ -218,6 +225,12 @@ export function MissionStrip({
                 padding: "4px 0",
                 cursor: "pointer",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                // Kill the iOS tap-flash + the focus halo around the day
+                // number that read as a "blink" after a tap. The circle
+                // itself already telegraphs "tap me" via its accent halo
+                // for today, so no extra focus styling is needed.
+                WebkitTapHighlightColor: "transparent",
+                outline: "none",
               }}
             >
               <SectoredDay
@@ -244,7 +257,8 @@ export function MissionStrip({
             marginTop: 16,
             paddingTop: 14,
             borderTop: `1px solid ${C.border}`,
-            animation: "revealDown 0.28s cubic-bezier(.16,1,.3,1) both",
+            // 1s reveal — slower, more deliberate "drawer drops down" feel.
+            animation: "revealDown 1s cubic-bezier(.16,1,.3,1) both",
             transformOrigin: "top",
             overflow: "hidden",
           }}>

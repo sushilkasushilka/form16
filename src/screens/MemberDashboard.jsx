@@ -15,6 +15,7 @@ import { Icon, Avatar, AVATAR_OPTIONS } from "../components/icons.jsx";
 import { ProgramView } from "../components/ProgramView.jsx";
 import { MissionStrip } from "../components/MissionStrip.jsx";
 import { DailyTaskCarousel } from "../components/DailyTaskCarousel.jsx";
+import { WeekendTipsBar } from "../components/WeekendTipsBar.jsx";
 
 export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened,lang,setLang}){
   const [tab,setTab]=useState("today");
@@ -59,7 +60,15 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
   const { week: currentWeekData, day: todayDayData, isDay0 } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
   const missedMeasurement = getMissedMeasurement(profile);
   const fsSyncData=profile.fsSyncData;
-  const nutritionSource=fsSyncData&&profile.fsSyncedAt&&new Date(profile.fsSyncedAt).toISOString().split("T")[0]===todayStr()?fsSyncData:todayLog;
+  // Prefer the saved evening report over an in-flight FS sync once the
+  // user has submitted today's report — saving evening should immediately
+  // refresh the metrics bar (was reading stale fsSyncData before, which
+  // overrode the user's just-saved numbers).
+  const todayFsFresh = fsSyncData && profile.fsSyncedAt
+    && new Date(profile.fsSyncedAt).toISOString().split("T")[0] === todayStr();
+  const nutritionSource = todayLog?.calories
+    ? todayLog
+    : (todayFsFresh ? fsSyncData : todayLog);
 
   function handleSaveLog(log){
     if(saveLog) saveLog(log);
@@ -253,6 +262,11 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                 <MetricBar label={t("metric.protein")}  value={nutritionSource?.protein||0}  target={profile.dailyTargets?.protein||150}  unit="г"     color={C.text} icon=""/>
                 <MetricBar label={t("metric.steps")}    value={todayLog?.steps||0}           target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.text} icon=""/>
               </div>
+
+              {/* ── WEEKEND TIPS BAR ── only renders on Fri / Sat / Sun
+                   with a rotating recommendation tied to weekNum. Hidden
+                   Mon-Thu so the day stays uncluttered. */}
+              <WeekendTipsBar weekNum={currentWeekNum} />
 
               {/* ── DAILY ACTIONS CAROUSEL ── Instagram-style full-bleed
                    swipeable slides (task, why, how, goal, day-8 stats,
