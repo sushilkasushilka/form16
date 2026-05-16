@@ -44,10 +44,12 @@ const METRICS = {
 };
 
 function metricIdsForWeek(weekNum) {
-  if (weekNum <= 1) return ["weight", "food"];
-  if (weekNum === 2) return ["weight", "calories"];
-  if (weekNum === 3) return ["weight", "caloriesTarget", "proteinTarget"];
-  if (weekNum === 4) return ["weight", "caloriesTarget", "proteinTarget", "stepsTarget"];
+  // Aligned to curriculum unlock days: calorie Day 18 (Week 3),
+  // protein Day 24 (mid-Week 4 — snapped to Week 4 here since the
+  // MissionStrip is week-granular), steps Day 33 (Week 5), greens Week 4.
+  if (weekNum <= 2) return ["weight"];
+  if (weekNum === 3) return ["weight", "caloriesTarget"];
+  if (weekNum === 4) return ["weight", "caloriesTarget", "proteinTarget", "greensTarget"];
   return ["weight", "caloriesTarget", "proteinTarget", "stepsTarget", "greensTarget"];
 }
 
