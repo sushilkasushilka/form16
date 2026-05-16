@@ -19,12 +19,19 @@
 import { useEffect, useRef, useState } from "react";
 import { C } from "../theme.js";
 
-const TYPE_COLOR = {
-  training: C.orange,
-  nutrition: C.accent,
-  mindset: C.purple,
-  rest: C.muted,
-  active_recovery: C.blue,
+// Day-type → { accent color, display label } map. Covers both the legacy
+// v1 curriculum types (nutrition / training / mindset / rest) and the new
+// v2 curriculum types (lesson / action / reflection — wired up in Phase J).
+// Unknown types fall back to TYPE_DISPLAY.lesson at the call sites.
+const TYPE_DISPLAY = {
+  nutrition:  { color: C.accent,               label: "Питание"        },
+  training:   { color: C.orange,               label: "Тренировка"     },
+  mindset:    { color: C.purple,               label: "Психология"     },
+  rest:       { color: C.green || C.accent,    label: "Восстановление" },
+  active_recovery: { color: C.blue,            label: "Активный отдых" },
+  lesson:     { color: C.blue,                 label: "Урок"           },
+  action:     { color: C.orange,               label: "Действие"       },
+  reflection: { color: C.accent,               label: "Рефлексия"      },
 };
 
 // Split a long body string into card-sized chunks. Tries to break on
@@ -166,7 +173,8 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const scrollRef = useRef(null);
   const cardRefs = useRef([]);
-  const accent = TYPE_COLOR[todayDayData?.type] || C.accent;
+  const typeDisplay = TYPE_DISPLAY[todayDayData?.type] || TYPE_DISPLAY.lesson;
+  const accent = typeDisplay.color;
   // Latched-off as soon as the user starts the first swipe (or taps the
   // chevron). CSS transition on the wrapper handles the actual fade — we
   // just flip this once and it stays false for the rest of the session.
@@ -186,7 +194,7 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
   slides.push({
     key: "task",
     accent,
-    label: `🎯 День ${todayDayData.day} · ${todayDayData.type}`,
+    label: `🎯 День ${todayDayData.day} · ${typeDisplay.label}`,
     title: todayDayData.title,
     content: (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", paddingTop: 4 }}>
