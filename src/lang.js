@@ -574,6 +574,8 @@ export const TRANSLATIONS = {
   "v2.identity.day14":       { en: "My keystone habit for the next 14 weeks…", ru: "Мой ключевой habit на следующие 14 недель…" },
   "v2.identity.save":        { en: "Save", ru: "Сохранить" },
   "v2.identity.saved":       { en: "Saved", ru: "Сохранено" },
+  "v2.identity.label":       { en: "Identity", ru: "Идентичность" },
+  "v2.identity.day_prefix":  { en: "Day {day}", ru: "День {day}" },
 
   // ─── DAY 0 SCREEN (existing screen, was hardcoded Russian) ────────────────
   "day0.title":              { en: "You're in, {name}!", ru: "Ты в программе, {name}!" },
