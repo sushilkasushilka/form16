@@ -71,27 +71,20 @@ export function Day0Screen({ profile, onDone, userId }) {
     }
   }
 
-  const bmiLabel = !profile.bmi ? "" :
-    +profile.bmi < 18.5 ? t("bmi.underweight") :
-    +profile.bmi < 25   ? t("bmi.normal") :
-    +profile.bmi < 30   ? t("bmi.overweight") : t("bmi.obese");
-  const bmiColor = !profile.bmi ? C.muted :
-    +profile.bmi < 18.5 ? C.blue :
-    +profile.bmi < 25   ? C.accent :
-    +profile.bmi < 30   ? C.orange : C.red;
+  const bmiColor = C.text;
 
   const homeSubtext = isStandalone
-    ? "Уже установлено — отлично!"
+    ? t("day0.task.home.installed")
     : isAndroid && installPrompt
-    ? "Нажми, чтобы установить приложение"
+    ? t("day0.task.home.android")
     : isIOS
-    ? "Safari → Поделиться → На экран «Домой»"
-    : "Добавь в закладки или на главный экран";
+    ? t("day0.task.home.ios")
+    : t("day0.task.home.other");
 
   const tasks = [
-    { id:"profile", icon:"📋", label:"Профиль заполнен",         sub:"Анкета завершена — данные сохранены",     done:true,      action:null,                badge:"готово"  },
-    { id:"notif",   icon:"🔔", label:"Включить уведомления",      sub:"7:00 — замер веса · 21:00 — итог дня",   done:notifDone, action:requestNotifications, badge:"сейчас"  },
-    { id:"home",    icon:"📲", label:"Добавить на главный экран", sub:homeSubtext,                               done:homeDone,  action:handleHomeScreen,      badge:"сегодня" },
+    { id:"profile", icon:"📋", label:t("day0.task.profile"), sub:t("day0.task.profile.sub"), done:true,      action:null,                 badge:t("day0.task.profile.done"), highlight:false },
+    { id:"notif",   icon:"🔔", label:t("day0.task.notif"),   sub:t("day0.task.notif.sub"),   done:notifDone, action:requestNotifications, badge:t("day0.task.notif.badge"),  highlight:true  },
+    { id:"home",    icon:"📲", label:t("day0.task.home"),    sub:homeSubtext,                done:homeDone,  action:handleHomeScreen,     badge:t("day0.task.home.badge"),   highlight:false },
   ];
   const doneCount = tasks.filter(tk => tk.done).length;
 
@@ -102,10 +95,10 @@ export function Day0Screen({ profile, onDone, userId }) {
       <div style={{padding:"52px 24px 24px",textAlign:"center",animation:"slideUp 0.4s both"}}>
         <div style={{width:64,height:64,borderRadius:20,background:C.accentDim,border:`2px solid ${C.accent}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 20px"}}>🎉</div>
         <div style={{fontFamily:"'Fraunces',Georgia,serif",fontSize:28,fontWeight:600,marginBottom:8}}>
-          Ты в программе,<br/><span style={{color:C.accent}}>{profile.name?.split(" ")[0]}!</span>
+          {t("day0.title", { name: profile.name?.split(" ")[0] })}
         </div>
         <div style={{fontSize:14,color:C.muted,lineHeight:1.7}}>
-          16 недель начинаются завтра утром.<br/>Сегодня — подготовка.
+          {t("day0.subtitle.line1")}<br/>{t("day0.subtitle.line2")}
         </div>
       </div>
 
@@ -113,23 +106,47 @@ export function Day0Screen({ profile, onDone, userId }) {
       <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.08s both"}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:20,padding:"16px"}}>
-            <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Текущий вес</div>
+            <div style={{fontSize:11,color:C.muted,marginBottom:6}}>{t("day0.weight.label")}</div>
             <div style={{fontFamily:"'Fraunces',Georgia,serif",fontSize:32,fontWeight:600,color:C.text,lineHeight:1}}>{profile.weight}</div>
-            <div style={{fontSize:12,color:C.muted,marginTop:4}}>кг · точка отсчёта</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:4}}>{t("day0.weight.sub")}</div>
           </div>
           <div style={{background:C.card,border:`1px solid ${bmiColor}44`,borderRadius:20,padding:"16px"}}>
-            <div style={{fontSize:11,color:C.muted,marginBottom:6}}>Индекс массы тела</div>
+            <div style={{fontSize:11,color:C.muted,marginBottom:6}}>{t("day0.bmi.label")}</div>
             <div style={{fontFamily:"'Fraunces',Georgia,serif",fontSize:32,fontWeight:600,color:bmiColor,lineHeight:1}}>{profile.bmi||"—"}</div>
-            <div style={{fontSize:12,color:bmiColor,marginTop:4}}>{bmiLabel}</div>
           </div>
         </div>
       </div>
+
+      {/* Welcome message based on previous attempts */}
+      {profile.previousAttempts && (
+        <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.1s both"}}>
+          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:18,padding:"16px 18px"}}>
+            <div style={{fontSize:13,color:C.text,lineHeight:1.65}}>
+              {t(`v2.welcome.body.${profile.previousAttempts}`)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pinned "Why" anchor — visible from Day 0 forward */}
+      {profile.initialWhy && (
+        <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.12s both"}}>
+          <div style={{background:C.accentDim,border:`1px solid ${C.accent}44`,borderRadius:18,padding:"14px 18px"}}>
+            <div style={{fontSize:10,color:C.accent,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>
+              {t("v2.why.anchor.label")}
+            </div>
+            <div style={{fontSize:14,color:C.text,lineHeight:1.55,fontStyle:"italic"}}>
+              «{profile.initialWhy}»
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Checklist */}
       <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.14s both"}}>
         <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:22,overflow:"hidden"}}>
           <div style={{padding:"16px 18px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.border}`}}>
-            <div style={{fontWeight:500,fontSize:14}}>Сделай сегодня</div>
+            <div style={{fontWeight:500,fontSize:14}}>{t("day0.checklist.title")}</div>
             <div style={{fontSize:12,color:C.accent,fontWeight:500}}>{doneCount} / {tasks.length}</div>
           </div>
           {tasks.map((task,i)=>(
@@ -151,7 +168,7 @@ export function Day0Screen({ profile, onDone, userId }) {
                   <div style={{fontSize:11,color:C.muted,lineHeight:1.5}}>{task.sub}</div>
                 </div>
                 {!task.done&&(
-                  <div style={{fontSize:10,color:task.badge==="сейчас"?C.accent:C.muted,background:task.badge==="сейчас"?C.accentDim:C.surface,padding:"3px 8px",borderRadius:20,fontWeight:600,flexShrink:0}}>
+                  <div style={{fontSize:10,color:task.highlight?C.accent:C.muted,background:task.highlight?C.accentDim:C.surface,padding:"3px 8px",borderRadius:20,fontWeight:600,flexShrink:0}}>
                     {task.badge}
                   </div>
                 )}
@@ -160,15 +177,20 @@ export function Day0Screen({ profile, onDone, userId }) {
               {task.id==="home"&&showIOSInstructions&&!homeDone&&(
                 <div style={{background:C.surface,padding:"12px 18px",borderTop:`1px solid ${C.border}`}}>
                   <div style={{fontSize:12,color:C.muted,lineHeight:1.8}}>
-                    1. Нажми <b style={{color:C.text}}>кнопку «Поделиться»</b> внизу экрана Safari<br/>
-                    2. Прокрути вниз и выбери <b style={{color:C.text}}>«На экран "Домой"»</b><br/>
-                    3. Нажми <b style={{color:C.text}}>«Добавить»</b>
+                    {["day0.ios.step1","day0.ios.step2","day0.ios.step3"].map((key,sIdx)=>{
+                      const parts = t(key).split(/\*\*(.+?)\*\*/);
+                      return (
+                        <div key={key}>
+                          {sIdx+1}. {parts.map((p,pIdx)=> pIdx%2===1 ? <b key={pIdx} style={{color:C.text}}>{p}</b> : p)}
+                        </div>
+                      );
+                    })}
                   </div>
                   <button
                     onClick={()=>{setHomeDone(true);setShowIOSInstructions(false);}}
                     style={{marginTop:10,background:C.accent,color:C.bg,border:"none",borderRadius:12,padding:"8px 16px",fontSize:12,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",cursor:"pointer"}}
                   >
-                    Готово ✓
+                    {t("day0.ios.done")}
                   </button>
                 </div>
               )}
@@ -181,13 +203,13 @@ export function Day0Screen({ profile, onDone, userId }) {
       <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.2s both"}}>
         <div style={{background:C.card,border:`1.5px solid ${C.accent}44`,borderRadius:22,overflow:"hidden"}}>
           <div style={{padding:"14px 18px 12px",borderBottom:`1px solid ${C.border}`}}>
-            <div style={{fontSize:11,color:C.accent,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>Завтра — День 1</div>
-            <div style={{fontSize:13,color:C.muted}}>Вот что тебя ждёт</div>
+            <div style={{fontSize:11,color:C.accent,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:2}}>{t("day0.tomorrow.label")}</div>
+            <div style={{fontSize:13,color:C.muted}}>{t("day0.tomorrow.sub")}</div>
           </div>
           {[
-            {time:"07:00",icon:"⚖️",col:C.accent,label:"Встань на весы",sub:"После туалета, до завтрака. Введи вес одним нажатием"},
-            {time:"Днём",icon:"🍽️",col:C.blue,label:"Записывай еду",sub:"Каждый приём пищи сразу после еды — так точнее всего"},
-            {time:"21:00",icon:"🌙",col:C.purple,label:"Итог дня",sub:"Пришлём напоминание проверить и дозаписать питание"},
+            {time:"07:00",icon:"⚖️",col:C.accent,label:t("day0.tomorrow.morning"),sub:t("day0.tomorrow.morning.sub")},
+            {time:"Днём",icon:"📖",col:C.blue,label:t("day0.tomorrow.lesson"),sub:t("day0.tomorrow.lesson.sub")},
+            {time:"21:00",icon:"🌙",col:C.purple,label:t("day0.tomorrow.evening"),sub:t("day0.tomorrow.evening.sub")},
           ].map((item,i,arr)=>(
             <div key={item.time} style={{display:"flex",gap:14,padding:"13px 18px",borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none",alignItems:"flex-start"}}>
               <div style={{width:42,textAlign:"center",flexShrink:0}}>
@@ -206,10 +228,10 @@ export function Day0Screen({ profile, onDone, userId }) {
       {/* CTA */}
       <div style={{padding:"0 24px 48px",animation:"slideUp 0.4s 0.26s both"}}>
         <button onClick={onDone} style={{width:"100%",background:C.accent,color:C.bg,border:"none",borderRadius:18,padding:"17px",fontSize:16,fontWeight:500,fontFamily:"'Inter',system-ui,sans-serif",cursor:"pointer"}}>
-          Открыть приложение →
+          {t("day0.cta.open")}
         </button>
         <div style={{textAlign:"center",marginTop:12,fontSize:12,color:C.muted}}>
-          Задачи дня 0 останутся на главном экране
+          {t("day0.cta.openSub")}
         </div>
       </div>
 
