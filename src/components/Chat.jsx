@@ -23,7 +23,21 @@ export function InlineChatBar({ profile, onOpen }) {
     const text=chatInput.trim();
     setChatInput(""); setChatLoading(true);
     try{
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:profile.id,message:text})});
+      const res=await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          userId:profile.id,
+          message:text,
+          userContext:{
+            name:profile.name,
+            previousAttempts:profile.previousAttempts,
+            initialWhy:profile.initialWhy,
+            currentDay:getUserGlobalDay(profile),
+            currentWeek:profile.currentWeek,
+          },
+        }),
+      });
       const data=await res.json();
       if(data.reply) setLastMsg({role:"assistant",content:data.reply,created_at:new Date().toISOString()});
       if(data.error==="limit_reached") onOpen();
@@ -85,7 +99,21 @@ export function ChatModal({ profile, onClose }) {
     const tempId=Date.now();
     setMessages(prev=>[...prev,{id:tempId,role:"user",content:text,created_at:new Date().toISOString()}]);
     try{
-      const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:profile.id,message:text})});
+      const res=await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          userId:profile.id,
+          message:text,
+          userContext:{
+            name:profile.name,
+            previousAttempts:profile.previousAttempts,
+            initialWhy:profile.initialWhy,
+            currentDay:userGlobalDay,
+            currentWeek:profile.currentWeek,
+          },
+        }),
+      });
       const data=await res.json();
       if(data.error==="limit_reached"){setLimitReached(true);setShowPaywall(true);setMessages(prev=>prev.filter(m=>m.id!==tempId));setLoading(false);return;}
       setRemaining(data.remaining);
@@ -116,7 +144,12 @@ export function ChatModal({ profile, onClose }) {
             <div style={{fontSize:40,marginBottom:16}}>💪</div>
             <div style={{fontWeight:500,fontSize:16,marginBottom:8}}>Привет, {profile.name?.split(" ")[0]}!</div>
             <div style={{fontSize:13,color:C.muted,lineHeight:1.7,marginBottom:20}}>Я твой персональный тренер. Спроси меня про питание, тренировки или прогресс.</div>
-            {["Почему мой вес не снижается?","Сколько белка мне нужно?","Что делать если нет мотивации?"].map(q=>(
+            {(userGlobalDay < 18
+              ? ["Почему я раньше всегда срывался?","Что делает эту программу другой?","Что я могу сделать сегодня?"]
+              : userGlobalDay < 33
+              ? ["Я не вижу прогресса — что делать?","Сколько белка мне нужно?","Как справляться с тягой к еде?"]
+              : ["Почему вес встал?","Как улучшить сон?","Чем заменить тренировку, если устал?"]
+            ).map(q=>(
               <button key={q} onClick={()=>setInput(q)} style={{display:"block",width:"100%",background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:"10px 14px",fontSize:12,color:C.muted,cursor:"pointer",fontFamily:"'Inter',system-ui,sans-serif",textAlign:"left",marginBottom:8}}>{q}</button>
             ))}
           </div>

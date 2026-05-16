@@ -35,7 +35,7 @@ const DAILY_LIMIT_PAID = 10;
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  const { userId, message } = req.body;
+  const { userId, message, userContext: clientCtx } = req.body;
   if (!userId || !message) return res.status(400).json({ error: "Missing fields" });
 
   // Load profile
@@ -104,6 +104,53 @@ export default async function handler(req, res) {
 - Никогда не рекомендуй медицинские препараты
 - Всегда поддерживай и мотивируй`;
 
+  // ─── V2 ADDENDUM (Phase I §10.2) ─────────────────────────────────────
+  // userContext is sent by the v2 client. Older clients omit it; fall back
+  // to fields the server can derive from `profile` so the addendum is
+  // always populated.
+  const userCtx = {
+    name:             clientCtx?.name             ?? profile.name,
+    previousAttempts: clientCtx?.previousAttempts ?? profile.previous_attempts ?? "never",
+    initialWhy:       clientCtx?.initialWhy       ?? profile.initial_why       ?? null,
+    currentDay:       clientCtx?.currentDay       ?? userGlobalDay,
+    currentWeek:      clientCtx?.currentWeek      ?? currentWeek,
+  };
+
+  const v2Addendum = `
+
+USER CONTEXT (always available, do not repeat back to user unprompted):
+- Name: ${userCtx.name}
+- Previous fat-loss attempts: ${userCtx.previousAttempts} (one of: never, 1_2, 3_5, many)
+- User's stated "why": ${userCtx.initialWhy || "(not set yet)"}
+- Current day: ${userCtx.currentDay} / 112
+- Current week: ${userCtx.currentWeek} / 16
+
+VOCABULARY RULES (Russian):
+- Never use: "диета", "сила воли", "читмил", "срыв", "силу воли", "ограничивать себя", "бороться с весом", "сбросить вес".
+- Use instead: "план", "система", "эксперимент", "данные", "паттерн", "снижать жировую массу".
+- Reframe past failures as data points, never as failures.
+
+VOCABULARY RULES (English):
+- Never use: "diet", "willpower", "cheat day/meal", "fall off the wagon", "lose weight".
+- Use instead: "plan", "system", "experiment", "data", "pattern", "reduce body fat".
+
+DAY-GATED TOPIC RULES:
+- Before Day 18: do NOT recommend specific calorie targets. If asked, say: "We calculate yours on Day 18. Until then, focus on the current week's theme."
+- Before Day 20: do NOT recommend food tracking. If asked, say: "Food tracking opens on Day 20. Until then we work on the why, not the what."
+- Before Day 24: do NOT recommend specific protein numbers in g/kg. General "more protein" is fine.
+- Before Day 33: do NOT recommend specific step targets.
+- Before Day 92: training questions are answered as education only, not as prescriptive workouts.
+
+TONE BY previousAttempts:
+- "never": Encouraging, scientific, explains the basics, doesn't assume prior knowledge.
+- "1_2": Acknowledges some experience. Asks what didn't work before.
+- "3_5": Treats user as informed. Focus on systems, not information.
+- "many": Treats user as expert. Explicitly acknowledges that information isn't the problem. Focus on identity, environment, and behavioral architecture.
+
+If userContext.initialWhy is set, you can reference it occasionally (not every message) — anchor the user back to their stated reason when motivation comes up.`;
+
+  const finalSystemPrompt = systemPrompt + v2Addendum;
+
   // Save user message to DB
   await supabase.from("messages").insert({
     user_id: userId,
@@ -124,7 +171,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 1000,
-        system: systemPrompt,
+        system: finalSystemPrompt,
         messages: [
           ...messages.map(m => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content })),
           { role: "user", content: message },
