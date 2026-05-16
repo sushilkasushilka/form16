@@ -8,6 +8,7 @@ import { C } from "../theme.js";
 import { todayStr, calcBFP } from "../utils.js";
 import { t } from "../i18n.js";
 import { FS, getUserGlobalDay } from "../program.js";
+import { isFeatureUnlocked } from "../featureUnlocks.js";
 
 // Horizontal pill row of the last 7 days for back-dating a log.
 // `date` is an ISO yyyy-mm-dd string; `setDate` accepts the same.
@@ -200,6 +201,13 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
   const [fsSynced,  setFsSynced]  = useState(false);
   const [fsEmpty,   setFsEmpty]   = useState(false); // FS responded but no entries today
 
+  // Feature unlock gates (defensive — Phase F locks the trigger, but the
+  // modal could still be opened via deep link / push notification).
+  const currentDay = getUserGlobalDay(profile);
+  const showFoodInputs   = isFeatureUnlocked('food_diary',     currentDay);
+  const showProteinInput = isFeatureUnlocked('protein_target', currentDay);
+  const showStepsInput   = isFeatureUnlocked('step_tracker',   currentDay);
+
   const showProtein = currentWeekNum >= 2;
   const showSteps   = currentWeekNum >= 3;
   const showGreens  = currentWeekNum >= 4;
@@ -255,9 +263,9 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
   const inputStyle = {width:"100%",boxSizing:"border-box",background:C.surface,border:`1.5px solid ${C.border}`,borderRadius:14,padding:"13px 16px",color:C.text,fontSize:20,fontFamily:"'Fraunces',Georgia,serif",fontWeight:600,outline:"none",textAlign:"center",marginBottom:12};
 
   const fields=[
-    {show:true,        label:"Калории (ккал)", val:calories, set:setCalories, target:profile.dailyTargets?.calories||2000, color:C.orange},
-    {show:showProtein, label:"Белок (г)",       val:protein,  set:setProtein,  target:profile.dailyTargets?.protein||150,  color:C.purple},
-    {show:showSteps,   label:"Шаги",            val:steps,    set:setSteps,    target:profile.dailyTargets?.steps||10000,  color:C.accent},
+    {show:showFoodInputs,                   label:"Калории (ккал)", val:calories, set:setCalories, target:profile.dailyTargets?.calories||2000, color:C.orange},
+    {show:showProtein && showProteinInput,  label:"Белок (г)",       val:protein,  set:setProtein,  target:profile.dailyTargets?.protein||150,  color:C.purple},
+    {show:showSteps && showStepsInput,      label:"Шаги",            val:steps,    set:setSteps,    target:profile.dailyTargets?.steps||10000,  color:C.accent},
   ].filter(f=>f.show);
 
   return (
@@ -267,6 +275,12 @@ export function EveningLogModal({ profile, userGlobalDay, currentWeekNum, onSave
         <div style={{fontSize:11,color:C.blue,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6}}>🌙 Вечерний итог</div>
         <div style={{fontSize:18,fontWeight:600,marginBottom:4}}>Итог дня</div>
         <div style={{fontSize:12,color:C.muted,marginBottom:14}}>Неделя {currentWeekNum} — заполни то, что отслеживаешь</div>
+
+        {!showFoodInputs && !showProteinInput && !showStepsInput && (
+          <div style={{background:C.card,border:`1px dashed ${C.border}`,padding:"12px 14px",borderRadius:10,fontSize:12,color:C.muted,marginBottom:14,lineHeight:1.55}}>
+            {t("v2.evening.locked.notice")}
+          </div>
+        )}
 
         <DateSelector date={date} setDate={setDate} />
 

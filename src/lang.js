@@ -561,6 +561,7 @@ export const TRANSLATIONS = {
   "v2.locked.calories.body": { en: "Day 18 — we'll calculate your TDEE and deficit together.", ru: "День 18 — рассчитаем твой TDEE и дефицит вместе." },
   "v2.locked.evening.label": { en: "Evening", ru: "Вечер" },
   "v2.locked.evening.sub":   { en: "Unlocks Day 20", ru: "Откроется День 20" },
+  "v2.evening.locked.notice":{ en: "Today's reflection is just a short check-in. Calories, protein, and steps will be added on later weeks.", ru: "Сегодня в дневнике — только короткая рефлексия. Калории, белок и шаги будут добавлены на соответствующих неделях." },
 
   // ─── IDENTITY AFFIRMATIONS (Days 4–14) ────────────────────────────────────
   "v2.identity.day4":        { en: "Today I am someone who…", ru: "Сегодня я — человек, который…" },

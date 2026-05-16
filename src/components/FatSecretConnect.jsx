@@ -3,6 +3,8 @@
 // /api/fs-verify-pin. See README for the full flow.
 import { useState } from "react";
 import { C } from "../theme.js";
+import { getUserGlobalDay } from "../program.js";
+import { isFeatureUnlocked } from "../featureUnlocks.js";
 
 export function FatSecretConnect({ profile, setProfile, userId }) {
   const [step, setStep] = useState("idle"); // idle | loading | pin | success | error
@@ -11,6 +13,12 @@ export function FatSecretConnect({ profile, setProfile, userId }) {
   const [authorizeUrl, setAuthorizeUrl] = useState(null);
   const [pin, setPin] = useState("");
   const [errMsg, setErrMsg] = useState("");
+
+  // Defensive gate (Phase G section 8.2) — hooks above stay unconditional
+  // per critical rule #2; spec placed this before useState but we move it
+  // here so the hook count is stable across renders.
+  const currentDay = getUserGlobalDay(profile);
+  if (!isFeatureUnlocked('food_diary', currentDay)) return null;
 
   async function startConnect() {
     setStep("loading");
