@@ -16,7 +16,7 @@ import { ProgramView } from "../components/ProgramView.jsx";
 import { MissionStrip } from "../components/MissionStrip.jsx";
 import { DailyTaskCarousel } from "../components/DailyTaskCarousel.jsx";
 import { WeekendTipsBar } from "../components/WeekendTipsBar.jsx";
-import { isFeatureUnlocked, daysUntilUnlock, FEATURE_UNLOCK_DAYS } from "../featureUnlocks.js";
+import { isFeatureUnlocked, daysUntilUnlock } from "../featureUnlocks.js";
 import { WhyAnchor } from "../components/WhyAnchor.jsx";
 import { IdentityCard } from "../components/IdentityCard.jsx";
 
@@ -88,7 +88,6 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
   const showFoodDiary     = isFeatureUnlocked('food_diary',     userGlobalDay);
   const showStepTracker   = isFeatureUnlocked('step_tracker',   userGlobalDay);
   const showProteinTarget = isFeatureUnlocked('protein_target', userGlobalDay);
-  const showCalorieTarget = isFeatureUnlocked('calorie_target', userGlobalDay);
   const showIdentityCard  = userGlobalDay >= 4 && userGlobalDay <= 14;
   const currentWeekNum = Math.max(1, Math.min(16, Math.ceil((userGlobalDay) / 7) || 1));
   const { week: currentWeekData, day: todayDayData, isDay0 } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
@@ -659,8 +658,8 @@ function goalLabel(g) {
 function activityLabel(a) {
   return {sedentary:"Сидячий",light:"Лёгкий",moderate:"Умеренный",active:"Активный",veryActive:"Очень активный"}[a]||a;
 }
-function trainingLabel(t) {
-  return {none:"Нет",["1_2x_week"]:"1–2 раза в неделю",["3plus_week"]:"3+ раз в неделю"}[t]||t||"—";
+function trainingLabel(trainingType) {
+  return {none:"Нет",["1_2x_week"]:"1–2 раза в неделю",["3plus_week"]:"3+ раз в неделю"}[trainingType]||trainingType||"—";
 }
 function expLabel(e) {
   return {beginner:"Начинающий",intermediate:"Средний",advanced:"Продвинутый"}[e]||e||"—";

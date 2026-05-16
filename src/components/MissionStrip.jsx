@@ -35,11 +35,11 @@ const METRICS = {
   weight:         { label: "Вес",        check: (l)    => l?.weight > 0 },
   food:           { label: "Еда",        check: (l)    => l?.calories > 0 },
   calories:       { label: "Калории",    check: (l)    => l?.calories > 0 },
-  caloriesTarget: { label: "Цель ккал",  check: (l, t) => l?.calories > 0 && !!t?.calories
-                                                        && l.calories >= t.calories * 0.9
-                                                        && l.calories <= t.calories * 1.1 },
-  proteinTarget:  { label: "Цель белка", check: (l, t) => l?.protein > 0 && !!t?.protein && l.protein >= t.protein * 0.8 },
-  stepsTarget:    { label: "Цель шагов", check: (l, t) => l?.steps > 0 && !!t?.steps && l.steps >= t.steps * 0.8 },
+  caloriesTarget: { label: "Цель ккал",  check: (l, targets) => l?.calories > 0 && !!targets?.calories
+                                                        && l.calories >= targets.calories * 0.9
+                                                        && l.calories <= targets.calories * 1.1 },
+  proteinTarget:  { label: "Цель белка", check: (l, targets) => l?.protein > 0 && !!targets?.protein && l.protein >= targets.protein * 0.8 },
+  stepsTarget:    { label: "Цель шагов", check: (l, targets) => l?.steps > 0 && !!targets?.steps && l.steps >= targets.steps * 0.8 },
   greensTarget:   { label: "Овощи",      check: (l)    => l?.greens === true },
 };
 
