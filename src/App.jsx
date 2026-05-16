@@ -9,6 +9,7 @@ import { todayStr } from "./utils.js";
 import { MOCK_ATHLETES, FS } from "./program.js";
 import { AuthScreen } from "./screens/AuthScreen.jsx";
 import { SignUp } from "./screens/SignUp.jsx";
+import { SignUpV1 } from "./screens/SignUpV1.jsx";
 import { Day0Screen } from "./screens/Day0Screen.jsx";
 import { MemberDashboard } from "./screens/MemberDashboard.jsx";
 import { CoachDashboard } from "./screens/CoachDashboard.jsx";
@@ -291,6 +292,17 @@ export default function App(){
       dietQuality: data.diet_quality || 3,
       trainingExp: data.training_exp || "",
       joinedAt: data.joined_at || todayStr(),
+      // ─── NEW v2 mappings ─────────────────────────────────────────────
+      previousAttempts: data.previous_attempts || null,
+      initialWhy: data.initial_why || null,
+      scoffScore: data.scoff_score ?? null,
+      scoffCompletedAt: data.scoff_completed_at || null,
+      scoffAcknowledgedRisk: data.scoff_acknowledged_risk || false,
+      medicalConditions: data.medical_conditions || null,
+      onboardingVersion: data.onboarding_version || 1,
+      morningReminderTime: data.morning_reminder_time || '07:00',
+      eveningReminderTime: data.evening_reminder_time || '21:00',
+      keystoneHabit: data.keystone_habit || null,
       logs: (logs || []).map(l => ({
         date: l.date,
         weight: l.weight,
@@ -363,6 +375,16 @@ export default function App(){
       daily_calories: p.dailyTargets?.calories,
       daily_protein: p.dailyTargets?.protein,
       daily_steps: p.dailyTargets?.steps,
+      // ─── NEW v2 fields ───────────────────────────────────────────────
+      previous_attempts: p.previousAttempts || null,
+      initial_why: p.initialWhy || null,
+      scoff_score: p.scoffScore ?? null,
+      scoff_completed_at: p.scoffCompletedAt || null,
+      scoff_acknowledged_risk: p.scoffAcknowledgedRisk || false,
+      medical_conditions: p.medicalConditions || null,
+      onboarding_version: p.onboardingVersion || 1,
+      morning_reminder_time: p.morningReminderTime || '07:00',
+      evening_reminder_time: p.eveningReminderTime || '21:00',
     });
 
     if (!error) {
@@ -536,10 +558,15 @@ export default function App(){
         {chosen && screen==="auth" && <AuthScreen onAuth={()=>{}} />}
 
         {chosen && screen==="onboarding" && (
-          <SignUp
-            onComplete={saveProfile}
-            onBack={async()=>{ userInitiatedSignOut.current = true; await supabase.auth.signOut(); setScreen("auth"); }}
-          />
+          profile?.onboardingVersion === 1
+            ? <SignUpV1
+                onComplete={saveProfile}
+                onBack={async()=>{ userInitiatedSignOut.current = true; await supabase.auth.signOut(); setScreen("auth"); }}
+              />
+            : <SignUp
+                onComplete={saveProfile}
+                onBack={async()=>{ userInitiatedSignOut.current = true; await supabase.auth.signOut(); setScreen("auth"); }}
+              />
         )}
 
         {chosen && screen==="day0" && profile && (
