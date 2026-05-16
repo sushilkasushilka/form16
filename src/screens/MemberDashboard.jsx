@@ -16,6 +16,34 @@ import { ProgramView } from "../components/ProgramView.jsx";
 import { MissionStrip } from "../components/MissionStrip.jsx";
 import { DailyTaskCarousel } from "../components/DailyTaskCarousel.jsx";
 import { WeekendTipsBar } from "../components/WeekendTipsBar.jsx";
+import { isFeatureUnlocked, daysUntilUnlock, FEATURE_UNLOCK_DAYS } from "../featureUnlocks.js";
+import { WhyAnchor } from "../components/WhyAnchor.jsx";
+import { IdentityCard } from "../components/IdentityCard.jsx";
+
+// Read-only placeholder for a feature that hasn't unlocked yet. Used in
+// place of the food diary / step tracker / protein / calorie cards so the
+// home screen still has visual scaffolding without leaking week-3+ topics.
+function LockedCard({ featureName, currentDay }) {
+  const days = daysUntilUnlock(featureName, currentDay);
+  const titleKey = `v2.locked.${featureName === 'food_diary' ? 'food' : featureName === 'step_tracker' ? 'steps' : featureName === 'protein_target' ? 'protein' : 'calories'}.title`;
+  const bodyKey  = `v2.locked.${featureName === 'food_diary' ? 'food' : featureName === 'step_tracker' ? 'steps' : featureName === 'protein_target' ? 'protein' : 'calories'}.body`;
+
+  return (
+    <div style={{
+      background: C.card, border: `1px dashed ${C.border}`,
+      borderRadius: 20, padding: "16px 18px", marginBottom: 12,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 11, background: C.dim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: C.muted }}>🔒</div>
+        <div>
+          <div style={{ fontWeight: 500, fontSize: 13, color: C.text }}>{t(titleKey)}</div>
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{t("v2.locked.food.countdown", { days })}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.55 }}>{t(bodyKey)}</div>
+    </div>
+  );
+}
 
 export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,openLogOnLoad,onLogOpened,lang,setLang}){
   const [tab,setTab]=useState("today");
@@ -56,6 +84,12 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
 
   // ── WIRED: get today's task & tip from the program JSON ──
   const userGlobalDay = getUserGlobalDay(profile);
+  // Feature unlocks (centralized thresholds in featureUnlocks.js)
+  const showFoodDiary     = isFeatureUnlocked('food_diary',     userGlobalDay);
+  const showStepTracker   = isFeatureUnlocked('step_tracker',   userGlobalDay);
+  const showProteinTarget = isFeatureUnlocked('protein_target', userGlobalDay);
+  const showCalorieTarget = isFeatureUnlocked('calorie_target', userGlobalDay);
+  const showIdentityCard  = userGlobalDay >= 4 && userGlobalDay <= 14;
   const currentWeekNum = Math.max(1, Math.min(16, Math.ceil((userGlobalDay) / 7) || 1));
   const { week: currentWeekData, day: todayDayData, isDay0 } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
   const missedMeasurement = getMissedMeasurement(profile);
@@ -132,7 +166,15 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                 <div style={{fontFamily:F.mono,fontSize:13,fontWeight:500,color:todayLog?.weight?C.accent:C.text,marginTop:3}}>{todayLog?.weight?`${todayLog.weight} кг`:"Записать →"}</div>
               </div>
             </button>
-            {profile.fatsecretConnected ? (
+            {!showFoodDiary ? (
+              <div aria-disabled="true" style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"default",fontFamily:F.sans,color:C.muted}}>
+                <div style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0,color:C.muted}}>🔒</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:10,color:C.muted,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:600}}>{t("v2.locked.evening.label")}</div>
+                  <div style={{fontFamily:F.mono,fontSize:13,fontWeight:500,color:C.muted,marginTop:3}}>{t("v2.locked.evening.sub")}</div>
+                </div>
+              </div>
+            ) : profile.fatsecretConnected ? (
               <button onClick={()=>setShowEveningLog(true)} style={{background:todayLog?.calories?C.accentDim:C.surface,border:`1px solid ${todayLog?.calories?C.accent:C.border}`,borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",textAlign:"left",fontFamily:F.sans,color:todayLog?.calories?C.accent:C.text}}>
                 <div style={{width:22,height:22,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{todayLog?.calories?"✓":"⚡"}</div>
                 <div style={{flex:1}}>
@@ -240,6 +282,19 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
             /* ── NORMAL DAY 1+ CONTENT ── */
             <>
 
+              {/* ── PINNED "WHY" ANCHOR ── always near the top from Day 0+. */}
+              <WhyAnchor
+                profile={{ ...profile, currentDay: userGlobalDay }}
+                onSave={(why) => {
+                  setProfile(p => ({ ...p, initialWhy: why }));
+                  // Persist directly — updateProfile()'s column list doesn't include initial_why
+                  supabase.from("profiles").update({ initial_why: why }).eq("id", profile.id);
+                }}
+              />
+
+              {/* ── IDENTITY CARD ── Days 4–14 only (cleared internally otherwise). */}
+              {showIdentityCard && <IdentityCard profile={profile} currentDay={userGlobalDay} />}
+
               {/* ── MISSION STRIP ── week-at-a-glance + per-week metrics expand ── */}
               {todayDayData && (
                 <MissionStrip
@@ -252,16 +307,22 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
               )}
 
               {/* ── TODAY METRICS ── moved up to sit directly under the
-                   "Задача недели" ribbon (used to live below the chart). */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",margin:"8px 0 12px"}}>
-                <div style={{fontSize:10,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.12em"}}>{t("today.metrics")}</div>
-                {nutritionSource?.fromFatSecret&&<span style={{fontSize:10,color:C.accent,fontWeight:500,letterSpacing:"0.06em",textTransform:"uppercase"}}>· FatSecret</span>}
-              </div>
-              <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"4px 20px",marginBottom:18}}>
-                <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="ккал" color={C.text} icon=""/>
-                <MetricBar label={t("metric.protein")}  value={nutritionSource?.protein||0}  target={profile.dailyTargets?.protein||150}  unit="г"     color={C.text} icon=""/>
-                <MetricBar label={t("metric.steps")}    value={todayLog?.steps||0}           target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.text} icon=""/>
-              </div>
+                   "Задача недели" ribbon (used to live below the chart).
+                   Each row is gated by its own feature flag; the whole
+                   section disappears in Weeks 1–2 when nothing is unlocked. */}
+              {(showFoodDiary || showProteinTarget || showStepTracker) && (
+                <>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",margin:"8px 0 12px"}}>
+                    <div style={{fontSize:10,color:C.muted,fontWeight:500,textTransform:"uppercase",letterSpacing:"0.12em"}}>{t("today.metrics")}</div>
+                    {showFoodDiary && nutritionSource?.fromFatSecret && <span style={{fontSize:10,color:C.accent,fontWeight:500,letterSpacing:"0.06em",textTransform:"uppercase"}}>· FatSecret</span>}
+                  </div>
+                  <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"4px 20px",marginBottom:18}}>
+                    {showFoodDiary && <MetricBar label={t("metric.calories")} value={nutritionSource?.calories||0} target={profile.dailyTargets?.calories||2000} unit="ккал" color={C.text} icon=""/>}
+                    {showProteinTarget && <MetricBar label={t("metric.protein")}  value={nutritionSource?.protein||0}  target={profile.dailyTargets?.protein||150}  unit="г"     color={C.text} icon=""/>}
+                    {showStepTracker && <MetricBar label={t("metric.steps")}    value={todayLog?.steps||0}           target={profile.dailyTargets?.steps||10000} unit="шагов" color={C.text} icon=""/>}
+                  </div>
+                </>
+              )}
 
               {/* ── WEEKEND TIPS BAR ── only renders on Fri / Sat / Sun
                    with a rotating recommendation tied to weekNum. Hidden
@@ -493,7 +554,10 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
 
           {/* FatSecret */}
           <SectionTitle title="Питание"/>
-          <FatSecretConnect profile={profile} setProfile={setProfile} userId={profile.id}/>
+          {showFoodDiary
+            ? <FatSecretConnect profile={profile} setProfile={setProfile} userId={profile.id}/>
+            : <LockedCard featureName="food_diary" currentDay={userGlobalDay}/>
+          }
 
           {/* Progress */}
           <div style={{height:8}}/>

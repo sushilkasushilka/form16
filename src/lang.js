@@ -559,6 +559,8 @@ export const TRANSLATIONS = {
   "v2.locked.protein.body":  { en: "Day 24 — we'll calculate your number based on your weight.", ru: "День 24 — рассчитаем твою норму на основе веса." },
   "v2.locked.calories.title":{ en: "Calorie target unlocks in Week 3", ru: "Калорийная цель откроется на Неделе 3" },
   "v2.locked.calories.body": { en: "Day 18 — we'll calculate your TDEE and deficit together.", ru: "День 18 — рассчитаем твой TDEE и дефицит вместе." },
+  "v2.locked.evening.label": { en: "Evening", ru: "Вечер" },
+  "v2.locked.evening.sub":   { en: "Unlocks Day 20", ru: "Откроется День 20" },
 
   // ─── IDENTITY AFFIRMATIONS (Days 4–14) ────────────────────────────────────
   "v2.identity.day4":        { en: "Today I am someone who…", ru: "Сегодня я — человек, который…" },
