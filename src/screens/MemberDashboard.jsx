@@ -234,16 +234,15 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                 ))}
               </div>
 
-              {/* Day 0 single task */}
+              {/* Day 0 single task — informational, no action button. */}
               <div style={{background:C.blueDim,border:`1.5px solid ${C.blue}44`,borderRadius:18,padding:"16px 18px",marginBottom:14}}>
                 <div style={{fontSize:11,color:C.blue,fontWeight:500,textTransform:"uppercase",letterSpacing:0.8,marginBottom:12}}>Задача дня 0</div>
                 <div style={{display:"flex",gap:14,alignItems:"center"}}>
-                  <div style={{width:48,height:48,borderRadius:15,background:`${C.blue}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>🍽️</div>
+                  <div style={{width:48,height:48,borderRadius:15,background:`${C.blue}22`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,flexShrink:0}}>⚖️</div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>Запиши первый приём пищи</div>
-                    <div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>Даже один перекус считается. Нажми «+ Записать день» выше и добавь калории.</div>
+                    <div style={{fontSize:14,fontWeight:500,marginBottom:4}}>{t("day0.task.title")}</div>
+                    <div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>{t("day0.task.body")}</div>
                   </div>
-                  {todayLog&&<div style={{fontSize:20,flexShrink:0}}>✅</div>}
                 </div>
               </div>
 
@@ -269,9 +268,9 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
                   <div style={{fontSize:12,color:C.muted}}>Вот что тебя ждёт</div>
                 </div>
                 {[
-                  {time:"07:00",icon:"⚖️",col:C.accent,label:"Встань на весы",sub:"После туалета, до завтрака"},
-                  {time:"Днём",icon:"🍽️",col:C.blue,label:"Записывай еду",sub:"Каждый приём пищи сразу после еды"},
-                  {time:"21:00",icon:"🌙",col:C.purple,label:"Итог дня",sub:"Напомним проверить и дозаписать питание"},
+                  {time:"07:00",icon:"⚖️",col:C.accent,label:t("day0.tomorrow.weigh_label"),sub:t("day0.tomorrow.weigh_sub")},
+                  {time:"Днём",icon:"📖",col:C.blue,label:t("day0.tomorrow.lesson_label"),sub:t("day0.tomorrow.lesson_sub")},
+                  {time:"21:00",icon:"🌙",col:C.purple,label:t("day0.tomorrow.reflect_label"),sub:t("day0.tomorrow.reflect_sub")},
                 ].map((item,i,arr)=>(
                   <div key={item.time} style={{display:"flex",gap:14,padding:"12px 18px",borderBottom:i<arr.length-1?`1px solid ${C.border}`:"none",alignItems:"center"}}>
                     <div style={{width:38,textAlign:"center",flexShrink:0}}>

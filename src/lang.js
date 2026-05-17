@@ -4,8 +4,8 @@
 // Usage: t("key", { name: "Alex" }) for interpolation → replaces {name}
 
 export const LANGUAGES = [
-  { code: "en", label: "English", flag: "🇬🇧" },
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
+  { code: "ru", label: "Русский", flag: "🇷🇺", enabled: true },
+  { code: "en", label: "English", flag: "🇬🇧", enabled: false, comingSoonRu: "Скоро", comingSoonEn: "Coming soon" },
 ];
 
 export const TRANSLATIONS = {
@@ -636,6 +636,16 @@ export const TRANSLATIONS = {
 
   // ─── DAILY TASK CAROUSEL HEADER ───────────────────────────────────────────
   "v2.daily.day_label":         { en: "Day", ru: "День" },
+
+  // ─── DAY 0 TASK CARD + TOMORROW PREVIEW (in MemberDashboard takeover) ─────
+  "day0.task.title":            { en: "Prep for tomorrow", ru: "Подготовка к завтра" },
+  "day0.task.body":             { en: "Put your scale where you'll see it every morning. Tomorrow is the first weigh-in.", ru: "Поставь весы там, где будешь видеть их каждое утро. Завтра — первое взвешивание." },
+  "day0.tomorrow.weigh_label":  { en: "Step on the scale", ru: "Встань на весы" },
+  "day0.tomorrow.weigh_sub":    { en: "After bathroom, before breakfast", ru: "После туалета, до завтрака" },
+  "day0.tomorrow.lesson_label": { en: "Lesson", ru: "Урок" },
+  "day0.tomorrow.lesson_sub":   { en: "Why 80% relapse — and why you'll be different", ru: "Почему 80% срываются — и почему ты будешь иначе" },
+  "day0.tomorrow.reflect_label":{ en: "Short reflection", ru: "Короткая рефлексия" },
+  "day0.tomorrow.reflect_sub":  { en: "What you took from your first day", ru: "Что забрал из первого дня" },
 };
 
 // ─── TRANSLATION FUNCTION ─────────────────────────────────────────────────────

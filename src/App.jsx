@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase.js";
 import { LANGUAGES } from "./lang.js";
+import { getLang } from "./i18n.js";
 import { C, F, BRAND } from "./theme.js";
 import { todayStr } from "./utils.js";
 import { MOCK_ATHLETES, FS } from "./program.js";
@@ -39,16 +40,49 @@ function LanguagePicker({ onPick }) {
         </div>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:36}}>
-        {LANGUAGES.map(l=>(
-          <button key={l.code} onClick={()=>setSelected(l.code)} style={{background:selected===l.code?C.accentDim:C.surface,border:`1.5px solid ${selected===l.code?C.accent:C.border}`,borderRadius:14,padding:"16px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:16,transition:"all 0.18s",fontFamily:"inherit",textAlign:"left",width:"100%"}}>
-            <span style={{fontSize:30}}>{l.flag}</span>
-            <div style={{flex:1}}>
-              <div style={{fontWeight:600,fontSize:16,color:selected===l.code?C.accent:C.text}}>{l.label}</div>
-              <div style={{fontSize:12,color:C.muted,marginTop:2}}>{l.code==="en"?"English":"Русский язык"}</div>
-            </div>
-            {selected===l.code&&<div style={{width:22,height:22,borderRadius:"50%",background:C.accent,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:12,color:"#fff",fontWeight:500}}>✓</span></div>}
-          </button>
-        ))}
+        {LANGUAGES.map(l=>{
+          const isDisabled = l.enabled === false;
+          const isSelected = !isDisabled && selected === l.code;
+          const comingSoon = isDisabled
+            ? (selected === "ru" ? l.comingSoonRu : l.comingSoonEn)
+            : null;
+          return (
+            <button
+              key={l.code}
+              onClick={isDisabled ? undefined : () => setSelected(l.code)}
+              disabled={isDisabled}
+              aria-disabled={isDisabled}
+              style={{
+                background: isDisabled ? C.surface : (isSelected ? C.accentDim : C.surface),
+                border: `1.5px solid ${isDisabled ? C.border : (isSelected ? C.accent : C.border)}`,
+                borderRadius: 14,
+                padding: "16px 18px",
+                cursor: isDisabled ? "not-allowed" : "pointer",
+                opacity: isDisabled ? 0.5 : 1,
+                display: "flex",
+                alignItems: "center",
+                gap: 16,
+                transition: "all 0.18s",
+                fontFamily: "inherit",
+                textAlign: "left",
+                width: "100%",
+              }}
+            >
+              <span style={{ fontSize: 30 }}>{l.flag}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 16, color: isSelected ? C.accent : C.text }}>{l.label}</div>
+                <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
+                  {isDisabled ? comingSoon : (l.code === "en" ? "English" : "Русский язык")}
+                </div>
+              </div>
+              {isSelected && (
+                <div style={{ width: 22, height: 22, borderRadius: "50%", background: C.accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 12, color: "#fff", fontWeight: 500 }}>✓</span>
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
       <button onClick={()=>onPick(selected)} style={{width:"100%",background:C.text,color:C.bg,border:"none",borderRadius:14,padding:"16px",fontSize:15,fontWeight:600,fontFamily:F.sans,cursor:"pointer",letterSpacing:"0.01em"}}>
         {selected==="ru"?"Продолжить":"Continue"}
@@ -59,7 +93,17 @@ function LanguagePicker({ onPick }) {
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
 export default function App(){
-  const [lang, setLangState] = useState(() => localStorage.getItem("form16_lang") || null);
+  const [lang, setLangState] = useState(() => {
+    // English content is mostly {TODO} placeholder for now; force any stale
+    // "en" preference back to "ru" so the user doesn't land on broken text.
+    // Revisit this guard once English ships.
+    const stored = localStorage.getItem("form16_lang");
+    if (stored === "en") {
+      localStorage.setItem("form16_lang", "ru");
+      return "ru";
+    }
+    return stored || null;
+  });
   const chosen = !!lang;
   function setLang(code) { localStorage.setItem("form16_lang", code); setLangState(code); }
   const [screen, setScreen]   = useState("loading");
@@ -336,6 +380,18 @@ export default function App(){
       fsSyncData:  prev?.fsSyncData,
       fsSyncedAt:  prev?.fsSyncedAt,
     }));
+
+    // Force-correct toward Russian while English content is incomplete.
+    // Asymmetric on purpose — we only flip en → ru, never the other way.
+    // Revisit when English ships. The `profile.language` field is read
+    // defensively: if the column doesn't exist yet on the row, this is a no-op.
+    // Inlined (not via setLang) so loadProfile closes only over stable refs
+    // (localStorage / React setter) — keeps the useEffects that call it
+    // exempt from exhaustive-deps complaints about missing 'loadProfile'.
+    if (fullProfile?.language === "ru" && getLang() !== "ru") {
+      localStorage.setItem("form16_lang", "ru");
+      setLangState("ru");
+    }
 
     // Route to day0 if: joined today, no logs yet, and haven't seen day0 screen yet
     const isNewUser = fullProfile.joinedAt === todayStr() && (!logs || logs.length === 0);
