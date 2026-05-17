@@ -614,6 +614,9 @@ export const TRANSLATIONS = {
   "day0.tomorrow.evening.sub":{ en: "Short reflection. We'll send a reminder.", ru: "Короткая рефлексия. Пришлём напоминание." },
   "day0.cta.open":           { en: "Open the app →", ru: "Открыть приложение →" },
   "day0.cta.openSub":        { en: "Day 0 tasks remain on the home screen", ru: "Задачи дня 0 останутся на главном экране" },
+
+  // ─── DAY CARD — TODO BODY FALLBACK ────────────────────────────────────────
+  "day_card.todo_fallback":  { en: "Lesson coming soon. For now — ask the AI trainer.", ru: "Урок скоро появится. Пока — спроси у ИИ-тренера." },
 };
 
 // ─── TRANSLATION FUNCTION ─────────────────────────────────────────────────────

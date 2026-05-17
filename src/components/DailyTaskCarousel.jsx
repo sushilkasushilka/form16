@@ -18,6 +18,7 @@
 // carry the content, so an extra modal would just be redundant.
 import { useEffect, useRef, useState } from "react";
 import { C } from "../theme.js";
+import { t, getLang } from "../i18n.js";
 
 // Day-type → { accent color, display label } map. Covers both the legacy
 // v1 curriculum types (nutrition / training / mindset / rest) and the new
@@ -175,6 +176,17 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
   const cardRefs = useRef([]);
   const typeDisplay = TYPE_DISPLAY[todayDayData?.type] || TYPE_DISPLAY.lesson;
   const accent = typeDisplay.color;
+
+  // v2 curriculum body picker with {TODO} fallback. Bodies are placeholders
+  // for most days right now — substitute the action_prompt if present, else
+  // a generic "coming soon" string. The "{TODO}" literal is an internal
+  // marker, not user-facing copy — kept English per critical rule #4.
+  const lang = getLang();
+  const rawBody = lang === "ru" ? todayDayData?.body_ru : todayDayData?.body_en;
+  const rawPrompt = lang === "ru" ? todayDayData?.action_prompt_ru : todayDayData?.action_prompt_en;
+  const body = rawBody === "{TODO}"
+    ? (rawPrompt || t("day_card.todo_fallback"))
+    : (rawBody || rawPrompt || t("day_card.todo_fallback"));
   // Latched-off as soon as the user starts the first swipe (or taps the
   // chevron). CSS transition on the wrapper handles the actual fade — we
   // just flip this once and it stays false for the rest of the session.
@@ -204,7 +216,7 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
           justifyContent: "center", fontSize: 48,
         }}>{todayDayData.icon}</div>
         <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.7 }}>
-          {todayDayData.task}
+          {body}
         </div>
       </div>
     ),
@@ -241,7 +253,9 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
 
   // Tip slide — bigger font (16 vs 14) means it holds less text per
   // card, so we use a tighter chunk budget.
-  const tipChunks = chunkText(todayDayData.tip.text, 320);
+  // tip is a v1-curriculum field; v2 day objects don't carry one. chunkText
+  // returns [] for null input, so the forEach below becomes a no-op.
+  const tipChunks = chunkText(todayDayData.tip?.text, 320);
   tipChunks.forEach((chunk, i) => {
     slides.push({
       key: `tip-${i}`,

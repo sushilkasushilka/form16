@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { C } from "../theme.js";
 import { t } from "../i18n.js";
 import { urlBase64ToUint8Array } from "../utils.js";
-import { supabase } from "../supabase.js";
 
 export function Day0Screen({ profile, onDone, userId }) {
   const [notifDone, setNotifDone] = useState(() =>
@@ -102,29 +101,6 @@ export function Day0Screen({ profile, onDone, userId }) {
           {t("day0.subtitle.line1")}<br/>{t("day0.subtitle.line2")}
         </div>
       </div>
-
-      {/* Migration banner — only for legacy v1 users on first Day 0 */}
-      {profile.onboardingVersion === 1 && (
-        <div style={{ padding: "0 24px 16px" }}>
-          <div style={{
-            background: C.surface, border: `1px solid ${C.border}`,
-            borderRadius: 14, padding: "12px 14px",
-            fontSize: 12, color: C.muted, lineHeight: 1.55,
-          }}>
-            Программа была обновлена с момента твоей регистрации. Хочешь начать с обновлённой версии?
-            <button onClick={() => {
-              // Sign out, then user can re-sign-up with the new flow
-              supabase.auth.signOut();
-            }} style={{
-              marginLeft: 8, color: C.accent, background: "none",
-              border: "none", padding: 0, fontFamily: "inherit", fontSize: 12,
-              textDecoration: "underline", cursor: "pointer",
-            }}>
-              Перезапустить
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Weight + BMI */}
       <div style={{padding:"0 24px 20px",animation:"slideUp 0.4s 0.08s both"}}>

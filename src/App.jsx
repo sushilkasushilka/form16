@@ -9,7 +9,6 @@ import { todayStr } from "./utils.js";
 import { MOCK_ATHLETES, FS } from "./program.js";
 import { AuthScreen } from "./screens/AuthScreen.jsx";
 import { SignUp } from "./screens/SignUp.jsx";
-import { SignUpV1 } from "./screens/SignUpV1.jsx";
 import { Day0Screen } from "./screens/Day0Screen.jsx";
 import { MemberDashboard } from "./screens/MemberDashboard.jsx";
 import { CoachDashboard } from "./screens/CoachDashboard.jsx";
@@ -558,15 +557,10 @@ export default function App(){
         {chosen && screen==="auth" && <AuthScreen onAuth={()=>{}} />}
 
         {chosen && screen==="onboarding" && (
-          profile?.onboardingVersion === 1
-            ? <SignUpV1
-                onComplete={saveProfile}
-                onBack={async()=>{ userInitiatedSignOut.current = true; await supabase.auth.signOut(); setScreen("auth"); }}
-              />
-            : <SignUp
-                onComplete={saveProfile}
-                onBack={async()=>{ userInitiatedSignOut.current = true; await supabase.auth.signOut(); setScreen("auth"); }}
-              />
+          <SignUp
+            onComplete={saveProfile}
+            onBack={async()=>{ userInitiatedSignOut.current = true; await supabase.auth.signOut(); setScreen("auth"); }}
+          />
         )}
 
         {chosen && screen==="day0" && profile && (
