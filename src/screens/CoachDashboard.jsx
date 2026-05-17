@@ -4,8 +4,8 @@
 import { useState } from "react";
 import { C } from "../theme.js";
 import { todayStr, pct } from "../utils.js";
-import { t } from "../i18n.js";
-import { getWeek } from "../program.js";
+import { t, getLang } from "../i18n.js";
+import { getWeek, getWeekData } from "../program.js";
 import { MemberDashboard } from "./MemberDashboard.jsx";
 
 export function CoachDashboard({athletes,setAthletes,onBack}){
@@ -40,13 +40,13 @@ export function CoachDashboard({athletes,setAthletes,onBack}){
       <div style={{padding:"18px"}}>
         {coachTab==="athletes"&&<div style={{animation:"slideUp 0.28s both"}}>{athletes.map((a,idx)=>{
           const ll=a.logs.at(-1),lt=ll?.date===todayStr(),wd=ll?+(ll.weight-a.weight).toFixed(1):0;
-          const wkData=getWeek(a.currentWeek);
+          const wkData=getWeekData(a.currentWeek, getLang());
           return <div key={a.id} onClick={()=>openAthlete(a)} style={{background:C.card,borderRadius:22,padding:"16px 18px",marginBottom:12,border:`1px solid ${lt?C.accent+"44":C.border}`,cursor:"pointer",transition:"transform 0.15s",animation:`slideUp 0.35s ${idx*0.06}s both`}} onMouseEnter={e=>e.currentTarget.style.transform="translateY(-2px)"} onMouseLeave={e=>e.currentTarget.style.transform="none"}>
             <div style={{display:"flex",alignItems:"flex-start",gap:13,marginBottom:12}}>
               <div style={{width:48,height:48,borderRadius:16,background:C.accentDim,border:`1.5px solid ${C.accent}33`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,flexShrink:0}}>{a.avatar}</div>
               <div style={{flex:1}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div><div style={{fontWeight:500,fontSize:15}}>{a.name}</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>Wk {a.currentWeek}: {wkData.theme} · {a.age}y · {(a.goal||"").replace("_"," ")}</div></div>
+                  <div><div style={{fontWeight:500,fontSize:15}}>{a.name}</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>Wk {a.currentWeek}: {wkData?.theme} · {a.age}y · {(a.goal||"").replace("_"," ")}</div></div>
                   <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
                     <span style={{fontSize:11,fontWeight:500,color:lt?C.green:C.red,background:lt?C.greenDim:C.redDim,padding:"3px 9px",borderRadius:20}}>{lt?"✓ Logged":"No log"}</span>
                     <span style={{fontSize:11,color:wd<=0?C.accent:C.orange,fontWeight:500}}>{wd>0?"+":""}{wd} kg</span>

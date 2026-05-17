@@ -5,8 +5,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabase.js";
 import { C, F } from "../theme.js";
 import { todayStr, fmtDate, calcBMI } from "../utils.js";
-import { t } from "../i18n.js";
-import { PROGRAM, getUserGlobalDay, getTodayData, getMissedMeasurement } from "../program.js";
+import { t, getLang } from "../i18n.js";
+import { PROGRAM, getUserGlobalDay, getTodayData, getWeekData, getMissedMeasurement } from "../program.js";
 import { MetricBar, WeightChart } from "../components/ui.jsx";
 import { FatSecretConnect } from "../components/FatSecretConnect.jsx";
 import { InlineChatBar, ChatModal } from "../components/Chat.jsx";
@@ -90,7 +90,7 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
   const showProteinTarget = isFeatureUnlocked('protein_target', userGlobalDay);
   const showIdentityCard  = userGlobalDay >= 4 && userGlobalDay <= 14;
   const currentWeekNum = Math.max(1, Math.min(16, Math.ceil((userGlobalDay) / 7) || 1));
-  const { week: currentWeekData, day: todayDayData, isDay0 } = getTodayData(profile) || { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
+  const { week: currentWeekData, day: todayDayData, isDay0 } = getTodayData(profile, getLang()) || { week: PROGRAM[0], day: PROGRAM[0].days[0], isDay0: true };
   const missedMeasurement = getMissedMeasurement(profile);
   const fsSyncData=profile.fsSyncData;
   // Prefer the saved evening report over an in-flight FS sync once the
@@ -113,7 +113,17 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
   const TABS=[{id:"today",icon:"sun",label:t("tab.today")},{id:"program",icon:"grid",label:t("tab.program")},{id:"account",icon:"user",label:"Я"}];
 
   // Lab: single accent for all task types. Differentiate via labels.
-  const taskTypeLabel = {training:"Тренировка",nutrition:"Питание",mindset:"Мышление",rest:"Отдых",active_recovery:"Восстановление"}[todayDayData?.type]||"Сегодня";
+  // v2 types resolve via i18n; v1 types kept inline for any legacy data still around.
+  const taskTypeLabel = (todayDayData?.type && ({
+    lesson:          t("v2.day_type.lesson"),
+    action:          t("v2.day_type.action"),
+    reflection:      t("v2.day_type.reflection"),
+    training:        "Тренировка",
+    nutrition:       "Питание",
+    mindset:         "Мышление",
+    rest:            "Отдых",
+    active_recovery: "Восстановление",
+  })[todayDayData.type]) || "Сегодня";
   const dayProgressPct = Math.min(100,(userGlobalDay/112)*100);
 
   return (
@@ -153,7 +163,7 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
               <div style={{position:"absolute",left:0,top:0,height:1,background:C.text,width:`${dayProgressPct}%`,transition:"width 1s cubic-bezier(.16,1,.3,1)"}}/>
               <div style={{position:"absolute",left:`${dayProgressPct}%`,top:-3,width:7,height:7,borderRadius:"50%",background:C.text,transform:"translateX(-50%)"}}/>
             </div>
-            <div style={{fontSize:11,color:C.muted,marginTop:12,letterSpacing:"0.02em"}}>{currentWeekData.theme}</div>
+            <div style={{fontSize:11,color:C.muted,marginTop:12,letterSpacing:"0.02em"}}>{getWeekData(currentWeekNum, getLang())?.theme || ""}</div>
           </section>
 
           {/* Log buttons */}
@@ -329,14 +339,14 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
               <WeekendTipsBar weekNum={currentWeekNum} />
 
               {/* ── DAILY ACTIONS CAROUSEL ── Instagram-style full-bleed
-                   swipeable slides (task, why, how, goal, day-8 stats,
-                   psychology tip). Sits right under Показатели дня so the
-                   day's "what to do" is the next thing the user sees. */}
+                   swipeable slides driven by day.slides (cover / lesson /
+                   callout / action / reflection). Sits right under
+                   "Показатели дня" so the day's "what to do" is the next
+                   thing the user sees. */}
               {todayDayData && (
                 <div style={{marginBottom:18}}>
                   <DailyTaskCarousel
                     todayDayData={todayDayData}
-                    currentWeekData={currentWeekData}
                     profile={profile}
                   />
                 </div>
@@ -415,7 +425,7 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
               {profile.name}
             </div>
             <div style={{color:C.muted,fontSize:13,marginTop:6}}>
-              {goalLabel(profile.goal)} · Неделя {profile.currentWeek} · {currentWeekData.theme}
+              {goalLabel(profile.goal)} · Неделя {profile.currentWeek} · {getWeekData(profile.currentWeek, getLang())?.theme || ""}
             </div>
             <div style={{
               display:"inline-flex",alignItems:"center",gap:6,marginTop:14,padding:"6px 12px",
@@ -540,16 +550,24 @@ export function MemberDashboard({profile,setProfile,saveLog,onSignOut,onBack,ope
             ))}
           </div>
 
-          {/* Mindset of current week */}
-          <SectionTitle title={`Мышление недели ${profile.currentWeek}`}/>
-          <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"18px 20px",marginBottom:26}}>
-            <div style={{fontFamily:F.serif,fontSize:18,fontWeight:500,letterSpacing:"-0.015em",lineHeight:1.3,marginBottom:12,color:C.text}}>
-              {currentWeekData.mindset.title}
-            </div>
-            <div style={{fontSize:13,color:C.muted,lineHeight:1.7,fontStyle:"italic",borderLeft:`2px solid ${C.accent}`,paddingLeft:14}}>
-              «{currentWeekData.mindset.quote}»
-            </div>
-          </div>
+          {/* Weekly mindset block — v1 weeks carried a {mindset:{title,quote}}
+              field. v2 weeks don't, so we render the v2 overview instead when
+              present, and hide the block entirely if neither is available. */}
+          {(currentWeekData?.mindset?.title || currentWeekData?.overview) && (
+            <>
+              <SectionTitle title={`Мышление недели ${profile.currentWeek}`}/>
+              <div style={{background:C.surface,border:`1px solid ${C.border}`,borderRadius:14,padding:"18px 20px",marginBottom:26}}>
+                {currentWeekData?.mindset?.title && (
+                  <div style={{fontFamily:F.serif,fontSize:18,fontWeight:500,letterSpacing:"-0.015em",lineHeight:1.3,marginBottom:12,color:C.text}}>
+                    {currentWeekData.mindset.title}
+                  </div>
+                )}
+                <div style={{fontSize:13,color:C.muted,lineHeight:1.7,fontStyle:"italic",borderLeft:`2px solid ${C.accent}`,paddingLeft:14}}>
+                  «{currentWeekData?.mindset?.quote || currentWeekData?.overview}»
+                </div>
+              </div>
+            </>
+          )}
 
           {/* FatSecret */}
           <SectionTitle title="Питание"/>

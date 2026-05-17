@@ -1,278 +1,393 @@
-// Today's program-derived content rendered as a swipeable carousel of cards
-// (one idea per slide), instead of a single long block. Only the slides that
-// actually have content for the current day are rendered, so simple days stay
-// short and rich days expand without scrolling forever.
+// Daily lesson carousel — renders the day's `slides` array from PROGRAM (v2).
+// Each slide carries a `kind` field that picks one of five layouts:
+// cover / lesson / callout / action / reflection. The day-level data is
+// resolved to the user's current language by getTodayData(profile, lang)
+// before it reaches this component, so we read `slide.body` (etc.) directly.
 //
-// Slide order (each conditional on its data being present):
-//   1. Task        — icon + title + task text                     [always]
-//   2. Why         — info.why                                     [optional]
-//   3. How         — info.howTo                                   [optional]
-//   4. Goal        — info.weekTarget                              [optional]
-//   5. Stats       — weekly averages from logs                    [day 8 only, isWeeklyStats]
-//   6. Tip         — tip.text + tip.cat (psychology, etc.)        [always]
-//
-// Swipe is implemented with native CSS scroll-snap. The dot indicator below
-// tracks the centred card via IntersectionObserver.
-//
-// Per design: no Details / Подробнее CTA on any slide — the slides themselves
-// carry the content, so an extra modal would just be redundant.
+// Action/reflection slides save the user's input into the existing
+// daily_reflections table (Phase A schema). One row per (user, day);
+// repeated saves on the same day overwrite the previous response.
 import { useEffect, useRef, useState } from "react";
-import { C } from "../theme.js";
-import { t, getLang } from "../i18n.js";
+import { supabase } from "../supabase.js";
+import { C, F } from "../theme.js";
+import { t } from "../i18n.js";
 
-// Day-type → { accent color, display label } map. Covers both the legacy
-// v1 curriculum types (nutrition / training / mindset / rest) and the new
-// v2 curriculum types (lesson / action / reflection — wired up in Phase J).
-// Unknown types fall back to TYPE_DISPLAY.lesson at the call sites.
-const TYPE_DISPLAY = {
-  nutrition:  { color: C.accent,               label: "Питание"        },
-  training:   { color: C.orange,               label: "Тренировка"     },
-  mindset:    { color: C.purple,               label: "Психология"     },
-  rest:       { color: C.green || C.accent,    label: "Восстановление" },
-  active_recovery: { color: C.blue,            label: "Активный отдых" },
-  lesson:     { color: C.blue,                 label: "Урок"           },
-  action:     { color: C.orange,               label: "Действие"       },
-  reflection: { color: C.accent,               label: "Рефлексия"      },
+// English literal — the placeholder sentinel that data authors leave in
+// slide fields before content lands. Compared as a plain string (rule #4).
+const TODO = "{TODO}";
+
+// Day-type → header chip icon. Keys are English literals matching PROGRAM
+// day.type values; not translated.
+const TYPE_ICON = {
+  lesson:     "📖",
+  action:     "✅",
+  reflection: "🔄",
 };
 
-// Split a long body string into card-sized chunks. Tries to break on
-// paragraph boundaries first; falls back to sentence boundaries when a
-// single paragraph is itself too long for one card. Card body at our
-// current font sizing (~14px, 1.7 line-height, ~336px content width on
-// a 380px square card) holds roughly 450 characters comfortably; we use
-// a slightly smaller budget so the last line never gets clipped.
-function chunkText(text, maxChars = 420) {
-  if (text == null) return [];
-  const norm = String(text).trim();
-  if (!norm) return [];
-  if (norm.length <= maxChars) return [norm];
+// Day-type → accent color used for the progress bar, frame border, and
+// button background. Falls back to "lesson" for any unrecognized type.
+const TYPE_ACCENT = {
+  lesson:     C.blue,
+  action:     C.orange,
+  reflection: C.accent,
+};
 
-  const paragraphs = norm.split(/\n+/).map(p => p.trim()).filter(Boolean);
-  const chunks = [];
-  let current = "";
+const KNOWN_TYPES = ["lesson", "action", "reflection"];
+const LIST_MAX_ITEMS = 5;
 
-  const flush = () => { if (current) { chunks.push(current); current = ""; } };
-  const append = (piece) => {
-    if (!piece) return;
-    if (!current) { current = piece; return; }
-    const candidate = current + "\n\n" + piece;
-    if (candidate.length <= maxChars) {
-      current = candidate;
-    } else {
-      flush();
-      current = piece;
-    }
-  };
-
-  for (const p of paragraphs) {
-    if (p.length <= maxChars) {
-      append(p);
-    } else {
-      // Single oversized paragraph — split on sentence enders so we don't
-      // chop in the middle of a phrase.
-      const sentences = p.match(/[^.!?…]+[.!?…]+\s*/g) || [p];
-      for (const s of sentences) append(s.trim());
-    }
-  }
-  flush();
-  return chunks;
+function typeIcon(type)   { return TYPE_ICON[type]   || TYPE_ICON.lesson; }
+function typeAccent(type) { return TYPE_ACCENT[type] || TYPE_ACCENT.lesson; }
+function typeLabel(type)  {
+  const safe = KNOWN_TYPES.includes(type) ? type : "lesson";
+  return t(`v2.day_type.${safe}`);
 }
 
-// One slide in the carousel. Big bold title, single body block, optional CTA.
-// Background is a tinted version of `accent` so each slide reads as one
-// cohesive panel even when multiple are visible during the swipe.
-function Slide({ accent, label, title, children, footer }) {
+// ─── SLIDE FRAME ─────────────────────────────────────────────────────────
+// Outer card shape shared by every kind. `tinted` is used by callouts to
+// stand out from neighbouring lesson cards in the swipe rhythm.
+function SlideFrame({ accent, tinted, children }) {
   return (
     <div style={{
-      // Full container width — Instagram-style one-card-at-a-time. The
-      // outer flex wrapper carries the width sizing so swipe snapping
-      // works; the visual card fills 100% of that wrapper.
       width: "100%",
-      // Square card (Instagram feed post proportions). Height tracks
-      // width so it autofits any phone — no fixed pixel value to retune.
       aspectRatio: "1 / 1",
       scrollSnapAlign: "center",
-      background: `${accent}18`,
-      border: `1px solid ${accent}44`,
+      background: tinted ? `${accent}26` : `${accent}10`,
+      border: `1px solid ${accent}${tinted ? "66" : "33"}`,
       borderRadius: 22,
-      padding: "20px 22px",
+      padding: "24px",
       display: "flex",
       flexDirection: "column",
       boxSizing: "border-box",
       overflow: "hidden",
+      fontFamily: F.sans,
     }}>
-      <div style={{
-        fontSize: 11, color: accent, fontWeight: 700,
-        letterSpacing: 1, textTransform: "uppercase", marginBottom: 10,
-      }}>{label}</div>
-      <div style={{
-        fontFamily: "'Syne',sans-serif", fontSize: 22, fontWeight: 800,
-        lineHeight: 1.2, color: C.text, marginBottom: 12,
-      }}>{title}</div>
-      {/* Body — no inner scroll. Long text fields are pre-chunked into
-          multiple slides so nothing spills past the card edge. */}
-      <div style={{ flex: 1, overflow: "hidden", color: C.muted, fontSize: 14, lineHeight: 1.7 }}>
-        {children}
-      </div>
-      {footer && <div style={{ marginTop: 12, flexShrink: 0 }}>{footer}</div>}
+      {children}
     </div>
   );
 }
 
-// Renders the weekly-stats slide content (used only on Day 8 / isWeeklyStats).
-// Computes 7-day averages from profile.logs and pairs them with light
-// recommendations against the user's targets.
-function WeeklyStatsContent({ profile }) {
-  const w7 = profile.logs.slice(-7);
-  const avgCal    = w7.length ? Math.round(w7.reduce((s,l)=>s+(l.calories||0),0) / w7.length) : 0;
-  const avgProt   = w7.length ? Math.round(w7.reduce((s,l)=>s+(l.protein||0), 0) / w7.length) : 0;
-  const avgSteps  = w7.length ? Math.round(w7.reduce((s,l)=>s+(l.steps||0),   0) / w7.length) : 0;
-  const avgWeight = w7.length ? +(w7.reduce((s,l)=>s+(l.weight||0), 0) / w7.length).toFixed(1) : profile.weight;
-  const tdee = profile.tdee || 2000;
-  const protTarget = profile.dailyTargets?.protein || 150;
-  const calDiff = avgCal - tdee;
-
-  const stats = [
-    { label: "Ср. вес",     val: `${avgWeight} кг`,           color: C.blue   },
-    { label: "Ср. калории", val: `${avgCal} ккал`,            color: C.orange },
-    { label: "Ср. белок",   val: `${avgProt} г`,              color: C.purple },
-    { label: "Ср. шаги",    val: avgSteps.toLocaleString(),   color: C.accent },
-  ];
-
+function SourceFooter({ source }) {
+  if (!source || source === TODO) return null;
   return (
-    <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-        {stats.map(s => (
-          <div key={s.label} style={{ background: C.card, borderRadius: 12, padding: "10px 12px" }}>
-            <div style={{ fontSize: 10, color: C.muted, marginBottom: 4 }}>{s.label}</div>
-            <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 18, fontWeight: 800, color: s.color }}>{s.val}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {avgCal > 0 && (
-          <div style={{ background: C.card, borderRadius: 12, padding: "10px 12px", fontSize: 12, lineHeight: 1.6 }}>
-            🔥 <b style={{ color: C.orange }}>{avgCal} ккал/день</b>. {calDiff > 300 ? "Выше нормы — попробуй уменьшить порции." : calDiff < -500 ? "Ниже нормы — не голодай." : "Отлично — близко к норме!"}
-          </div>
-        )}
-        {avgProt > 0 && (
-          <div style={{ background: C.card, borderRadius: 12, padding: "10px 12px", fontSize: 12, lineHeight: 1.6 }}>
-            🥩 <b style={{ color: C.purple }}>{avgProt} г/день</b> из {protTarget} г. {avgProt < protTarget * 0.7 ? "Добавь белок к каждому приёму пищи." : avgProt < protTarget * 0.9 ? "Почти у цели!" : "Отлично!"}
-          </div>
-        )}
-        {avgSteps > 0 && (
-          <div style={{ background: C.card, borderRadius: 12, padding: "10px 12px", fontSize: 12, lineHeight: 1.6 }}>
-            👟 <b style={{ color: C.accent }}>{avgSteps.toLocaleString()}/день</b>. {avgSteps < 5000 ? "Добавь прогулку после обеда." : avgSteps < 8000 ? "Цель — 8 000 шагов." : "Отличная активность!"}
-          </div>
-        )}
-      </div>
-    </>
+    <div style={{ marginTop: 14, fontSize: 10, color: C.muted, fontStyle: "italic", flexShrink: 0, lineHeight: 1.4 }}>
+      {source}
+    </div>
   );
 }
 
-export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
-  const [activeIdx, setActiveIdx] = useState(0);
-  const scrollRef = useRef(null);
-  const cardRefs = useRef([]);
-  const typeDisplay = TYPE_DISPLAY[todayDayData?.type] || TYPE_DISPLAY.lesson;
-  const accent = typeDisplay.color;
-
-  // v2 curriculum body picker with {TODO} fallback. Bodies are placeholders
-  // for most days right now — substitute the action_prompt if present, else
-  // a generic "coming soon" string. The "{TODO}" literal is an internal
-  // marker, not user-facing copy — kept English per critical rule #4.
-  const lang = getLang();
-  const rawBody = lang === "ru" ? todayDayData?.body_ru : todayDayData?.body_en;
-  const rawPrompt = lang === "ru" ? todayDayData?.action_prompt_ru : todayDayData?.action_prompt_en;
-  const body = rawBody === "{TODO}"
-    ? (rawPrompt || t("day_card.todo_fallback"))
-    : (rawBody || rawPrompt || t("day_card.todo_fallback"));
-  // Latched-off as soon as the user starts the first swipe (or taps the
-  // chevron). CSS transition on the wrapper handles the actual fade — we
-  // just flip this once and it stays false for the rest of the session.
-  const [chevronArmed, setChevronArmed] = useState(true);
-
-  // Card shape is square (aspect-ratio: 1) — no explicit pixel height
-  // any more; the Slide component sizes itself from its own width.
-
-  // Build slide list. Long text sections (why / how / goal / tip) are
-  // split into card-sized chunks so nothing overflows; each chunk
-  // becomes its own slide, with a "1/2"-style continuation label when
-  // the section spans more than one card.
-  const slides = [];
-
-  // Task slide — icon + short task line. Task text is usually short, so
-  // no chunking here.
-  slides.push({
-    key: "task",
-    accent,
-    label: `🎯 День ${todayDayData.day} · ${typeDisplay.label}`,
-    title: todayDayData.title,
-    content: (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", paddingTop: 4 }}>
+// ─── COVER ───────────────────────────────────────────────────────────────
+function CoverSlide({ slide, accent, type }) {
+  const hookIsTodo = slide.hook === TODO;
+  const hook = hookIsTodo ? t("v2.slide_fallback.cover_todo") : slide.hook;
+  return (
+    <SlideFrame accent={accent}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", padding: "16px 0" }}>
         <div style={{
-          width: 88, height: 88, borderRadius: 24, marginBottom: 16,
-          background: `${accent}22`, display: "flex", alignItems: "center",
-          justifyContent: "center", fontSize: 48,
-        }}>{todayDayData.icon}</div>
-        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.7 }}>
-          {body}
+          width: 64, height: 64, borderRadius: 18,
+          background: `${accent}22`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 30, marginBottom: 22,
+        }}>
+          {typeIcon(type)}
+        </div>
+        <div style={{
+          fontFamily: F.serif,
+          fontSize: 22,
+          fontWeight: 500,
+          color: C.text,
+          lineHeight: 1.35,
+          letterSpacing: "-0.01em",
+          maxWidth: 340,
+        }}>
+          {hook}
         </div>
       </div>
-    ),
-  });
+    </SlideFrame>
+  );
+}
 
-  // Helper: append one slide per chunk for a long-text section.
-  function pushChunked({ key, text, label, title, slideAccent = accent, maxChars }) {
-    const chunks = chunkText(text, maxChars);
-    chunks.forEach((chunk, i) => {
-      slides.push({
-        key: `${key}-${i}`,
-        accent: slideAccent,
-        label: chunks.length > 1 ? `${label} · ${i + 1}/${chunks.length}` : label,
-        title,
-        content: <div style={{ whiteSpace: "pre-line" }}>{chunk}</div>,
-      });
-    });
-  }
+// ─── LESSON ──────────────────────────────────────────────────────────────
+function LessonSlide({ slide, accent }) {
+  const bodyIsTodo = slide.body === TODO;
+  const body = bodyIsTodo ? t("v2.slide_fallback.lesson_todo") : slide.body;
+  return (
+    <SlideFrame accent={accent}>
+      <div style={{
+        flex: 1,
+        overflow: "auto",
+        color: C.text,
+        fontSize: 14.5,
+        lineHeight: 1.65,
+        fontFamily: F.sans,
+      }}>
+        {body}
+      </div>
+      <SourceFooter source={bodyIsTodo ? null : slide.source} />
+    </SlideFrame>
+  );
+}
 
-  if (todayDayData.info?.why)        pushChunked({ key: "why",  text: todayDayData.info.why,        label: "📖 Почему это важно", title: "Контекст" });
-  if (todayDayData.info?.howTo)      pushChunked({ key: "how",  text: todayDayData.info.howTo,      label: "✅ Как это делать",   title: "Действия" });
-  if (todayDayData.info?.weekTarget) pushChunked({ key: "goal", text: todayDayData.info.weekTarget, label: "🎯 Цель",             title: "На сегодня" });
-
-  // Day-8 weekly stats — structured grid, not chunkable.
-  if (todayDayData.isWeeklyStats && profile.logs.length > 0) {
-    slides.push({
-      key: "stats",
-      accent: C.accent,
-      label: `📊 Статистика за неделю ${currentWeekData?.week || 1}`,
-      title: "Твои средние",
-      content: <WeeklyStatsContent profile={profile} />,
-    });
-  }
-
-  // Tip slide — bigger font (16 vs 14) means it holds less text per
-  // card, so we use a tighter chunk budget.
-  // tip is a v1-curriculum field; v2 day objects don't carry one. chunkText
-  // returns [] for null input, so the forEach below becomes a no-op.
-  const tipChunks = chunkText(todayDayData.tip?.text, 320);
-  tipChunks.forEach((chunk, i) => {
-    slides.push({
-      key: `tip-${i}`,
-      accent: C.accent,
-      label: tipChunks.length > 1
-        ? `💡 ${todayDayData.tip.cat} · ${i + 1}/${tipChunks.length}`
-        : `💡 ${todayDayData.tip.cat}`,
-      title: "Знал?",
-      content: (
-        <div style={{ fontSize: 16, lineHeight: 1.7, color: C.text, fontWeight: 500 }}>
-          {chunk}
+// ─── CALLOUT ─────────────────────────────────────────────────────────────
+function CalloutSlide({ slide, accent }) {
+  const headlineIsTodo = slide.headline === TODO;
+  const headline = headlineIsTodo ? t("v2.slide_fallback.lesson_todo") : slide.headline;
+  const subtext = headlineIsTodo
+    ? null
+    : (slide.subtext === TODO ? null : slide.subtext);
+  return (
+    <SlideFrame accent={accent} tinted>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{
+          fontFamily: F.serif,
+          fontSize: 34,
+          fontWeight: 600,
+          color: accent,
+          lineHeight: 1.1,
+          letterSpacing: "-0.02em",
+          marginBottom: 16,
+        }}>
+          {headline}
         </div>
-      ),
-    });
-  });
+        {subtext && (
+          <div style={{
+            fontSize: 15,
+            color: C.text,
+            lineHeight: 1.55,
+            fontFamily: F.sans,
+          }}>
+            {subtext}
+          </div>
+        )}
+      </div>
+      <SourceFooter source={headlineIsTodo ? null : slide.source} />
+    </SlideFrame>
+  );
+}
 
-  // Track which slide is centred → drives the dot indicator.
+// ─── ACTION / REFLECTION (shared input renderer) ─────────────────────────
+// Both kinds carry a `prompt` + optional `inputType: "text" | "list"`.
+// Saves to daily_reflections keyed by (user_id, day_number). Note: one row
+// per day — repeat saves overwrite, and IdentityCard saves to the same
+// table on Days 4–14 with prompt_key `v2.identity.day{N}`, so whichever
+// surface a user types into last wins on overlapping days. This is a
+// known constraint of the existing schema and out of scope for Phase L.5b.1.
+function InputSlide({ slide, accent, dayNumber, profile, kind }) {
+  const isList = slide.inputType === "list";
+  const promptIsTodo = slide.prompt === TODO;
+  const fallbackKey = kind === "reflection"
+    ? "v2.slide_fallback.reflection_todo"
+    : "v2.slide_fallback.action_todo";
+  const prompt = promptIsTodo ? t(fallbackKey) : slide.prompt;
+  const promptKey = `v2.slide.${kind}.day${dayNumber}`;
+
+  // Hooks first, no conditional return above them (rule #2).
+  // loading starts true only when we'll actually fetch; otherwise it starts
+  // false so we never need to call setLoading inside the effect on the
+  // no-fetch path (avoids react-hooks/set-state-in-effect lint rule).
+  const shouldFetch = Boolean(profile?.id && dayNumber);
+  const [text, setText] = useState("");
+  const [items, setItems] = useState([""]);
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(shouldFetch);
+
+  useEffect(() => {
+    if (!shouldFetch) return;
+    let cancelled = false;
+    supabase
+      .from("daily_reflections")
+      .select("response, prompt_key")
+      .eq("user_id", profile.id)
+      .eq("day_number", dayNumber)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data?.response && data.prompt_key === promptKey) {
+          if (isList) {
+            try {
+              const parsed = JSON.parse(data.response);
+              if (Array.isArray(parsed) && parsed.length > 0) setItems(parsed);
+            } catch {
+              setItems([data.response]);
+            }
+          } else {
+            setText(data.response);
+          }
+          setSaved(true);
+        }
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [shouldFetch, profile?.id, dayNumber, promptKey, isList]);
+
+  const hasContent = isList
+    ? items.some(it => it.trim())
+    : !!text.trim();
+
+  async function handleSave() {
+    if (!hasContent) return;
+    const payload = isList
+      ? JSON.stringify(items.map(it => it.trim()).filter(Boolean))
+      : text.trim();
+    const { error } = await supabase.from("daily_reflections").upsert({
+      user_id: profile.id,
+      day_number: dayNumber,
+      prompt_key: promptKey,
+      response: payload,
+    }, { onConflict: "user_id,day_number" });
+    if (!error) setSaved(true);
+  }
+
+  function updateItem(idx, val) {
+    const next = [...items];
+    next[idx] = val;
+    setItems(next);
+    setSaved(false);
+  }
+
+  function addItem() {
+    if (items.length >= LIST_MAX_ITEMS) return;
+    setItems([...items, ""]);
+  }
+
+  return (
+    <SlideFrame accent={accent}>
+      <div style={{
+        fontSize: 15,
+        color: C.text,
+        lineHeight: 1.5,
+        marginBottom: 14,
+        fontWeight: 500,
+        fontFamily: F.sans,
+      }}>
+        {prompt}
+      </div>
+      <div style={{ flex: 1, overflow: "auto", marginBottom: 14, minHeight: 0 }}>
+        {isList ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {items.map((it, idx) => (
+              <input
+                key={idx}
+                type="text"
+                value={it}
+                onChange={e => updateItem(idx, e.target.value)}
+                placeholder="…"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  padding: "10px 12px",
+                  color: C.text,
+                  fontSize: 13,
+                  fontFamily: F.sans,
+                  outline: "none",
+                }}
+              />
+            ))}
+            {items.length < LIST_MAX_ITEMS && (
+              <button
+                type="button"
+                onClick={addItem}
+                style={{
+                  background: "none",
+                  border: `1px dashed ${C.border}`,
+                  color: C.muted,
+                  fontSize: 12,
+                  padding: "8px 12px",
+                  borderRadius: 10,
+                  cursor: "pointer",
+                  fontFamily: F.sans,
+                  alignSelf: "flex-start",
+                }}
+              >
+                + {t("v2.slide_save.add_item")}
+              </button>
+            )}
+          </div>
+        ) : (
+          <textarea
+            value={text}
+            onChange={e => { setText(e.target.value); setSaved(false); }}
+            placeholder="…"
+            style={{
+              width: "100%",
+              height: "100%",
+              minHeight: 120,
+              boxSizing: "border-box",
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 12,
+              padding: "12px 14px",
+              color: C.text,
+              fontSize: 13.5,
+              fontFamily: F.sans,
+              outline: "none",
+              resize: "none",
+              lineHeight: 1.55,
+            }}
+          />
+        )}
+      </div>
+      <button
+        onClick={handleSave}
+        disabled={!hasContent || saved || loading}
+        style={{
+          padding: "10px 16px",
+          borderRadius: 12,
+          background: saved ? `${accent}22` : (hasContent ? accent : C.dim),
+          color: saved ? accent : (hasContent ? C.bg : C.muted),
+          border: "none",
+          fontSize: 13,
+          fontWeight: 600,
+          fontFamily: F.sans,
+          cursor: hasContent && !saved ? "pointer" : "default",
+          flexShrink: 0,
+          alignSelf: "flex-start",
+        }}
+      >
+        {saved ? t("v2.slide_save.saved") : t("v2.slide_save.save_button")}
+      </button>
+    </SlideFrame>
+  );
+}
+
+// ─── DISPATCHER ──────────────────────────────────────────────────────────
+function SlideRenderer({ slide, accent, type, dayNumber, profile }) {
+  switch (slide?.kind) {
+    case "cover":
+      return <CoverSlide slide={slide} accent={accent} type={type} />;
+    case "lesson":
+      return <LessonSlide slide={slide} accent={accent} />;
+    case "callout":
+      return <CalloutSlide slide={slide} accent={accent} />;
+    case "action":
+      return <InputSlide slide={slide} accent={accent} dayNumber={dayNumber} profile={profile} kind="action" />;
+    case "reflection":
+      return <InputSlide slide={slide} accent={accent} dayNumber={dayNumber} profile={profile} kind="reflection" />;
+    default:
+      // Unknown / missing kind — render a lesson-style TODO so the carousel
+      // still has something to show instead of an empty card.
+      return <LessonSlide slide={{ kind: "lesson", body: TODO }} accent={accent} />;
+  }
+}
+
+// ─── CAROUSEL ────────────────────────────────────────────────────────────
+export function DailyTaskCarousel({ todayDayData, profile }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [chevronArmed, setChevronArmed] = useState(true);
+  const scrollRef = useRef(null);
+  const cardRefs = useRef([]);
+
+  // Derived (not hooks): safe to compute before any conditional return.
+  const slides = Array.isArray(todayDayData?.slides) && todayDayData.slides.length > 0
+    ? todayDayData.slides
+    : [{ kind: "lesson", body: TODO }];
+  const type = todayDayData?.type || "lesson";
+  const accent = typeAccent(type);
+  const dayNumber = todayDayData?.day || 0;
+
+  // Track which slide is centred → drives progress bar fill.
   useEffect(() => {
     const obs = new IntersectionObserver(entries => {
       entries.forEach(e => {
@@ -286,17 +401,7 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
     return () => obs.disconnect();
   }, [slides.length]);
 
-  // Snap scroll to a specific slide when its dot is tapped.
-  const scrollTo = idx => {
-    const el = cardRefs.current[idx];
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  };
-
-  // Disarm the swipe-hint chevron the instant the user starts moving the
-  // track. A very small threshold (8px) is enough — by then the fade has
-  // started and the affordance has done its job. We don't wait for the
-  // intersection observer's slide-change tick because that fires much
-  // later and the chevron would visibly linger.
+  // Disarm the swipe-hint chevron on first interaction.
   useEffect(() => {
     if (!chevronArmed) return;
     const track = scrollRef.current;
@@ -308,13 +413,54 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
     return () => track.removeEventListener("scroll", onScroll);
   }, [chevronArmed]);
 
-  // Single pulse chevron on the right edge — visible only on slide 0 to
-  // teach the swipe gesture. Once the user moves past the first card the
-  // affordance has done its job and stays faded out for the session.
+  const scrollTo = idx => {
+    const el = cardRefs.current[idx];
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  };
+
   const showNextHint = slides.length > 1 && chevronArmed && activeIdx === 0;
+  const progressPct = ((activeIdx + 1) / slides.length) * 100;
 
   return (
     <div style={{ marginBottom: 14, position: "relative" }}>
+      {/* Header chip — day number + type icon + localized type label. */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 10,
+        fontSize: 11,
+        color: C.muted,
+        fontWeight: 600,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        fontFamily: F.sans,
+      }}>
+        <span style={{ fontSize: 14 }}>{typeIcon(type)}</span>
+        <span>{t("v2.daily.day_label")} {dayNumber} · {typeLabel(type)}</span>
+        <span style={{ marginLeft: "auto", color: C.muted, fontWeight: 500, letterSpacing: "0.04em" }}>
+          {activeIdx + 1} / {slides.length}
+        </span>
+      </div>
+
+      {/* Progress bar — Instagram Stories style, ~2px, fills with accent. */}
+      <div style={{
+        width: "100%",
+        height: 2,
+        background: C.dim,
+        borderRadius: 1,
+        marginBottom: 12,
+        overflow: "hidden",
+      }}>
+        <div style={{
+          width: `${progressPct}%`,
+          height: "100%",
+          background: accent,
+          transition: "width 0.3s cubic-bezier(.16,1,.3,1)",
+        }} />
+      </div>
+
+      {/* Scroll-snap track. */}
       <div
         ref={scrollRef}
         style={{
@@ -334,7 +480,6 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
         }}
       >
         <style>{`
-          .form16-carousel-track::-webkit-scrollbar{display:none;}
           @keyframes form16-swipe-hint{
             0%{transform:translateX(0);opacity:0.55}
             50%{transform:translateX(5px);opacity:1}
@@ -343,37 +488,28 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
         `}</style>
         {slides.map((s, i) => (
           <div
-            key={s.key}
+            key={i}
             ref={el => (cardRefs.current[i] = el)}
             data-idx={i}
-            // Each slide carrier takes the full visible width of the track
-            // so only one card is on screen at a time (Instagram feed feel).
-            // The track itself is the dashboard width minus the bleed, so
-            // this auto-fits whatever phone the user is on.
             style={{ flex: "0 0 100%", scrollSnapAlign: "center" }}
           >
-            <Slide
-              accent={s.accent}
-              label={s.label}
-              title={s.title}
-              footer={s.footer}
-            >
-              {s.content}
-            </Slide>
+            <SlideRenderer
+              slide={s}
+              accent={accent}
+              type={type}
+              dayNumber={dayNumber}
+              profile={profile}
+            />
           </div>
         ))}
       </div>
 
-      {/* Swipe-right pulse arrow — visible on slide 0; fades out smoothly
-          the moment the user starts the first swipe, then stays gone for
-          the session. Kept in the DOM so the opacity transition runs;
-          opacity wrapper is outside the pulsing button so the keyframe
-          animation can't fight the fade. */}
+      {/* Swipe-right hint chevron — only visible on slide 0 until first scroll. */}
       {slides.length > 1 && (
         <div
           style={{
             position: "absolute",
-            top: "50%",
+            top: "60%",
             right: 0,
             transform: "translateY(-50%)",
             zIndex: 2,
@@ -383,7 +519,7 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
           }}
         >
           <button
-            aria-label="Следующий слайд"
+            aria-label="next slide"
             onClick={() => { setChevronArmed(false); scrollTo(activeIdx + 1); }}
             style={{
               background: "transparent",
@@ -406,27 +542,6 @@ export function DailyTaskCarousel({ todayDayData, currentWeekData, profile }) {
           </button>
         </div>
       )}
-
-      {/* Dot indicators */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 12 }}>
-        {slides.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => scrollTo(i)}
-            aria-label={`Слайд ${i + 1}`}
-            style={{
-              width: i === activeIdx ? 22 : 6,
-              height: 6,
-              borderRadius: 3,
-              background: i === activeIdx ? accent : C.dim,
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
-              transition: "all 0.25s cubic-bezier(.16,1,.3,1)",
-            }}
-          />
-        ))}
-      </div>
     </div>
   );
 }

@@ -5,7 +5,8 @@
 
 import { useEffect, useRef, Fragment } from "react";
 import { C, F } from "../theme.js";
-import { PROGRAM, getUserGlobalDay } from "../program.js";
+import { PROGRAM, getUserGlobalDay, getWeekData } from "../program.js";
+import { getLang } from "../i18n.js";
 import { Icon } from "./icons.jsx";
 
 // ─── Geometry ─────────────────────────────────────────────────────────
@@ -159,7 +160,7 @@ export function ProgramView({ profile, onDaySelect, onUpgrade }) {
 
   return (
     <div style={{ animation: "slideUp 0.28s both" }}>
-      <SummitHeader theme={PROGRAM[15]?.theme} />
+      <SummitHeader theme={getWeekData(16, getLang())?.theme} />
 
       <div style={{
         position: "relative",
@@ -360,7 +361,7 @@ export function ProgramView({ profile, onDaySelect, onUpgrade }) {
         })}
       </div>
 
-      <StartFooter theme={PROGRAM[0]?.theme} />
+      <StartFooter theme={getWeekData(1, getLang())?.theme} />
     </div>
   );
 }

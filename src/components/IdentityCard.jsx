@@ -1,9 +1,19 @@
 // Identity affirmation prompt — appears on the home screen Days 4–14 only.
 // One day-specific prompt per day, persisted to daily_reflections table.
+//
+// Hidden on Days 6, 7, 12, 14 because the DailyTaskCarousel renders an
+// ActionSlide / ReflectionSlide on those days that writes to the same
+// daily_reflections row (UNIQUE on user_id+day_number). Showing both
+// surfaces would let the user enter two different responses on the same
+// day and silently overwrite each other on save.
 import { useState, useEffect } from "react";
 import { supabase } from "../supabase.js";
 import { C, F } from "../theme.js";
 import { t } from "../i18n.js";
+
+// English literals — day numbers where the carousel owns the day's reflection
+// input. Rule #4: not translated, not derived from locale.
+const COLLISION_DAYS = [6, 7, 12, 14];
 
 export function IdentityCard({ profile, currentDay }) {
   const [response, setResponse] = useState("");
@@ -45,6 +55,9 @@ export function IdentityCard({ profile, currentDay }) {
   }
 
   if (loading || currentDay < 4 || currentDay > 14) return null;
+  // Carousel owns the reflection on these days — skip rendering so the two
+  // surfaces don't fight over the same daily_reflections row.
+  if (COLLISION_DAYS.includes(currentDay)) return null;
 
   return (
     <div style={{

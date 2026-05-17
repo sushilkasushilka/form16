@@ -617,6 +617,25 @@ export const TRANSLATIONS = {
 
   // ─── DAY CARD — TODO BODY FALLBACK ────────────────────────────────────────
   "day_card.todo_fallback":  { en: "Lesson coming soon. For now — ask the AI trainer.", ru: "Урок скоро появится. Пока — спроси у ИИ-тренера." },
+
+  // ─── SLIDE TYPES (v2 day_type labels for the carousel header) ─────────────
+  "v2.day_type.lesson":      { en: "Lesson",     ru: "Урок" },
+  "v2.day_type.action":      { en: "Action",     ru: "Действие" },
+  "v2.day_type.reflection":  { en: "Reflection", ru: "Рефлексия" },
+
+  // ─── SLIDE TODO FALLBACKS ─────────────────────────────────────────────────
+  "v2.slide_fallback.cover_todo":      { en: "Lesson coming soon", ru: "Урок скоро появится" },
+  "v2.slide_fallback.lesson_todo":     { en: "Lesson coming soon. For now — ask the AI trainer in chat.", ru: "Урок скоро появится. Пока — спроси у ИИ-тренера в чате." },
+  "v2.slide_fallback.action_todo":     { en: "Write your thoughts about today", ru: "Запиши свои мысли о сегодняшнем дне" },
+  "v2.slide_fallback.reflection_todo": { en: "Write your thoughts about today", ru: "Запиши свои мысли о сегодняшнем дне" },
+
+  // ─── SLIDE INPUT — SAVE FEEDBACK ──────────────────────────────────────────
+  "v2.slide_save.saved":        { en: "Saved ✓",     ru: "Сохранено ✓" },
+  "v2.slide_save.save_button":  { en: "Save",        ru: "Сохранить" },
+  "v2.slide_save.add_item":     { en: "Add another", ru: "Добавить ещё" },
+
+  // ─── DAILY TASK CAROUSEL HEADER ───────────────────────────────────────────
+  "v2.daily.day_label":         { en: "Day", ru: "День" },
 };
 
 // ─── TRANSLATION FUNCTION ─────────────────────────────────────────────────────
