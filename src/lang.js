@@ -5,7 +5,7 @@
 
 export const LANGUAGES = [
   { code: "ru", label: "Русский", flag: "🇷🇺", enabled: true },
-  { code: "en", label: "English", flag: "🇬🇧", enabled: false, comingSoonRu: "Скоро", comingSoonEn: "Coming soon" },
+  { code: "en", label: "English", flag: "🇬🇧", enabled: false, comingSoon: "Coming soon" },
 ];
 
 export const TRANSLATIONS = {

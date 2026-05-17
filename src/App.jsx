@@ -43,9 +43,9 @@ function LanguagePicker({ onPick }) {
         {LANGUAGES.map(l=>{
           const isDisabled = l.enabled === false;
           const isSelected = !isDisabled && selected === l.code;
-          const comingSoon = isDisabled
-            ? (selected === "ru" ? l.comingSoonRu : l.comingSoonEn)
-            : null;
+          // Disabled label is shown in the language the button represents —
+          // an English-leaning user is the one who reads it.
+          const comingSoon = isDisabled ? l.comingSoon : null;
           return (
             <button
               key={l.code}
